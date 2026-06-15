@@ -231,7 +231,7 @@ Procedure SampleBadImage( D_bad, D_traj ):
 |----------|-------------|
 | $\sigma(u) = \frac{1}{1 + e^{-u}}$ | Sigmoid function |
 | $P(y_1 \succ y_2 \mid x) = \sigma(r(x, y_1) - r(x, y_2))$ | Bradley-Terry preference probability |
-| $\mathcal{L}_{\text{BT}} = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}[\log \sigma(r(x, y_w) - r(x, y_l))]$ | Standard Bradley-Terry loss |
+| $\mathcal{L}_{\text{BT}} = -\mathbb{E}[\log \sigma(r\_{\text{chosen}} - r\_{\text{rejected}})]$ | Standard Bradley-Terry loss |
 
 ---
 
