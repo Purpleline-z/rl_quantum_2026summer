@@ -49,7 +49,7 @@ for epoch = 1 to T do
         else if not applicable:
             L = ReLU(r1,t) + ReLU(r2,t)
 
-        Apply confidence weighting
+        Compute confidence-weighted loss L
 
         Update parameters using AdamW
         Clip gradients
