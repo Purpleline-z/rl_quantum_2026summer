@@ -1,0 +1,34 @@
+{
+  "study_id": "classifier2_protocol_bridge",
+  "status": "ready_for_pairwise_bridge",
+  "current_pairwise_csv": "/content/rl_quantum_2026summer/data/original data/Quantum Label Data - Pairwise_Comparisonv1.8.csv",
+  "current_pairwise_sha256": "5ac158e01ca237918604c1c86c25282c4934148c3c2104581b3be8892d0f344b",
+  "legacy_training_source": "/content/rl_quantum_2026summer/code/classifier2/downstream_classifier_scripts/train_unified.py",
+  "legacy_training_source_sha256": "1ccea124f367fc2e4d9e56ccfc7b421db9ab0fdf61dd2889faebc0b665d18641",
+  "shared_pair_groups": 179,
+  "shared_valid_rows": 669,
+  "raw_reconstruction_types": [
+    "(1 x 1)",
+    "(\u221a13 x \u221a13)",
+    "HTR",
+    "Twinned(2 x 1)",
+    "c(6 x 2)"
+  ],
+  "legacy_protocol": {
+    "pair_level_holdout_fraction": 0.2,
+    "epochs": 30,
+    "learning_rate": 0.0001,
+    "optimizer": "AdamW",
+    "scheduler": "CosineAnnealingLR",
+    "evaluation": "pairwise_holdout"
+  },
+  "current_protocol": {
+    "epochs": 3,
+    "learning_rate": 0.0001,
+    "evaluation": "ideal_image_outer_test"
+  },
+  "limitations": [
+    "The legacy report's pairwise holdout and current ideal-image outer test are separate metrics.",
+    "This audit establishes dataset compatibility before any training comparison."
+  ]
+}

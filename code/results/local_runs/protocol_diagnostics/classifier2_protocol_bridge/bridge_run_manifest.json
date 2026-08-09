@@ -1,0 +1,15 @@
+{
+  "seed": 42,
+  "train_pair_groups": 143,
+  "test_pair_groups": 36,
+  "legacy_checkpoint_load": {
+    "missing": [],
+    "unexpected": []
+  },
+  "legacy_protocol_deviation": "pairwise-only bridge; no UnifiedDataset anchors and no checkpoint files",
+  "ideal_image_comparison": "not performed: legacy and current ideal-image split/evaluation contracts are not identical",
+  "current_train_metrics": {
+    "loss": 0.4064954979934697,
+    "pairwise_accuracy": 0.8120300751879699
+  }
+}
