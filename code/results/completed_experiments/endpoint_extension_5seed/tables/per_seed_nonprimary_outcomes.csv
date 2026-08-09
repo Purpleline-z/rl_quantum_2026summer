@@ -1,0 +1,16 @@
+seed,budget,strategy,pre_test_accuracy,post_test_accuracy,batch_utility,job_id,source_family
+42,100,uncertainty_diversity,0.36666666666666664,0.4666666666666667,0.10000000000000003,003_stage-final_comparison_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p5_budget-100,fixed_protocol_plus_followup
+42,100,cluster_diverse,0.36666666666666664,0.6333333333333333,0.26666666666666666,002_stage-final_comparison_epoch-3_seed-42_strategy-cluster_diverse_lambda-0p5_budget-100,fixed_protocol_plus_followup
+42,100,core_set,0.36666666666666664,0.43333333333333335,0.06666666666666671,004_stage-final_comparison_epoch-3_seed-42_strategy-core_set_lambda-0p5_budget-100,fixed_protocol_plus_followup
+79,100,uncertainty_diversity,0.5666666666666667,0.5,-0.06666666666666665,008_stage-final_comparison_epoch-3_seed-79_strategy-uncertainty_diversity_lambda-0p5_budget-100,fixed_protocol_plus_followup
+79,100,cluster_diverse,0.5666666666666667,0.36666666666666664,-0.2,007_stage-final_comparison_epoch-3_seed-79_strategy-cluster_diverse_lambda-0p5_budget-100,fixed_protocol_plus_followup
+79,100,core_set,0.5666666666666667,0.36666666666666664,-0.2,009_stage-final_comparison_epoch-3_seed-79_strategy-core_set_lambda-0p5_budget-100,fixed_protocol_plus_followup
+123,100,uncertainty_diversity,0.36666666666666664,0.6666666666666666,0.3,013_stage-final_comparison_epoch-3_seed-123_strategy-uncertainty_diversity_lambda-0p5_budget-100,fixed_protocol_plus_followup
+123,100,cluster_diverse,0.36666666666666664,0.5666666666666667,0.2,012_stage-final_comparison_epoch-3_seed-123_strategy-cluster_diverse_lambda-0p5_budget-100,fixed_protocol_plus_followup
+123,100,core_set,0.36666666666666664,0.6333333333333333,0.26666666666666666,014_stage-final_comparison_epoch-3_seed-123_strategy-core_set_lambda-0p5_budget-100,fixed_protocol_plus_followup
+202,100,uncertainty_diversity,0.5333333333333333,0.43333333333333335,-0.09999999999999998,followup_seed-202_strategy-uncertainty_diversity,fixed_protocol_plus_followup
+202,100,cluster_diverse,0.5333333333333333,0.3333333333333333,-0.2,followup_seed-202_strategy-cluster_diverse,fixed_protocol_plus_followup
+202,100,core_set,0.5333333333333333,0.5,-0.033333333333333326,followup_seed-202_strategy-core_set,fixed_protocol_plus_followup
+303,100,uncertainty_diversity,0.3,0.5,0.2,followup_seed-303_strategy-uncertainty_diversity,fixed_protocol_plus_followup
+303,100,cluster_diverse,0.3,0.3,0.0,followup_seed-303_strategy-cluster_diverse,fixed_protocol_plus_followup
+303,100,core_set,0.3,0.16666666666666666,-0.13333333333333333,followup_seed-303_strategy-core_set,fixed_protocol_plus_followup

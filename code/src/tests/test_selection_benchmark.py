@@ -81,6 +81,51 @@ class SelectionBenchmarkTests(unittest.TestCase):
         self.assertNotIn("torch.save", source)
         self.assertNotIn(".pth", source)
 
+    def test_primary_curve_uses_git_tracked_curated_evidence_when_local_runs_absent(self):
+        import pandas as pd
+        original_root = benchmark.RESULT_ROOT
+        try:
+            root = Path(self.temp.name) / "results" / "local_runs"
+            curated = root.parent / "completed_experiments" / "budget_curve_5seed" / "tables"
+            curated.mkdir(parents=True)
+            rows = []
+            for seed in benchmark.SEEDS:
+                for budget in benchmark.BUDGETS:
+                    for strategy in ("random", "uncertainty"):
+                        rows.append({"seed": seed, "budget": budget, "strategy": strategy, "symmetry_mode": "none",
+                                     "pre_test_accuracy": .3, "post_test_accuracy": .4, "batch_utility": .1,
+                                     "job_id": f"{seed}-{budget}-{strategy}"})
+            pd.DataFrame(rows).to_csv(curated / "per_seed_performance_by_acquisition_budget.csv", index=False)
+            benchmark.RESULT_ROOT = root
+            output = Path(self.temp.name) / "normalized"
+            normalized = pd.read_csv(benchmark.normalize_existing_primary_curve(output))
+        finally:
+            benchmark.RESULT_ROOT = original_root
+        self.assertEqual(len(normalized), 50)
+        self.assertEqual(set(normalized.provenance), {"reused_git_tracked_primary_curve"})
+
+    def test_endpoint_uses_git_tracked_curated_evidence_when_local_runs_absent(self):
+        import pandas as pd
+        original_root = benchmark.RESULT_ROOT
+        try:
+            root = Path(self.temp.name) / "results" / "local_runs"
+            curated = root.parent / "completed_experiments" / "endpoint_extension_5seed" / "tables"
+            curated.mkdir(parents=True)
+            rows = []
+            for seed in benchmark.SEEDS:
+                for strategy in ("uncertainty_diversity", "cluster_diverse", "core_set"):
+                    rows.append({"seed": seed, "budget": 100, "strategy": strategy, "pre_test_accuracy": .3,
+                                 "post_test_accuracy": .4, "batch_utility": .1, "job_id": f"{seed}-{strategy}",
+                                 "source_family": "curated"})
+            pd.DataFrame(rows).to_csv(curated / "per_seed_nonprimary_outcomes.csv", index=False)
+            benchmark.RESULT_ROOT = root
+            output = Path(self.temp.name) / "normalized_endpoint"
+            normalized = pd.read_csv(benchmark.normalize_historical_endpoint(output))
+        finally:
+            benchmark.RESULT_ROOT = original_root
+        self.assertEqual(len(normalized), 15)
+        self.assertIn("cluster_quota_uncertainty", set(normalized.strategy))
+
     def test_mc_manifest_has_configuration_and_thirty_jobs(self):
         path = benchmark.generate_mc_screen()
         value = json.loads(path.read_text(encoding="utf-8"))

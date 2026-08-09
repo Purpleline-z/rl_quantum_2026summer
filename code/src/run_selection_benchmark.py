@@ -132,9 +132,11 @@ def _validate_grid(frame: pd.DataFrame, strategies: tuple[str, ...], budgets: tu
 
 def normalize_historical_endpoint(output: Path) -> Path:
     """Freeze the compatible five-seed, budget-100 evidence with provenance."""
-    source = RESULT_ROOT / "strategy_followup_analysis" / "five_seed_extension" / "five_seed_per_run.csv"
+    local_source = RESULT_ROOT / "strategy_followup_analysis" / "five_seed_extension" / "five_seed_per_run.csv"
+    curated_source = RESULT_ROOT.parent / "completed_experiments" / "endpoint_extension_5seed" / "tables" / "per_seed_nonprimary_outcomes.csv"
+    source = local_source if local_source.exists() else curated_source
     if not source.exists():
-        raise FileNotFoundError(f"Historical per-seed endpoint missing: {source}")
+        raise FileNotFoundError(f"Neither local nor Git-tracked endpoint evidence exists: {local_source} or {curated_source}")
     frame = pd.read_csv(source)
     frame["strategy"] = frame.strategy.replace(LEGACY_NAMES)
     wanted = frame[(frame.seed.isin(SEEDS)) & (frame.budget == 100) &
@@ -143,10 +145,13 @@ def normalize_historical_endpoint(output: Path) -> Path:
     found = set(wanted[["seed", "strategy"]].itertuples(index=False, name=None))
     if found != expected:
         raise ValueError(f"Historical endpoint lacks expected seed/strategy cells: {sorted(expected - found)}")
-    if wanted.epoch.nunique() != 1 or int(wanted.epoch.iloc[0]) != 3 or wanted.selected_pairs.nunique() != 1 or int(wanted.selected_pairs.iloc[0]) != 100:
+    if "epoch" in wanted and (wanted.epoch.nunique() != 1 or int(wanted.epoch.iloc[0]) != 3):
         raise ValueError("Historical endpoint is not compatible with epoch-3, budget-100 protocol.")
-    normalized = wanted.rename(columns={"post_test_accuracy": "post_test_accuracy", "batch_utility": "batch_utility"})[
-        ["seed", "budget", "strategy", "pre_test_accuracy", "post_test_accuracy", "batch_utility", "job_id", "source_result"]].copy()
+    if "selected_pairs" in wanted and (wanted.selected_pairs.nunique() != 1 or int(wanted.selected_pairs.iloc[0]) != 100):
+        raise ValueError("Historical endpoint is not compatible with budget-100 protocol.")
+    columns = ["seed", "budget", "strategy", "pre_test_accuracy", "post_test_accuracy", "batch_utility", "job_id"]
+    normalized = wanted[columns].copy()
+    normalized["source_result"] = wanted.get("source_result", wanted.get("source_family", "Git-tracked curated endpoint evidence"))
     normalized["symmetry_mode"] = "none"
     normalized["provenance"] = "reused_historical_budget100_endpoint"
     normalized["source_csv"] = str(source)
@@ -164,15 +169,32 @@ def normalize_historical_endpoint(output: Path) -> Path:
 def normalize_existing_primary_curve(output: Path) -> Path:
     source_root = RESULT_ROOT / "budget_curve_study" / "jobs"
     rows = []
+    missing_local = False
     for seed in SEEDS:
         for budget in BUDGETS:
             for strategy in ("random", "uncertainty"):
                 identifier = job_id({"seed": seed, "budget": budget, "strategy": strategy, "symmetry_mode": "none"})
                 result = source_root / identifier / "result.json"
                 if not result.exists():
-                    raise FileNotFoundError(f"Existing primary-curve job missing: {result}")
+                    missing_local = True
+                    break
                 rows.append(_row_from_result(result, "reused_existing_primary_curve"))
-    frame = pd.DataFrame(rows)
+            if missing_local:
+                break
+        if missing_local:
+            break
+    if missing_local:
+        source = RESULT_ROOT.parent / "completed_experiments" / "budget_curve_5seed" / "tables" / "per_seed_performance_by_acquisition_budget.csv"
+        if not source.exists():
+            raise FileNotFoundError(f"Git-tracked primary-curve evidence missing: {source}")
+        curated = pd.read_csv(source)
+        frame = curated[(curated.seed.isin(SEEDS)) & (curated.budget.isin(BUDGETS)) &
+                        (curated.strategy.isin(("random", "uncertainty"))) & curated.symmetry_mode.eq("none")].copy()
+        frame["provenance"] = "reused_git_tracked_primary_curve"
+        frame["source_path"] = str(source)
+        frame["source_sha256"] = sha256(source)
+    else:
+        frame = pd.DataFrame(rows)
     _validate_grid(frame, ("random", "uncertainty"), BUDGETS, ("none",))
     output.mkdir(parents=True, exist_ok=True)
     path = output / "shared_primary_curve_normalized.csv"
