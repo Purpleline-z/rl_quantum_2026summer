@@ -123,3 +123,7 @@ python run_selection_benchmark.py aggregate-stage2 --manifest ../results/local_r
 ```
 
 Default jobs use the 50-minute runtime limit; large resumable checkpoints are disabled. Each new job writes its immutable manifest, source hashes, overlap audit, selected pairs, result JSON, and lightweight logs.
+
+## Planned protocol diagnostics
+
+Three diagnostics are now implemented but have no results at this report revision. They are kept separate from the active-selection curves: a checkpoint-free Classifier2 pairwise bridge, a learning-rate calibration with epoch fixed at 3 and outer-test access withheld, and a SimCLR-versus-ImageNet initialization screen with the same outer-test isolation. All three reuse frozen Stage-1 budget-100 selected pair IDs. Their immutable manifests and future results reside under `results/local_runs/protocol_diagnostics/`; no conclusion is claimed until each study is completed and aggregated.
