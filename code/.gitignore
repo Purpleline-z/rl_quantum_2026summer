@@ -1,0 +1,14 @@
+results/local_runs/
+**/job_state.json
+**/utility_cache*/
+**/checkpoints/
+*.pth
+!classifier2/simclr_resnet18_encoder.pth
+*.pt
+*.ckpt
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.tmp
+*.log
+.DS_Store

@@ -1,0 +1,12 @@
+{
+  "status": "tentative - requires physics-team confirmation before use in inference or acquisition",
+  "constraints": [
+    {"rule": "HTR comes last", "kind": "ordering", "enabled": false},
+    {"rule": "trajectory starts at 1x1", "kind": "ordering", "enabled": false},
+    {"rule": "1x1 may pass through bad before another type", "kind": "transition", "enabled": false}
+  ],
+  "stream_pairing_policy": {
+    "enabled": false,
+    "description": "Future stream mode forms candidate pairs only from temporally adjacent frames in the same trajectory."
+  }
+}
