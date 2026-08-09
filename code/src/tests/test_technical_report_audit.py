@@ -17,12 +17,16 @@ class TechnicalReportAuditTests(unittest.TestCase):
         self.assertNotIn("results/published", self.text)
         self.assertIn("results/completed_experiments", self.text)
 
-    def test_report_answers_core_review_questions(self):
-        self.assertIn("Direct Responses to Active-Learning Review Questions", self.text)
+    def test_report_documents_result_oriented_benchmark(self):
+        self.assertIn("Result-Oriented RHEED Active Pair Selection", self.text)
+        self.assertIn("five selectors", self.text.lower())
+        self.assertIn("Benchmark status matrix", self.text)
+        self.assertIn("Uncertainty + diversity", self.text)
+        self.assertIn("Cluster quota uncertainty", self.text)
+        self.assertIn("Core-set", self.text)
         self.assertIn("post_test_accuracy_by_acquisition_budget.png", self.text)
-        self.assertIn("self-supervised contrastive learning on RHEED images, not pairwise preference learning", self.text)
-        self.assertIn("exact image population used to produce the shipped checkpoint is not established", self.text)
-        self.assertIn("There is **no separate pairwise validation partition**", self.text)
+        self.assertIn("SimCLR is image-only self-supervised pretraining, not pairwise preference learning", self.text)
+        self.assertIn("There is no separate pairwise validation partition", self.text)
 
     def test_all_markdown_artifact_links_resolve(self):
         for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", self.text):

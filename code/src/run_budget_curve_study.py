@@ -24,6 +24,9 @@ OUT = RESULT_ROOT / "budget_curve_study"
 BUDGETS, SEEDS = (10, 25, 50, 75, 100), (42, 79, 123, 202, 303)
 PRIMARY = ("random", "uncertainty")
 EXPLORATORY = ("cluster_quota_uncertainty", "cluster_margin_pairwise")
+# Runnable selector names.  NMF strategies remain listed because their own
+# diagnostic intentionally rejects acquisition until it passes.
+ALL_STRATEGIES = PRIMARY + ("uncertainty_diversity", "core_set") + EXPLORATORY + ("mixture_only", "uncertainty_plus_mixture")
 DATA_ROOT: str | None = None
 
 
@@ -45,10 +48,32 @@ def job_id(spec: dict) -> str:
     return f"seed-{spec['seed']}_budget-{spec['budget']}_strategy-{spec['strategy']}_symmetry-{spec['symmetry_mode']}"
 
 
-def generate_manifest(symmetry: bool = False, smoke: bool = False, exploratory: bool = False) -> Path:
-    budgets = (2,) if smoke else ((100,) if symmetry else BUDGETS)
-    seeds = (42, 79) if smoke else SEEDS
-    strategies = EXPLORATORY + ("mixture_only", "uncertainty_plus_mixture") if exploratory else PRIMARY
+def parse_csv_values(raw: str | None, cast, name: str) -> tuple | None:
+    """Parse a compact CLI list without silently accepting malformed studies."""
+    if raw is None:
+        return None
+    try:
+        values = tuple(cast(value.strip()) for value in raw.split(",") if value.strip())
+    except ValueError as exc:
+        raise ValueError(f"--{name} must be a comma-separated list of valid values.") from exc
+    if not values or len(set(values)) != len(values):
+        raise ValueError(f"--{name} must contain one or more unique values.")
+    return values
+
+
+def generate_manifest(symmetry: bool = False, smoke: bool = False, exploratory: bool = False,
+                      budgets: tuple[int, ...] | None = None, seeds: tuple[int, ...] | None = None,
+                      strategies: tuple[str, ...] | None = None, manifest_name: str | None = None) -> Path:
+    if smoke and any(value is not None for value in (budgets, seeds, strategies)):
+        raise ValueError("--smoke cannot be combined with explicit budgets, seeds, or strategies.")
+    budgets = (2,) if smoke else (budgets or ((100,) if symmetry else BUDGETS))
+    seeds = (42, 79) if smoke else (seeds or SEEDS)
+    strategies = strategies or (EXPLORATORY + ("mixture_only", "uncertainty_plus_mixture") if exploratory else PRIMARY)
+    if any(budget <= 0 or budget > 120 for budget in budgets):
+        raise ValueError("Each acquisition budget must be between 1 and 120 candidate pair groups.")
+    unknown = sorted(set(strategies) - set(ALL_STRATEGIES))
+    if unknown:
+        raise ValueError(f"Unknown strategies: {', '.join(unknown)}. Valid values: {', '.join(ALL_STRATEGIES)}.")
     modes = ("none", "left_half_mirror", "symmetric_average") if symmetry else ("none",)
     jobs = []
     for seed in seeds:
@@ -63,8 +88,13 @@ def generate_manifest(symmetry: bool = False, smoke: bool = False, exploratory: 
                         # evidence for the fixed-protocol scientific comparison.
                         spec.update(epoch=1, initial_pairs=8, candidate_pairs=8)
                     spec["job_id"] = job_id(spec); jobs.append(spec)
-    path = OUT / ("smoke_manifest.json" if smoke else "symmetry_manifest.json" if symmetry else "exploratory_manifest.json" if exploratory else "budget_manifest.json")
-    atomic_json({"jobs": jobs}, path)
+    default_name = "smoke_manifest" if smoke else "symmetry_manifest" if symmetry else "exploratory_manifest" if exploratory else "budget_manifest"
+    filename = manifest_name or default_name
+    if not filename.endswith(".json"):
+        filename += ".json"
+    path = OUT / filename
+    atomic_json({"study": {"budgets": budgets, "seeds": seeds, "strategies": strategies, "symmetry": symmetry,
+                            "purpose": "manifest only; results are evidence only after completed jobs are aggregated"}, "jobs": jobs}, path)
     return path
 
 
@@ -190,6 +220,49 @@ def aggregate():
     write_report(frame, summary)
 
 
+LOW_BUDGET_EXTENSION_SEEDS = SEEDS + (404, 505, 606, 707, 808, 909, 1010, 1111, 1212, 1313)
+
+
+def aggregate_low_budget_extension():
+    """Create a standalone 15-seed budget-10 endpoint without pooling other budgets."""
+    rows, missing = [], []
+    for seed in LOW_BUDGET_EXTENSION_SEEDS:
+        for strategy in PRIMARY:
+            identifier = job_id({"seed": seed, "budget": 10, "strategy": strategy, "symmetry_mode": "none"})
+            path = OUT / "jobs" / identifier / "result.json"
+            if not path.exists():
+                missing.append(identifier)
+                continue
+            result = json.loads(path.read_text(encoding="utf-8"))
+            rows.append({"seed": seed, "strategy": strategy, "budget": 10,
+                         "post_test_accuracy": result["post"]["test_accuracy"],
+                         "batch_utility": result["batch_utility"], "job_id": identifier})
+    if missing:
+        raise ValueError("The low-budget extension is incomplete. Run these jobs first:\n" + "\n".join(missing))
+    output = RESULT_ROOT / "low_budget_extension_15seed"
+    output.mkdir(parents=True, exist_ok=True)
+    frame = pd.DataFrame(rows)
+    frame.to_csv(output / "per_seed_budget10_outcomes.csv", index=False)
+    summary = frame.groupby("strategy", as_index=False).agg(
+        n=("seed", "count"), post_test_accuracy_mean=("post_test_accuracy", "mean"),
+        post_test_accuracy_std=("post_test_accuracy", "std"), batch_utility_mean=("batch_utility", "mean"),
+        batch_utility_std=("batch_utility", "std"))
+    summary.to_csv(output / "budget10_strategy_summary.csv", index=False)
+    atomic_json({"budget": 10, "seeds": LOW_BUDGET_EXTENSION_SEEDS, "strategies": PRIMARY,
+                 "source": "budget_curve_study jobs; this is a separate low-budget endpoint", "n": len(frame)},
+                output / "study_manifest.json")
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
+    for strategy, group in frame.groupby("strategy"):
+        ax.scatter(group.seed, group.post_test_accuracy, label=strategy, alpha=.8)
+        row = summary[summary.strategy == strategy].iloc[0]
+        ax.axhline(row.post_test_accuracy_mean, linestyle="--", linewidth=1)
+    ax.set(xlabel="Reproducibility seed", ylabel="Post-acquisition fixed ideal-test accuracy",
+           title="Budget-10 low-label extension (15 seeds)")
+    ax.grid(alpha=.25); ax.legend(); fig.tight_layout()
+    fig.savefig(output / "post_test_accuracy_budget10_15seed.png", dpi=160); plt.close(fig)
+    return output
+
+
 def write_report(frame: pd.DataFrame | None = None, summary: pd.DataFrame | None = None):
     if frame is None: frame = pd.read_csv(OUT / "per_seed_results.csv")
     if summary is None: summary = pd.read_csv(OUT / "budget_summary.csv")
@@ -202,14 +275,19 @@ def write_report(frame: pd.DataFrame | None = None, summary: pd.DataFrame | None
 def main():
     global DATA_ROOT
     parser = argparse.ArgumentParser(description=__doc__); sub = parser.add_subparsers(dest="command", required=True)
-    g = sub.add_parser("generate-manifest"); g.add_argument("--symmetry", action="store_true"); g.add_argument("--smoke", action="store_true"); g.add_argument("--exploratory", action="store_true"); g.add_argument("--data-root")
+    g = sub.add_parser("generate-manifest"); g.add_argument("--symmetry", action="store_true"); g.add_argument("--smoke", action="store_true"); g.add_argument("--exploratory", action="store_true"); g.add_argument("--budgets", help="Comma-separated acquired-pair budgets, e.g. 10,25."); g.add_argument("--seeds", help="Comma-separated reproducibility seeds."); g.add_argument("--strategies", help="Comma-separated selectors, e.g. random,uncertainty."); g.add_argument("--manifest-name", help="Output manifest name under results/local_runs/budget_curve_study."); g.add_argument("--data-root")
     r = sub.add_parser("run-job"); r.add_argument("--manifest", type=Path, default=OUT / "budget_manifest.json"); r.add_argument("--job-id", required=True); r.add_argument("--data-root")
-    sub.add_parser("aggregate"); sub.add_parser("report")
+    sub.add_parser("aggregate"); sub.add_parser("aggregate-low-budget-extension"); sub.add_parser("report")
     args = parser.parse_args()
     DATA_ROOT = getattr(args, "data_root", None)
-    if args.command == "generate-manifest": print(generate_manifest(args.symmetry, args.smoke, args.exploratory))
+    if args.command == "generate-manifest":
+        budgets = parse_csv_values(args.budgets, int, "budgets")
+        seeds = parse_csv_values(args.seeds, int, "seeds")
+        strategies = parse_csv_values(args.strategies, str, "strategies")
+        print(generate_manifest(args.symmetry, args.smoke, args.exploratory, budgets, seeds, strategies, args.manifest_name))
     elif args.command == "run-job": run_job(load_job(args.manifest, args.job_id))
     elif args.command == "aggregate": aggregate()
+    elif args.command == "aggregate-low-budget-extension": print(aggregate_low_budget_extension())
     else: write_report()
 
 
