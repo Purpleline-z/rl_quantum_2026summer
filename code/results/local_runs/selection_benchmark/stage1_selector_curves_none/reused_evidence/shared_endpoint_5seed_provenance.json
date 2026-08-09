@@ -1,0 +1,21 @@
+{
+  "source": "/content/rl_quantum_2026summer/code/results/completed_experiments/endpoint_extension_5seed/tables/per_seed_nonprimary_outcomes.csv",
+  "source_sha256": "e6a33e559e354386867dc288c5640290aab925e014b70a9e4e64a8cd6705328c",
+  "legacy_strategy_mapping": {
+    "cluster_diverse": "cluster_quota_uncertainty"
+  },
+  "compatibility": {
+    "seeds": [
+      42,
+      79,
+      123,
+      202,
+      303
+    ],
+    "budget": 100,
+    "epoch": 3,
+    "selected_pair_groups": 100,
+    "symmetry_mode": "none",
+    "status": "compatible"
+  }
+}

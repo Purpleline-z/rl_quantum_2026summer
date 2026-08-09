@@ -1,0 +1,7 @@
+{
+  "manifest": "../results/local_runs/selection_benchmark/stage1_selector_curves_none/study_manifest.json",
+  "new_jobs": 60,
+  "reused_rows": 65,
+  "completed_grid_cells": 125,
+  "status": "completed"
+}
