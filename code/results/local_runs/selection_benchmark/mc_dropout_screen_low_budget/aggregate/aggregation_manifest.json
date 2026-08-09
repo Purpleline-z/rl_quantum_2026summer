@@ -1,0 +1,7 @@
+{
+  "manifest": "../results/local_runs/selection_benchmark/mc_dropout_screen_low_budget/study_manifest.json",
+  "new_jobs": 30,
+  "completed_grid_cells": 30,
+  "status": "completed",
+  "winner_claim": "not made by this screening"
+}
