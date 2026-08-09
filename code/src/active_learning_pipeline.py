@@ -108,10 +108,20 @@ class FlattenedEncoder(nn.Sequential):
 
 class BTModel(nn.Module):
     """ResNet-18 reward model compatible with the supplied SimCLR encoder."""
-    def __init__(self, encoder_weights: Path | None, hidden_dim: int = 256, dropout_p: float = .2, metadata_dim: int = 0):
+    def __init__(self, encoder_weights: Path | None, hidden_dim: int = 256, dropout_p: float = .2,
+                 metadata_dim: int = 0, encoder_initialization: str = "simclr"):
         super().__init__()
-        self.encoder = FlattenedEncoder(*list(models.resnet18(weights=None).children())[:-1])
-        if encoder_weights and encoder_weights.exists():
+        if encoder_initialization == "imagenet":
+            # Download/caching is delegated to torchvision.  The immutable run
+            # manifest records this named public initialization separately from
+            # the local SimCLR checkpoint hash.
+            backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+            self.encoder = FlattenedEncoder(*list(backbone.children())[:-1])
+        elif encoder_initialization == "simclr":
+            self.encoder = FlattenedEncoder(*list(models.resnet18(weights=None).children())[:-1])
+        else:
+            raise ValueError("encoder_initialization must be 'simclr' or 'imagenet'.")
+        if encoder_initialization == "simclr" and encoder_weights and encoder_weights.exists():
             state = torch.load(encoder_weights, map_location="cpu")
             if isinstance(state, dict) and "state_dict" in state: state = state["state_dict"]
             cleaned = {k.replace("encoder.", ""): v for k, v in state.items() if not k.startswith("projector.")}
@@ -156,6 +166,7 @@ class Config:
     dataset_version: str = "v1.8"
     utility_validation_fraction: float = .2
     bad_anchor_weight: float = .10
+    encoder_initialization: str = "simclr"
 
 
 class Experiment:
@@ -311,7 +322,8 @@ class Experiment:
 
     def make_model(self) -> BTModel:
         seed_everything(self.cfg.seed)
-        return BTModel(self.encoder_weights, dropout_p=self.cfg.dropout_p, metadata_dim=self.metadata_dim).to(self.device)
+        return BTModel(self.encoder_weights, dropout_p=self.cfg.dropout_p, metadata_dim=self.metadata_dim,
+                       encoder_initialization=self.cfg.encoder_initialization).to(self.device)
 
     def rows_for(self, ids: Iterable[str]) -> pd.DataFrame:
         values = [self.groups[x] for x in ids]
