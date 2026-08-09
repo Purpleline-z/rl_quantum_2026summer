@@ -59,16 +59,47 @@ def stage1_job(seed: int, selector: str) -> Path:
 
 
 def frozen_selection(seed: int, selector: str) -> tuple[list[str], Path]:
-    path = stage1_job(seed, selector) / "manifests" / "selected_pairs.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"Missing completed Stage-1 selection: {path}")
+    snapshot = RESULT_ROOT.parent / "completed_experiments" / "budget_curve_5seed" / "manifests" / "frozen_budget100_selections.json"
+    candidates = [stage1_job(seed, selector) / "manifests" / "selected_pairs.csv",
+                  RESULT_ROOT / "budget_curve_study" / "jobs" / f"seed-{seed}_budget-100_strategy-{selector}_symmetry-none" / "manifests" / "selected_pairs.csv"]
+    path = next((item for item in candidates if item.exists()), None)
+    if path is None and snapshot.exists():
+        payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        key = f"seed-{seed}|strategy-{selector}"
+        if key in payload.get("selections", {}):
+            ids = payload["selections"][key]["pair_ids"]
+            if len(ids) == 100:
+                return ids, snapshot
+    if path is None:
+        raise FileNotFoundError("Missing frozen budget-100 selection for "
+                                f"seed={seed}, selector={selector}. Expected one of: " + "; ".join(map(str, candidates)) +
+                                f"; or curated snapshot {snapshot}. Run export-frozen-selections on the source repository.")
     frame = pd.read_csv(path)
     if "pair_id" not in frame:
-        raise ValueError(f"Stage-1 selected-pair artifact has no pair_id column: {path}")
+        raise ValueError(f"Frozen selected-pair artifact has no pair_id column: {path}")
     ids = list(dict.fromkeys(frame.pair_id.astype(str)))
     if len(ids) != 100:
         raise ValueError(f"Expected 100 frozen selected pair groups in {path}; found {len(ids)}.")
     return ids, path
+
+
+def export_frozen_selections() -> Path:
+    """Publish only pair IDs needed to reproduce diagnostic retraining in Colab."""
+    selections = {}
+    for seed in CONFIRMATION_SEEDS:
+        for selector in SELECTORS:
+            source = RESULT_ROOT / "budget_curve_study" / "jobs" / f"seed-{seed}_budget-100_strategy-{selector}_symmetry-none" / "manifests" / "selected_pairs.csv"
+            if not source.exists():
+                raise FileNotFoundError(f"Cannot curate frozen selection; source missing: {source}")
+            frame = pd.read_csv(source)
+            ids = list(dict.fromkeys(frame.pair_id.astype(str)))
+            if len(ids) != 100:
+                raise ValueError(f"Expected 100 pair IDs in {source}; found {len(ids)}.")
+            selections[f"seed-{seed}|strategy-{selector}"] = {"pair_ids": ids, "source_path": str(source), "source_sha256": sha256(source)}
+    target = RESULT_ROOT.parent / "completed_experiments" / "budget_curve_5seed" / "manifests" / "frozen_budget100_selections.json"
+    atomic_json({"purpose": "Frozen selected pair-group IDs for protocol diagnostics; no images or labels are copied.",
+                 "budget": 100, "seeds": CONFIRMATION_SEEDS, "selectors": SELECTORS, "selections": selections}, target)
+    return target
 
 
 def build_manifest(study_id: str, kind: str, jobs: list[dict], protocol: dict) -> Path:
@@ -299,7 +330,7 @@ def run_classifier2_bridge(data_root: str | None = None, seed: int = 42) -> Path
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__); sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("generate-lr-calibration", "generate-encoder-screen", "generate-classifier2-audit"):
+    for name in ("generate-lr-calibration", "generate-encoder-screen", "generate-classifier2-audit", "export-frozen-selections"):
         item = sub.add_parser(name); item.add_argument("--data-root")
     run = sub.add_parser("run-manifest"); run.add_argument("--manifest", type=Path, required=True); run.add_argument("--data-root")
     bridge = sub.add_parser("run-classifier2-bridge"); bridge.add_argument("--data-root"); bridge.add_argument("--seed", type=int, default=42)
@@ -311,6 +342,7 @@ def main() -> None:
     if args.command == "generate-lr-calibration": print(generate_lr_calibration())
     elif args.command == "generate-encoder-screen": print(generate_encoder_screen())
     elif args.command == "generate-classifier2-audit": print(generate_classifier2_audit(args.data_root))
+    elif args.command == "export-frozen-selections": print(export_frozen_selections())
     elif args.command == "run-classifier2-bridge": print(run_classifier2_bridge(args.data_root, args.seed))
     elif args.command == "run-manifest": run_manifest(args.manifest, args.data_root)
     elif args.command == "aggregate-lr-calibration": print(aggregate_lr_calibration(args.manifest))

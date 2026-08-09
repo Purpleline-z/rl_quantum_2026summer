@@ -125,3 +125,5 @@ python run_protocol_diagnostics.py generate-encoder-screen
 python run_protocol_diagnostics.py run-manifest --manifest ../results/local_runs/protocol_diagnostics/encoder_initialization_screen/study_manifest.json
 python run_protocol_diagnostics.py aggregate-encoder-screen --manifest ../results/local_runs/protocol_diagnostics/encoder_initialization_screen/study_manifest.json
 ```
+
+The repository ships `results/completed_experiments/budget_curve_5seed/manifests/frozen_budget100_selections.json`, a compact pair-ID-only snapshot required by these studies. Maintainers can regenerate it from the retained source jobs with `python run_protocol_diagnostics.py export-frozen-selections`.

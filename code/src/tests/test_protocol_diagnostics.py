@@ -41,6 +41,20 @@ class ProtocolDiagnosticsTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             diagnostics.generate_encoder_screen()
 
+    def test_frozen_selection_can_use_curated_pair_id_snapshot(self):
+        original_result_root = diagnostics.RESULT_ROOT
+        try:
+            diagnostics.RESULT_ROOT = Path(self.temp.name) / "results" / "local_runs"
+            snapshot = diagnostics.RESULT_ROOT.parent / "completed_experiments" / "budget_curve_5seed" / "manifests" / "frozen_budget100_selections.json"
+            snapshot.parent.mkdir(parents=True)
+            ids = [f"pair-{i}" for i in range(100)]
+            diagnostics.atomic_json({"selections": {"seed-42|strategy-random": {"pair_ids": ids}}}, snapshot)
+            selected, source = diagnostics.frozen_selection(42, "random")
+        finally:
+            diagnostics.RESULT_ROOT = original_result_root
+        self.assertEqual(selected, ids)
+        self.assertEqual(source, snapshot)
+
     def test_diagnostic_runner_does_not_write_model_checkpoints(self):
         source = Path(diagnostics.__file__).read_text(encoding="utf-8")
         self.assertNotIn("torch.save", source)
