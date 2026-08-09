@@ -1,0 +1,7 @@
+{
+  "manifest": "../results/local_runs/selection_benchmark/cluster_margin_curve_none/study_manifest.json",
+  "new_jobs": 25,
+  "completed_grid_cells": 25,
+  "status": "completed",
+  "baseline_join": "only if Stage 1 aggregate exists, with source hash"
+}
