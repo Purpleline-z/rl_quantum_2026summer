@@ -103,3 +103,27 @@ python run_selection_benchmark.py run-manifest --manifest ../results/local_runs/
 ```
 
 Each command skips completed job results after a Colab interruption. Aggregate only after a manifest finishes.
+
+## Classifier protocol diagnostics
+
+These three independent studies reuse frozen Stage-1 budget-100 selections; they do not rerun acquisition and never write model checkpoints. Run each on a separate GPU session after pulling the code update:
+
+```bash
+# A. Audit first, then run the checkpoint-free pairwise bridge.
+python run_protocol_diagnostics.py generate-classifier2-audit
+python run_protocol_diagnostics.py run-classifier2-bridge
+
+# B. Learning-rate calibration (utility-validation only).
+python run_protocol_diagnostics.py generate-lr-calibration
+python run_protocol_diagnostics.py run-manifest --manifest ../results/local_runs/protocol_diagnostics/learning_rate_calibration/study_manifest.json
+python run_protocol_diagnostics.py aggregate-lr-calibration --manifest ../results/local_runs/protocol_diagnostics/learning_rate_calibration/study_manifest.json
+# Generate and run the outer-test confirmation only after the lock file exists.
+python run_protocol_diagnostics.py generate-lr-confirmation --manifest ../results/local_runs/protocol_diagnostics/learning_rate_calibration/study_manifest.json
+
+# C. SimCLR versus ImageNet encoder screening (utility-validation only).
+python run_protocol_diagnostics.py generate-encoder-screen
+python run_protocol_diagnostics.py run-manifest --manifest ../results/local_runs/protocol_diagnostics/encoder_initialization_screen/study_manifest.json
+python run_protocol_diagnostics.py aggregate-encoder-screen --manifest ../results/local_runs/protocol_diagnostics/encoder_initialization_screen/study_manifest.json
+```
+
+The repository ships `results/completed_experiments/budget_curve_5seed/manifests/frozen_budget100_selections.json`, a compact pair-ID-only snapshot required by these studies. Maintainers can regenerate it from the retained source jobs with `python run_protocol_diagnostics.py export-frozen-selections`.
