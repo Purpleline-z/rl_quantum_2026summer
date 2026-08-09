@@ -22,6 +22,9 @@ STUDIES = RESULT_ROOT / "selection_benchmark"
 SEEDS = (42, 79, 123, 202, 303)
 BUDGETS = (10, 25, 50, 75, 100)
 SELECTORS = ("random", "uncertainty", "uncertainty_diversity", "cluster_quota_uncertainty", "core_set")
+MC_SELECTORS = ("mc_dropout_probability_variance", "mc_dropout_mutual_information", "mc_dropout_reward_variance")
+EXPLORATORY_SELECTORS = MC_SELECTORS + ("cluster_margin_pairwise",)
+RUNNABLE_SELECTORS = SELECTORS + EXPLORATORY_SELECTORS
 LEGACY_NAMES = {"cluster_diverse": "cluster_quota_uncertainty"}
 
 
@@ -51,29 +54,36 @@ def job_id(spec: dict) -> str:
 
 
 def create_manifest(study_id: str, strategies: tuple[str, ...], budgets: tuple[int, ...],
-                    symmetry_modes: tuple[str, ...]) -> Path:
-    unknown = set(strategies) - set(SELECTORS)
+                    symmetry_modes: tuple[str, ...], seeds: tuple[int, ...] = SEEDS,
+                    mc_dropout: bool = False, run_nmf_diagnostic: bool = True) -> Path:
+    unknown = set(strategies) - set(RUNNABLE_SELECTORS)
     if unknown:
         raise ValueError(f"Unsupported benchmark selectors: {sorted(unknown)}")
     root = study_root(study_id)
     jobs = []
-    for seed in SEEDS:
+    for seed in seeds:
         for budget in budgets:
             for strategy in strategies:
                 for symmetry_mode in symmetry_modes:
                     spec = {"study_id": study_id, "seed": seed, "budget": budget, "strategy": strategy,
                             "symmetry_mode": symmetry_mode, "epoch": 3, "lr": 1e-4,
                             "initial_pairs": 50, "candidate_pairs": 120,
-                            "acquisition_mode": "single-shot", "diversity_lambda": .5}
+                            "acquisition_mode": "single-shot", "diversity_lambda": .5,
+                            "run_nmf_diagnostic": run_nmf_diagnostic}
+                    if mc_dropout:
+                        spec.update(dropout_p=.2, mc_samples=20)
                     spec["job_id"] = job_id(spec)
                     jobs.append(spec)
     manifest = {
         "study_id": study_id,
         "purpose": "Result-oriented active-pair selection benchmark",
-        "protocol": {"seeds": SEEDS, "budgets": budgets, "selectors": strategies,
+        "protocol": {"seeds": seeds, "budgets": budgets, "selectors": strategies,
                      "symmetry_modes": symmetry_modes, "epoch": 3, "learning_rate": 1e-4,
                      "initial_pair_groups": 50, "candidate_pair_groups": 120,
-                     "acquisition_mode": "single-shot", "uncertainty_diversity_lambda": .5},
+                     "acquisition_mode": "single-shot", "uncertainty_diversity_lambda": .5,
+                     "mc_dropout": {"enabled": mc_dropout, "dropout_p": .2 if mc_dropout else None,
+                                    "mc_samples": 20 if mc_dropout else None},
+                     "run_nmf_diagnostic": run_nmf_diagnostic},
         "jobs": jobs,
     }
     path = root / "study_manifest.json"
@@ -195,6 +205,20 @@ def collect_new_jobs(manifest_path: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def run_manifest(manifest_path: Path, data_root: str | None = None) -> None:
+    """Run only the immutable manifest's incomplete jobs; safe after interruption."""
+    value = manifest(manifest_path)
+    completed = 0
+    for spec in value["jobs"]:
+        result = manifest_path.parent / "jobs" / spec["job_id"] / "result.json"
+        if result.exists():
+            print(f"{spec['job_id']}: completed")
+            completed += 1
+            continue
+        run_job(manifest_path, spec["job_id"], data_root)
+    print(f"{value['study_id']}: {completed} previously complete; {len(value['jobs'])} total jobs.")
+
+
 def _write_summary(frame: pd.DataFrame, output: Path, title_prefix: str) -> None:
     output.mkdir(parents=True, exist_ok=True)
     frame.to_csv(output / "per_seed_outcomes.csv", index=False)
@@ -205,8 +229,9 @@ def _write_summary(frame: pd.DataFrame, output: Path, title_prefix: str) -> None
     summary.to_csv(output / "strategy_budget_summary.csv", index=False)
     random = frame[frame.strategy == "random"][["seed", "budget", "symmetry_mode", "post_test_accuracy", "batch_utility"]]
     paired = frame.merge(random, on=["seed", "budget", "symmetry_mode"], suffixes=("", "_random"))
-    paired["post_test_accuracy_difference_vs_random"] = paired.post_test_accuracy - paired.post_test_accuracy_random
-    paired["batch_utility_difference_vs_random"] = paired.batch_utility - paired.batch_utility_random
+    if not paired.empty:
+        paired["post_test_accuracy_difference_vs_random"] = paired.post_test_accuracy - paired.post_test_accuracy_random
+        paired["batch_utility_difference_vs_random"] = paired.batch_utility - paired.batch_utility_random
     paired.to_csv(output / "paired_differences_vs_random.csv", index=False)
     for metric, label, filename in (("post_test_accuracy", "Post-acquisition fixed ideal-test accuracy", "post_test_accuracy_by_budget.png"),
                                    ("batch_utility", "Batch utility", "batch_utility_by_budget.png")):
@@ -218,6 +243,27 @@ def _write_summary(frame: pd.DataFrame, output: Path, title_prefix: str) -> None
             ax.errorbar(stats.budget, stats["mean"], yerr=stats["std"], marker="o", capsize=3, label=f"{strategy} | {mode}")
         ax.set(title=f"{title_prefix}: {label}", xlabel="Acquired pair groups", ylabel=label)
         ax.grid(alpha=.25); ax.legend(fontsize=7, ncol=2); fig.tight_layout(); fig.savefig(output / filename, dpi=180); plt.close(fig)
+
+
+def _write_baseline_comparison(frame: pd.DataFrame, output: Path, baseline_strategies: tuple[str, ...]) -> None:
+    """Compare only matching seed/budget cells and retain the source provenance."""
+    stage1 = STUDIES / "stage1_selector_curves_none" / "aggregate" / "per_seed_outcomes.csv"
+    if not stage1.exists():
+        atomic_json({"comparison_available": False, "reason": "Stage 1 aggregate is not available yet; no winner is claimed."},
+                    output / "baseline_comparison_status.json")
+        return
+    baseline = pd.read_csv(stage1)
+    baseline = baseline[baseline.strategy.isin(baseline_strategies) & baseline.symmetry_mode.eq("none")]
+    candidate = frame[["seed", "budget", "strategy", "post_test_accuracy", "batch_utility"]]
+    joined = candidate.merge(baseline[["seed", "budget", "strategy", "post_test_accuracy", "batch_utility", "source_path", "source_sha256"]],
+                             on=["seed", "budget"], suffixes=("", "_baseline"))
+    joined = joined[joined.strategy_baseline.isin(baseline_strategies)]
+    joined["post_test_accuracy_difference"] = joined.post_test_accuracy - joined.post_test_accuracy_baseline
+    joined["batch_utility_difference"] = joined.batch_utility - joined.batch_utility_baseline
+    joined.to_csv(output / "paired_differences_vs_stage1_baselines.csv", index=False)
+    atomic_json({"comparison_available": True, "source": str(stage1), "source_sha256": sha256(stage1),
+                 "baseline_strategies": baseline_strategies, "interpretation": "paired descriptive comparison only"},
+                output / "baseline_comparison_status.json")
 
 
 def aggregate_stage1(manifest_path: Path) -> Path:
@@ -259,6 +305,32 @@ def aggregate_stage2(manifest_path: Path, stage1_aggregate: Path) -> Path:
     return output
 
 
+def aggregate_mc_screen(manifest_path: Path) -> Path:
+    frame = collect_new_jobs(manifest_path)
+    if set(frame.strategy) != set(MC_SELECTORS) or set(frame.budget) != {10, 25} or set(frame.symmetry_mode) != {"none"}:
+        raise ValueError("MC screen manifest does not match the defined 30-job low-budget screening protocol.")
+    _validate_grid(frame, MC_SELECTORS, (10, 25), ("none",))
+    output = manifest_path.parent / "aggregate"
+    _write_summary(frame, output, "MC-dropout low-budget screening")
+    _write_baseline_comparison(frame, output, ("uncertainty", "uncertainty_diversity"))
+    atomic_json({"manifest": str(manifest_path), "new_jobs": len(frame), "completed_grid_cells": len(frame),
+                 "status": "completed", "winner_claim": "not made by this screening"}, output / "aggregation_manifest.json")
+    return output
+
+
+def aggregate_cluster_margin(manifest_path: Path) -> Path:
+    frame = collect_new_jobs(manifest_path)
+    if set(frame.strategy) != {"cluster_margin_pairwise"} or set(frame.budget) != set(BUDGETS) or set(frame.symmetry_mode) != {"none"}:
+        raise ValueError("Cluster-Margin manifest does not match the defined 25-job full-budget protocol.")
+    _validate_grid(frame, ("cluster_margin_pairwise",), BUDGETS, ("none",))
+    output = manifest_path.parent / "aggregate"
+    _write_summary(frame, output, "Cluster-Margin pairwise curve")
+    _write_baseline_comparison(frame, output, ("random", "uncertainty", "uncertainty_diversity"))
+    atomic_json({"manifest": str(manifest_path), "new_jobs": len(frame), "completed_grid_cells": len(frame),
+                 "status": "completed", "baseline_join": "only if Stage 1 aggregate exists, with source hash"}, output / "aggregation_manifest.json")
+    return output
+
+
 def generate_stage1() -> Path:
     return create_manifest("stage1_selector_curves_none", ("uncertainty_diversity", "cluster_quota_uncertainty", "core_set"),
                            (10, 25, 50, 75), ("none",))
@@ -268,22 +340,42 @@ def generate_stage2() -> Path:
     return create_manifest("stage2_symmetry_factorial", SELECTORS, BUDGETS, ("left_half_mirror", "symmetric_average"))
 
 
+def generate_mc_screen() -> Path:
+    return create_manifest("mc_dropout_screen_low_budget", MC_SELECTORS, (10, 25), ("none",),
+                           mc_dropout=True, run_nmf_diagnostic=False)
+
+
+def generate_cluster_margin() -> Path:
+    return create_manifest("cluster_margin_curve_none", ("cluster_margin_pairwise",), BUDGETS, ("none",),
+                           run_nmf_diagnostic=False)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("generate-stage1-manifest")
     sub.add_parser("generate-stage2-manifest")
+    sub.add_parser("generate-mc-screen-manifest")
+    sub.add_parser("generate-cluster-margin-manifest")
     run = sub.add_parser("run-job"); run.add_argument("--manifest", type=Path, required=True); run.add_argument("--job-id", required=True); run.add_argument("--data-root")
+    run_all = sub.add_parser("run-manifest"); run_all.add_argument("--manifest", type=Path, required=True); run_all.add_argument("--data-root")
     reused = sub.add_parser("prepare-reused-evidence"); reused.add_argument("--manifest", type=Path, required=True)
     aggregate = sub.add_parser("aggregate-stage1"); aggregate.add_argument("--manifest", type=Path, required=True)
     aggregate2 = sub.add_parser("aggregate-stage2"); aggregate2.add_argument("--manifest", type=Path, required=True); aggregate2.add_argument("--stage1-aggregate", type=Path, required=True)
+    aggregate_mc = sub.add_parser("aggregate-mc-screen"); aggregate_mc.add_argument("--manifest", type=Path, required=True)
+    aggregate_cm = sub.add_parser("aggregate-cluster-margin"); aggregate_cm.add_argument("--manifest", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "generate-stage1-manifest": print(generate_stage1())
     elif args.command == "generate-stage2-manifest": print(generate_stage2())
+    elif args.command == "generate-mc-screen-manifest": print(generate_mc_screen())
+    elif args.command == "generate-cluster-margin-manifest": print(generate_cluster_margin())
     elif args.command == "run-job": run_job(args.manifest, args.job_id, args.data_root)
+    elif args.command == "run-manifest": run_manifest(args.manifest, args.data_root)
     elif args.command == "prepare-reused-evidence": print(prepare_reused_evidence(args.manifest))
     elif args.command == "aggregate-stage1": print(aggregate_stage1(args.manifest))
-    else: print(aggregate_stage2(args.manifest, args.stage1_aggregate))
+    elif args.command == "aggregate-stage2": print(aggregate_stage2(args.manifest, args.stage1_aggregate))
+    elif args.command == "aggregate-mc-screen": print(aggregate_mc_screen(args.manifest))
+    else: print(aggregate_cluster_margin(args.manifest))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,86 @@
+{
+  "stage": "lambda_sweep",
+  "jobs": [
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.25,
+      "budget": 100,
+      "job_id": "000_stage-lambda_sweep_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p25_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.25,
+      "budget": 100,
+      "job_id": "001_stage-lambda_sweep_epoch-3_seed-79_strategy-uncertainty_diversity_lambda-0p25_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.25,
+      "budget": 100,
+      "job_id": "002_stage-lambda_sweep_epoch-3_seed-123_strategy-uncertainty_diversity_lambda-0p25_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "003_stage-lambda_sweep_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "004_stage-lambda_sweep_epoch-3_seed-79_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "005_stage-lambda_sweep_epoch-3_seed-123_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.75,
+      "budget": 100,
+      "job_id": "006_stage-lambda_sweep_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p75_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.75,
+      "budget": 100,
+      "job_id": "007_stage-lambda_sweep_epoch-3_seed-79_strategy-uncertainty_diversity_lambda-0p75_budget-100"
+    },
+    {
+      "stage": "lambda_sweep",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.75,
+      "budget": 100,
+      "job_id": "008_stage-lambda_sweep_epoch-3_seed-123_strategy-uncertainty_diversity_lambda-0p75_budget-100"
+    }
+  ]
+}

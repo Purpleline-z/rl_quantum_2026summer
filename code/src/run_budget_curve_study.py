@@ -26,7 +26,8 @@ PRIMARY = ("random", "uncertainty")
 EXPLORATORY = ("cluster_quota_uncertainty", "cluster_margin_pairwise")
 # Runnable selector names.  NMF strategies remain listed because their own
 # diagnostic intentionally rejects acquisition until it passes.
-ALL_STRATEGIES = PRIMARY + ("uncertainty_diversity", "core_set") + EXPLORATORY + ("mixture_only", "uncertainty_plus_mixture")
+MC_DROPOUT_STRATEGIES = ("mc_dropout_probability_variance", "mc_dropout_mutual_information", "mc_dropout_reward_variance")
+ALL_STRATEGIES = PRIMARY + ("uncertainty_diversity", "core_set") + EXPLORATORY + MC_DROPOUT_STRATEGIES + ("mixture_only", "uncertainty_plus_mixture")
 DATA_ROOT: str | None = None
 
 
@@ -179,14 +180,20 @@ def run_job(spec: dict):
     cfg = Config(initial_pairs=spec["initial_pairs"], candidate_pairs=spec["candidate_pairs"], budget=spec["budget"],
                  batch_size=5, epochs=spec["epoch"], lr=spec["lr"], seed=spec["seed"], strategies=spec["strategy"],
                  acquisition_mode="single-shot", utility_per_pair=False, symmetry_mode=spec["symmetry_mode"],
-                 manifest_dir=str(directory / "manifests"), data_root=DATA_ROOT)
+                 diversity_lambda=float(spec.get("diversity_lambda", .5)), dropout_p=float(spec.get("dropout_p", .2)),
+                 mc_samples=int(spec.get("mc_samples", 20)), manifest_dir=str(directory / "manifests"), data_root=DATA_ROOT)
     exp = Experiment(cfg); exp.output = directory; exp.utility_cache_path = directory / "utility_cache.json"; exp.utility_cache = {}
     initial, pool = exp.load_and_split(); model, pre_metrics = exp.train(initial); pre = exp.evaluate(model)
-    candidates, cache = exp.candidates_with_clusters(pool, model); nmf_usable = attach_feature_nmf(exp, model, candidates, directory)
+    candidates, cache = exp.candidates_with_clusters(pool, model)
+    nmf_usable = attach_feature_nmf(exp, model, candidates, directory) if spec.get("run_nmf_diagnostic", True) else False
     if spec["strategy"] in {"mixture_only", "uncertainty_plus_mixture"}:
         selected = select_feature_nmf(spec["strategy"], candidates, model, exp, cache, spec["budget"], nmf_usable)
     else:
-        selected, _, _ = exp.select(spec["strategy"], candidates, model, cache, [], budget=spec["budget"], labeled_ids=initial)
+        selected, selection_scores, selection_elapsed = exp.select(spec["strategy"], candidates, model, cache, [], budget=spec["budget"], labeled_ids=initial)
+    if spec["strategy"] in MC_DROPOUT_STRATEGIES:
+        pd.DataFrame(selection_scores).to_csv(directory / "mc_dropout_candidate_scores.csv", index=False)
+    if spec["strategy"] == "cluster_margin_pairwise":
+        pd.DataFrame([{key: item.get(key) for key in ("pair_id", "cluster1", "cluster_margin", "cluster_size", "prefilter_member", "prefilter_size", "prefilter_cluster_size", "selection_rank")} for item in candidates]).to_csv(directory / "cluster_margin_candidate_audit.csv", index=False)
     selected_ids = [x["pair_id"] for x in selected]
     post_model, post_metrics = exp.train(initial + selected_ids); post = exp.evaluate(post_model)
     selected_rows = exp.rows_for(selected_ids)
@@ -194,7 +201,10 @@ def run_job(spec: dict):
     atomic_json({"spec": spec, "config": asdict(cfg), "audit": audit(exp, initial, pool, selected_ids),
                  "selected_pair_ids": selected_ids, "selected_details": selected, "pre": pre, "post": post,
                  "pre_metrics": pre_metrics, "post_metrics": post_metrics,
-                 "batch_utility": post["test_accuracy"] - pre["test_accuracy"], "nmf_usable_diagnostic": nmf_usable}, directory / "result.json")
+                 "batch_utility": post["test_accuracy"] - pre["test_accuracy"], "nmf_usable_diagnostic": nmf_usable,
+                 "selection_scoring_seconds": selection_elapsed if spec["strategy"] in MC_DROPOUT_STRATEGIES else None,
+                 "mc_samples": cfg.mc_samples if spec["strategy"] in MC_DROPOUT_STRATEGIES else None,
+                 "dropout_p": cfg.dropout_p if spec["strategy"] in MC_DROPOUT_STRATEGIES else None}, directory / "result.json")
     print(f"{spec['job_id']}: completed")
 
 

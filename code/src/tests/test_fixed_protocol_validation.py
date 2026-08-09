@@ -64,6 +64,8 @@ class FixedProtocolSelectionTests(unittest.TestCase):
             selected = cluster_margin_pairwise_sampling(candidates, Model(), 2, embedding_cache=cache)
         self.assertEqual(selected[0]["pair_id"], "c")
         self.assertEqual([x["selection_rank"] for x in selected], [1, 2])
+        self.assertTrue(all("cluster_margin" in candidate and "prefilter_member" in candidate for candidate in candidates))
+        self.assertTrue(all("cluster_size" in candidate and "prefilter_cluster_size" in candidate for candidate in candidates))
 
     def test_fifty_minute_policy_disables_checkpoint_writes(self):
         class Exp:

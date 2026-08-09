@@ -87,6 +87,8 @@ Budget-10 performance is especially variable and uncertainty is not yet superior
 
 Stage 1 has 60 new jobs: three selectors × four missing budgets × five seeds, all with `symmetry=none`. Stage 2 has 250 new jobs: two new symmetry modes × five selectors × five budgets × five seeds. The Stage 2 aggregation will join the fully completed `none` benchmark rather than rerun it.
 
+Two additional selector studies are planned but have no results yet: a 30-job MC-dropout screening at budgets 10 and 25, and a 25-job Cluster-Margin pairwise curve across budgets 10–100. They are reported as planned methods only until their immutable manifests are complete and aggregated.
+
 ## Reproducibility, splits, and interpretation limits
 
 The pairwise CSV contains 669 valid preference rows organized into 179 unique unordered pair groups. Every controlled run starts with 50 initial groups, uses 120 candidate groups, and leaves 9 groups unused. Initial, candidate, and selected partitions are disjoint by unordered pair, but they are **not image-disjoint**: an image can occur in several pair groups. Candidate preference labels are hidden until selection. The outer ideal test has 30 images and therefore accuracy changes in discrete increments of 1/30.

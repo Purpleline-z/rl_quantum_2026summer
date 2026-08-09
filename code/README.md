@@ -89,3 +89,17 @@ python run_selection_benchmark.py generate-stage2-manifest
 ```
 
 Stage 1 completes the five-selector budget curve without symmetry. Stage 2 evaluates `left_half_mirror` and `symmetric_average` for every selector and budget. Both manifests are independent, immutable, and aggregate only their own listed jobs.
+
+Two additional selector studies run from the same `src` directory:
+
+```bash
+# GPU session A: 30 MC-dropout selector-screening jobs
+python run_selection_benchmark.py generate-mc-screen-manifest
+python run_selection_benchmark.py run-manifest --manifest ../results/local_runs/selection_benchmark/mc_dropout_screen_low_budget/study_manifest.json
+
+# GPU session B: 25 Cluster-Margin curve jobs
+python run_selection_benchmark.py generate-cluster-margin-manifest
+python run_selection_benchmark.py run-manifest --manifest ../results/local_runs/selection_benchmark/cluster_margin_curve_none/study_manifest.json
+```
+
+Each command skips completed job results after a Colab interruption. Aggregate only after a manifest finishes.

@@ -1,0 +1,4 @@
+{
+  "chosen_lambda": 0.5,
+  "rule": "post accuracy, then batch utility, then smaller lambda"
+}

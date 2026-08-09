@@ -164,12 +164,15 @@ def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="
     for pair, margin in zip(scored, margins): pair["margin"] = margin
     prefilter_size = min(max(1, 10 * budget), len(scored))
     prefiltered = sorted(scored, key=lambda item: item["margin"])[:prefilter_size]
+    full_cluster_sizes = defaultdict(int)
+    for pair in scored:
+        full_cluster_sizes[int(pair["cluster1"])] += 1
     grouped = defaultdict(list)
     for pair in prefiltered: grouped[int(pair["cluster1"])].append(pair)
     for cluster, members in grouped.items():
         members.sort(key=lambda item: item["margin"])
         for member in members:
-            member["cluster_size"] = len(members); member["prefilter_size"] = prefilter_size
+            member["prefilter_cluster_size"] = len(members); member["prefilter_size"] = prefilter_size
     selected, rank = [], 1
     while len(selected) < min(budget, len(prefiltered)):
         progress = False
@@ -178,4 +181,16 @@ def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="
             item = members.pop(0); item["selection_rank"] = rank; rank += 1
             selected.append(item); progress = True
         if not progress: break
+    # Preserve a complete candidate-level audit on the original list so the
+    # controlled runner can export every margin, cluster, and prefilter flag.
+    selected_ranks = {item["pair_id"]: item["selection_rank"] for item in selected}
+    prefiltered_ids = {item["pair_id"] for item in prefiltered}
+    scored_by_id = {item["pair_id"]: item for item in scored}
+    for item in candidates:
+        scored_item = scored_by_id[item["pair_id"]]
+        cluster = int(scored_item["cluster1"])
+        item.update({"cluster_margin": float(scored_item["margin"]), "cluster_size": int(full_cluster_sizes[cluster]),
+                     "prefilter_member": item["pair_id"] in prefiltered_ids, "prefilter_size": prefilter_size,
+                     "prefilter_cluster_size": int(sum(1 for x in prefiltered if int(x["cluster1"]) == cluster)),
+                     "selection_rank": selected_ranks.get(item["pair_id"])})
     return selected
