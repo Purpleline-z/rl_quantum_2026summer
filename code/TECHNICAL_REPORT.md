@@ -1,4 +1,4 @@
-# Technical Report: Result-Oriented RHEED Active Pair Selection
+# Technical Report: RHEED Active Pair Selection
 
 ## 1. Executive scientific conclusion
 
