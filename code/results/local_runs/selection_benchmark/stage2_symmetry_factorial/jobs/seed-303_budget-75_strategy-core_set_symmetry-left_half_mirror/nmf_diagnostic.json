@@ -1,0 +1,11 @@
+{
+  "component_class": {
+    "0": "HTR",
+    "1": "(1 x 1)",
+    "2": "c(6 x 2)",
+    "3": "(\u221a13 x \u221a13)"
+  },
+  "one_to_one_class_coverage": true,
+  "silhouette": -0.0724126609180045,
+  "enabled_for_acquisition": false
+}
