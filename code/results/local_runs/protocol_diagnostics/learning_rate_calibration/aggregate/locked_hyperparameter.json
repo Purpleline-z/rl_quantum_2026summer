@@ -1,0 +1,6 @@
+{
+  "locked_learning_rate": 0.0003,
+  "selection_split": "utility_validation",
+  "outer_test_used": false,
+  "selection_rule": "highest mean; then lower sample SD; then lower learning rate"
+}

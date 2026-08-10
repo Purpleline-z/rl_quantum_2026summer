@@ -1,0 +1,195 @@
+{
+  "study_id": "learning_rate_calibration",
+  "kind": "learning_rate_calibration",
+  "protocol": {
+    "epochs": 3,
+    "learning_rates": [
+      1e-05,
+      3e-05,
+      0.0001,
+      0.0003
+    ],
+    "seeds": [
+      42,
+      79,
+      123
+    ],
+    "selectors": [
+      "random",
+      "uncertainty"
+    ],
+    "split_used_for_selection": "utility_validation",
+    "outer_test_access_during_calibration": false,
+    "selection_rule": "highest mean utility-validation accuracy; then lower sample SD; then lower learning rate"
+  },
+  "jobs": [
+    {
+      "job_id": "seed-42_selector-random_lr-1e-05",
+      "seed": 42,
+      "selector": "random",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-random_lr-3e-05",
+      "seed": 42,
+      "selector": "random",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-random_lr-1e-04",
+      "seed": 42,
+      "selector": "random",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-random_lr-3e-04",
+      "seed": 42,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_lr-1e-05",
+      "seed": 42,
+      "selector": "uncertainty",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_lr-3e-05",
+      "seed": 42,
+      "selector": "uncertainty",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_lr-1e-04",
+      "seed": 42,
+      "selector": "uncertainty",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_lr-3e-04",
+      "seed": 42,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-random_lr-1e-05",
+      "seed": 79,
+      "selector": "random",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-random_lr-3e-05",
+      "seed": 79,
+      "selector": "random",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-random_lr-1e-04",
+      "seed": 79,
+      "selector": "random",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-random_lr-3e-04",
+      "seed": 79,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_lr-1e-05",
+      "seed": 79,
+      "selector": "uncertainty",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_lr-3e-05",
+      "seed": 79,
+      "selector": "uncertainty",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_lr-1e-04",
+      "seed": 79,
+      "selector": "uncertainty",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_lr-3e-04",
+      "seed": 79,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-random_lr-1e-05",
+      "seed": 123,
+      "selector": "random",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-random_lr-3e-05",
+      "seed": 123,
+      "selector": "random",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-random_lr-1e-04",
+      "seed": 123,
+      "selector": "random",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-random_lr-3e-04",
+      "seed": 123,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_lr-1e-05",
+      "seed": 123,
+      "selector": "uncertainty",
+      "lr": 1e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_lr-3e-05",
+      "seed": 123,
+      "selector": "uncertainty",
+      "lr": 3e-05,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_lr-1e-04",
+      "seed": 123,
+      "selector": "uncertainty",
+      "lr": 0.0001,
+      "phase": "calibration"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_lr-3e-04",
+      "seed": 123,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "calibration"
+    }
+  ]
+}

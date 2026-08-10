@@ -1,0 +1,92 @@
+{
+  "study_id": "learning_rate_confirmation",
+  "kind": "learning_rate_confirmation",
+  "protocol": {
+    "epochs": 3,
+    "locked_learning_rate": 0.0003,
+    "seeds": [
+      42,
+      79,
+      123,
+      202,
+      303
+    ],
+    "selectors": [
+      "random",
+      "uncertainty"
+    ],
+    "selection_source": "/content/rl_quantum_2026summer/code/results/local_runs/protocol_diagnostics/learning_rate_calibration/aggregate/locked_hyperparameter.json"
+  },
+  "jobs": [
+    {
+      "job_id": "seed-42_selector-random_lr-3e-04_confirmation",
+      "seed": 42,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_lr-3e-04_confirmation",
+      "seed": 42,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-79_selector-random_lr-3e-04_confirmation",
+      "seed": 79,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_lr-3e-04_confirmation",
+      "seed": 79,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-123_selector-random_lr-3e-04_confirmation",
+      "seed": 123,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_lr-3e-04_confirmation",
+      "seed": 123,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-202_selector-random_lr-3e-04_confirmation",
+      "seed": 202,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-202_selector-uncertainty_lr-3e-04_confirmation",
+      "seed": 202,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-303_selector-random_lr-3e-04_confirmation",
+      "seed": 303,
+      "selector": "random",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-303_selector-uncertainty_lr-3e-04_confirmation",
+      "seed": 303,
+      "selector": "uncertainty",
+      "lr": 0.0003,
+      "phase": "confirmation"
+    }
+  ]
+}
