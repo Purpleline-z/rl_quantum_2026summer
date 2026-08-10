@@ -1,0 +1,109 @@
+{
+  "study_id": "encoder_initialization_screen",
+  "kind": "encoder_initialization_screen",
+  "protocol": {
+    "epochs": 3,
+    "learning_rate": 0.0001,
+    "seeds": [
+      42,
+      79,
+      123
+    ],
+    "selectors": [
+      "random",
+      "uncertainty"
+    ],
+    "initializations": [
+      "simclr",
+      "imagenet"
+    ],
+    "split_used_for_selection": "utility_validation",
+    "outer_test_access_during_screening": false
+  },
+  "jobs": [
+    {
+      "job_id": "seed-42_selector-random_init-simclr",
+      "seed": 42,
+      "selector": "random",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-42_selector-random_init-imagenet",
+      "seed": 42,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_init-simclr",
+      "seed": 42,
+      "selector": "uncertainty",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_init-imagenet",
+      "seed": 42,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-79_selector-random_init-simclr",
+      "seed": 79,
+      "selector": "random",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-79_selector-random_init-imagenet",
+      "seed": 79,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_init-simclr",
+      "seed": 79,
+      "selector": "uncertainty",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_init-imagenet",
+      "seed": 79,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-123_selector-random_init-simclr",
+      "seed": 123,
+      "selector": "random",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-123_selector-random_init-imagenet",
+      "seed": 123,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_init-simclr",
+      "seed": 123,
+      "selector": "uncertainty",
+      "encoder_initialization": "simclr",
+      "phase": "screening"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_init-imagenet",
+      "seed": 123,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "screening"
+    }
+  ]
+}

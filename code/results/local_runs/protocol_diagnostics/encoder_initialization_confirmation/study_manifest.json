@@ -1,0 +1,92 @@
+{
+  "study_id": "encoder_initialization_confirmation",
+  "kind": "encoder_initialization_confirmation",
+  "protocol": {
+    "epochs": 3,
+    "learning_rate": 0.0001,
+    "locked_encoder_initialization": "imagenet",
+    "seeds": [
+      42,
+      79,
+      123,
+      202,
+      303
+    ],
+    "selectors": [
+      "random",
+      "uncertainty"
+    ]
+  },
+  "jobs": [
+    {
+      "job_id": "seed-42_selector-random_init-imagenet_confirmation",
+      "seed": 42,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-42_selector-uncertainty_init-imagenet_confirmation",
+      "seed": 42,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-79_selector-random_init-imagenet_confirmation",
+      "seed": 79,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-79_selector-uncertainty_init-imagenet_confirmation",
+      "seed": 79,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-123_selector-random_init-imagenet_confirmation",
+      "seed": 123,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-123_selector-uncertainty_init-imagenet_confirmation",
+      "seed": 123,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-202_selector-random_init-imagenet_confirmation",
+      "seed": 202,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-202_selector-uncertainty_init-imagenet_confirmation",
+      "seed": 202,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-303_selector-random_init-imagenet_confirmation",
+      "seed": 303,
+      "selector": "random",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    },
+    {
+      "job_id": "seed-303_selector-uncertainty_init-imagenet_confirmation",
+      "seed": 303,
+      "selector": "uncertainty",
+      "encoder_initialization": "imagenet",
+      "phase": "confirmation"
+    }
+  ]
+}

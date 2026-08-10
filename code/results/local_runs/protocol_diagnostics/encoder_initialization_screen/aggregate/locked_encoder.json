@@ -1,0 +1,5 @@
+{
+  "locked_encoder_initialization": "imagenet",
+  "selection_split": "utility_validation",
+  "outer_test_used": false
+}
