@@ -1,14 +1,12 @@
 # Technical Report: RHEED Active Pair Selection
 
-## 1. Executive scientific conclusion
+## 1. Introduction
 
 This project asks a practical active-learning question: **under a limited labeling budget, which unordered RHEED image-pair groups should be revealed so that retraining improves downstream classification of ideal reconstruction types?** The selected object is a pair group; the primary outcome is post-acquisition accuracy on an untouched ideal-image outer test set.
 
 The completed controlled evidence shows that selection is **budget- and preprocessing-dependent**. In the five-selector, no-symmetry benchmark, the highest mean outer-test accuracy at budgets 10, 25, 50, 75, and 100 was respectively random (0.413), uncertainty (0.440), cluster-quota uncertainty (0.460), uncertainty + diversity (0.513), and uncertainty (0.647). Each is a five-seed mean and every comparison has substantial run-to-run variation; these are directional results, not significance claims. [Stage 1 aggregate CSV](results/local_runs/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv)
 
 The completed symmetry factorial confirms that neither a selector nor a symmetry mode is a universal winner. Symmetry preprocessing changes the ranking at particular budgets, but it does not establish that real experimental patterns should be forcibly symmetrized. The system is therefore not yet a deployment-ready growth-control classifier. Its most defensible present contribution is a reproducible benchmark that identifies promising, conditional acquisition strategies and exposes the current downstream limitations. [Stage 2 interaction table](results/local_runs/selection_benchmark/stage2_symmetry_factorial/aggregate/selector_symmetry_budget_interaction.csv)
-
-**Conclusion.** The evidence supports continuing result-oriented selector development, but the next claims must be tied to a stronger and more realistic downstream evaluation—not to a single endpoint or representation plot.
 
 ## 2. Scientific objective and controlled pipeline
 
