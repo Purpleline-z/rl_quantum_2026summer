@@ -1,0 +1,7 @@
+{
+  "manifest": "../results/local_runs/selection_benchmark/stage2_symmetry_factorial/study_manifest.json",
+  "baseline_aggregate": "../results/local_runs/selection_benchmark/stage1_selector_curves_none/aggregate",
+  "new_jobs": 250,
+  "completed_grid_cells": 375,
+  "status": "completed"
+}
