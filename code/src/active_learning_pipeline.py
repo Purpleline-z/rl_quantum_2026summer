@@ -329,12 +329,13 @@ class Experiment:
         values = [self.groups[x] for x in ids]
         return pd.concat(values, ignore_index=True) if values else pd.DataFrame()
 
-    def train(self, pair_ids: list[str]) -> tuple[BTModel, dict[str, float]]:
+    def train(self, pair_ids: list[str], max_optimizer_updates: int | None = None) -> tuple[BTModel, dict[str, float]]:
         started = time.monotonic(); model = self.make_model(); rows = self.rows_for(pair_ids)
         if rows.empty: raise ValueError("Cannot train with no labeled pairs.")
         loader = DataLoader(PairRows(rows, self.cfg.symmetry_mode, self.metadata_vector if self.metadata_dim else None), batch_size=self.cfg.train_batch_size, shuffle=True, num_workers=0)
         optim = torch.optim.AdamW(model.parameters(), lr=self.cfg.lr, weight_decay=self.cfg.weight_decay)
         model.train(); losses: list[float] = []
+        optimizer_updates = 0
         for epoch in range(self.cfg.epochs):
             for batch in loader:
                 a, b, typ, winner, weight = batch[:5]
@@ -376,8 +377,13 @@ class Experiment:
                     bad_meta = torch.tensor(self.metadata_vector(str(bad_path)), device=self.device).unsqueeze(0) if self.metadata_dim else None
                     loss = loss + self.cfg.bad_anchor_weight * F.relu(model(bad_tensor, bad_meta) + 1.0).mean()
                 optim.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); optim.step(); losses.append(float(loss.detach().cpu()))
+                optimizer_updates += 1
+                if max_optimizer_updates is not None and optimizer_updates >= max_optimizer_updates:
+                    break
+            if max_optimizer_updates is not None and optimizer_updates >= max_optimizer_updates:
+                break
             if time.monotonic() - started > 60: print(f"  training checkpoint: epoch {epoch + 1}/{self.cfg.epochs}", flush=True); started = time.monotonic()
-        return model.eval(), {"loss": float(np.mean(losses)) if losses else float("nan"), "pairwise_accuracy": self.pairwise_accuracy(model, rows)}
+        return model.eval(), {"loss": float(np.mean(losses)) if losses else float("nan"), "pairwise_accuracy": self.pairwise_accuracy(model, rows), "optimizer_updates": optimizer_updates}
 
     @torch.no_grad()
     def _score_paths(self, model: BTModel, paths: list[Path]) -> np.ndarray:

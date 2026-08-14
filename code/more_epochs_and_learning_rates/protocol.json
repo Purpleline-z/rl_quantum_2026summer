@@ -1,0 +1,21 @@
+{
+  "dataset_version": "v1.8",
+  "seeds": [42, 79, 123, 202, 314, 404, 515, 616, 717, 818],
+  "initial_pairs": 50,
+  "candidate_pairs": 120,
+  "budgets": [10, 25, 50, 75, 100],
+  "strategies": ["random", "uncertainty", "uncertainty_diversity"],
+  "encoder_initializations": ["simclr", "imagenet"],
+  "learning_rates": [0.00001, 0.00003, 0.0001, 0.0003],
+  "epochs": [3, 10, 30],
+  "train_batch_size": 16,
+  "weight_decay": 0.0001,
+  "dropout_p": 0.2,
+  "diversity_lambda": 0.5,
+  "fixed_optimizer_updates": 100,
+  "image_split": {"train": 0.80, "validation": 0.10, "outer_test": 0.10},
+  "bootstrap_replicates": 10000,
+  "permutation_replicates": 20000,
+  "alpha": 0.05,
+  "multiplicity_method": "Holm-Bonferroni"
+}
