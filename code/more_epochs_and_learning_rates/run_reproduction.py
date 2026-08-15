@@ -6,7 +6,7 @@ never passes them to a selector. All generated text and output columns are Engli
 """
 from __future__ import annotations
 
-import argparse, json, math, random, sys
+import argparse, json, math, random, sys, time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -24,6 +24,24 @@ from dataset_protocol import dataset_spec, locate_input
 
 def load_protocol(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def atomic_csv(rows: list[dict], path: Path) -> None:
+    """Write a completed-cell checkpoint without leaving a partial CSV behind."""
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    pd.DataFrame(rows).to_csv(temporary, index=False)
+    temporary.replace(path)
+
+
+def restore_rows(path: Path) -> list[dict]:
+    return pd.read_csv(path).to_dict("records") if path.exists() else []
+
+
+def progress(label: str, done: int, total: int, started: float) -> None:
+    elapsed = time.monotonic() - started
+    eta = elapsed * (total - done) / done if done else float("nan")
+    eta_text = "estimating" if not math.isfinite(eta) else f"ETA {eta / 60:.1f} min"
+    print(f"[{label}: {done}/{total}, {100 * done / total:.1f}%, elapsed {elapsed / 60:.1f} min, {eta_text}]", flush=True)
 
 
 def images_for(groups: dict, ids: list[str]) -> set[str]:
@@ -100,10 +118,10 @@ class StrictExperiment(Experiment):
         return self.pairwise_accuracy(model, self.holdout_rows)
 
 
-def build_experiment(protocol, seed, output, encoder, lr, epochs, split_mode="image_disjoint"):
+def build_experiment(protocol, seed, output, encoder, lr, epochs, split_mode="image_disjoint", device="auto"):
     cfg = Config(seed=seed, dataset_version=protocol["dataset_version"], epochs=epochs, lr=lr,
                  train_batch_size=protocol["train_batch_size"], weight_decay=protocol["weight_decay"], dropout_p=protocol["dropout_p"],
-                 diversity_lambda=protocol["diversity_lambda"], encoder_initialization=encoder, acquisition_mode="single-shot", data_root=None)
+                 diversity_lambda=protocol["diversity_lambda"], encoder_initialization=encoder, acquisition_mode="single-shot", data_root=None, device=device)
     return StrictExperiment(cfg, protocol, output, split_mode)
 
 
@@ -135,24 +153,52 @@ def audit(protocol, output, smoke=False):
     pd.DataFrame(rows).to_csv(output / "split_capacity.csv", index=False)
 
 
-def run_experiment(protocol, output, smoke=False, split_mode="image_disjoint"):
-    locks = json.loads((output / "calibration" / "locked_protocol.json").read_text(encoding="utf-8")); rows = []
+def run_experiment(protocol, output, smoke=False, split_mode="image_disjoint", shard_index=0, num_shards=1, device="auto"):
+    if not 0 <= shard_index < num_shards:
+        raise ValueError("shard-index must be in [0, num-shards).")
+    locks = json.loads((output / "calibration" / "locked_protocol.json").read_text(encoding="utf-8"))
     seeds = protocol["seeds"][:1] if smoke else protocol["seeds"]
     budgets = protocol["budgets"][:1] if smoke else protocol["budgets"]
-    for encoder, locked in locks.items():
-        for seed in seeds:
-            for budget in budgets:
-                for update_control in ("fixed_epochs", "fixed_optimizer_updates"):
-                    for strategy in protocol["strategies"]:
-                        exp = build_experiment(protocol, seed, output, encoder, float(locked["learning_rate"]), int(locked["epochs"]), split_mode); initial, pool = exp.load_and_split()
-                        max_updates = None if update_control == "fixed_epochs" else int(protocol["fixed_optimizer_updates"])
-                        n = min(budget, len(pool)); baseline, _ = exp.train(initial, max_optimizer_updates=max_updates)
-                        candidates, cache = exp.candidates_with_clusters(pool, baseline)
-                        selected, _, _ = exp.select(strategy, candidates, baseline, cache, [], budget=n, labeled_ids=initial)
-                        chosen = [x["pair_id"] for x in selected]; model, train = exp.train(initial + chosen, max_optimizer_updates=max_updates); ideal = exp.evaluate(model)
-                        rows.append({"analysis": split_mode, "seed": seed, "encoder_initialization": encoder, "learning_rate": locked["learning_rate"], "epochs": locked["epochs"], "update_control": update_control, "strategy": strategy, "requested_budget": budget, "actual_budget": n, "selected_pair_ids": json.dumps(chosen), "validation_ideal_accuracy": exp.validation_accuracy(model), "validation_pairwise_accuracy": exp.pairwise_accuracy(model, exp.validation_rows), "outer_pairwise_accuracy": exp.outer_pairwise_accuracy(model), "outer_ideal_accuracy": ideal["test_accuracy"], "outer_ideal_correct": ideal["test_correct"], "outer_ideal_total": ideal["test_total"], "outer_ideal_by_class": json.dumps(ideal["by_class"]), "training_pairwise_accuracy": train["pairwise_accuracy"], "optimizer_updates": train["optimizer_updates"]})
-    name = "raw_results.csv" if split_mode == "image_disjoint" else "raw_pair_disjoint_sensitivity.csv"
-    pd.DataFrame(rows).to_csv(output / name, index=False)
+    tasks = [(encoder, seed, budget, update_control, strategy)
+             for encoder in sorted(locks) for seed in seeds for budget in budgets
+             for update_control in ("fixed_epochs", "fixed_optimizer_updates") for strategy in protocol["strategies"]]
+    assigned = [(index, task) for index, task in enumerate(tasks) if index % num_shards == shard_index]
+    stem = "raw_results" if split_mode == "image_disjoint" else "raw_pair_disjoint_sensitivity"
+    suffix = f".shard-{shard_index}-of-{num_shards}.csv"
+    final_path, partial_path = output / (stem + suffix), output / (stem + suffix + ".partial")
+    rows = restore_rows(partial_path) if partial_path.exists() else restore_rows(final_path)
+    complete = {(r["encoder_initialization"], int(r["seed"]), int(r["requested_budget"]), r["update_control"], r["strategy"]) for r in rows}
+    started = time.monotonic(); done = len(rows)
+    print(f"Shard {shard_index}/{num_shards} owns {len(assigned)} cells; {done} cells already checkpointed.", flush=True)
+    for _, (encoder, seed, budget, update_control, strategy) in assigned:
+        key = (encoder, seed, budget, update_control, strategy)
+        if key in complete:
+            continue
+        locked = locks[encoder]
+        print(f"Starting cell: encoder={encoder}, seed={seed}, budget={budget}, control={update_control}, strategy={strategy}", flush=True)
+        exp = build_experiment(protocol, seed, output, encoder, float(locked["learning_rate"]), int(locked["epochs"]), split_mode, device); initial, pool = exp.load_and_split()
+        max_updates = None if update_control == "fixed_epochs" else int(protocol["fixed_optimizer_updates"])
+        n = min(budget, len(pool)); baseline, _ = exp.train(initial, max_optimizer_updates=max_updates)
+        candidates, cache = exp.candidates_with_clusters(pool, baseline)
+        selected, _, _ = exp.select(strategy, candidates, baseline, cache, [], budget=n, labeled_ids=initial)
+        chosen = [x["pair_id"] for x in selected]; model, train = exp.train(initial + chosen, max_optimizer_updates=max_updates); ideal = exp.evaluate(model)
+        rows.append({"analysis": split_mode, "seed": seed, "encoder_initialization": encoder, "learning_rate": locked["learning_rate"], "epochs": locked["epochs"], "update_control": update_control, "strategy": strategy, "requested_budget": budget, "actual_budget": n, "selected_pair_ids": json.dumps(chosen), "validation_ideal_accuracy": exp.validation_accuracy(model), "validation_pairwise_accuracy": exp.pairwise_accuracy(model, exp.validation_rows), "outer_pairwise_accuracy": exp.outer_pairwise_accuracy(model), "outer_ideal_accuracy": ideal["test_accuracy"], "outer_ideal_correct": ideal["test_correct"], "outer_ideal_total": ideal["test_total"], "outer_ideal_by_class": json.dumps(ideal["by_class"]), "training_pairwise_accuracy": train["pairwise_accuracy"], "optimizer_updates": train["optimizer_updates"]})
+        complete.add(key); done += 1; atomic_csv(rows, partial_path); progress(f"shard {shard_index}/{num_shards}", done, len(assigned), started)
+    atomic_csv(rows, final_path)
+
+
+def merge_shards(output: Path, split_mode: str, num_shards: int) -> None:
+    stem = "raw_results" if split_mode == "image_disjoint" else "raw_pair_disjoint_sensitivity"
+    paths = [output / f"{stem}.shard-{index}-of-{num_shards}.csv" for index in range(num_shards)]
+    missing = [str(path) for path in paths if not path.exists()]
+    if missing:
+        raise FileNotFoundError("Cannot merge: missing completed shard files: " + ", ".join(missing))
+    frame = pd.concat([pd.read_csv(path) for path in paths], ignore_index=True)
+    keys = ["seed", "encoder_initialization", "requested_budget", "update_control", "strategy"]
+    if frame.duplicated(keys).any():
+        raise RuntimeError("Cannot merge: duplicate experiment cells found across shards.")
+    atomic_csv(frame.to_dict("records"), output / f"{stem}.csv")
+    print(f"Merged {len(frame)} cells into {stem}.csv.", flush=True)
 
 
 def bootstrap_ci(values, n=10000, seed=0):
@@ -208,12 +254,13 @@ def write_report(protocol, output, summary, tests):
 
 
 def main():
-    parser = argparse.ArgumentParser(); parser.add_argument("action", choices=["audit", "calibrate", "experiment", "sensitivity", "aggregate"]); parser.add_argument("--smoke-test", action="store_true"); parser.add_argument("--config", type=Path, default=HERE / "protocol.json"); args = parser.parse_args()
+    parser = argparse.ArgumentParser(); parser.add_argument("action", choices=["audit", "calibrate", "experiment", "sensitivity", "merge", "aggregate"]); parser.add_argument("--smoke-test", action="store_true"); parser.add_argument("--config", type=Path, default=HERE / "protocol.json"); parser.add_argument("--shard-index", type=int, default=0); parser.add_argument("--num-shards", type=int, default=1); parser.add_argument("--device", default="auto"); parser.add_argument("--sensitivity-merge", action="store_true"); args = parser.parse_args()
     protocol = load_protocol(args.config); output = HERE / "results"; output.mkdir(exist_ok=True)
     if args.action == "audit": audit(protocol, output, args.smoke_test)
     elif args.action == "calibrate": calibrate(protocol, output, args.smoke_test)
-    elif args.action == "experiment": run_experiment(protocol, output, args.smoke_test)
-    elif args.action == "sensitivity": run_experiment(protocol, output, args.smoke_test, "pair_disjoint_sensitivity")
+    elif args.action == "experiment": run_experiment(protocol, output, args.smoke_test, "image_disjoint", args.shard_index, args.num_shards, args.device)
+    elif args.action == "sensitivity": run_experiment(protocol, output, args.smoke_test, "pair_disjoint_sensitivity", args.shard_index, args.num_shards, args.device)
+    elif args.action == "merge": merge_shards(output, "pair_disjoint_sensitivity" if args.sensitivity_merge else "image_disjoint", args.num_shards)
     else: aggregate(protocol, output)
 
 if __name__ == "__main__": main()

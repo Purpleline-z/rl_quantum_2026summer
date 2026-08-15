@@ -22,6 +22,24 @@ py -3.13 .\more_epochs_and_learning_rates\run_reproduction.py sensitivity
 py -3.13 .\more_epochs_and_learning_rates\run_reproduction.py aggregate
 ```
 
+## Four-GPU primary experiment
+
+The primary experiment has 600 independent cells. It can be split deterministically across GPUs without duplicating cells. Run the following from the `code` directory on a host with four visible GPUs:
+
+```bash
+mkdir -p more_epochs_and_learning_rates/results/logs
+for shard in 0 1 2 3; do
+  CUDA_VISIBLE_DEVICES=$shard python more_epochs_and_learning_rates/run_reproduction.py experiment \
+    --num-shards 4 --shard-index $shard --device cuda:0 \
+    > more_epochs_and_learning_rates/results/logs/experiment_shard_${shard}.log 2>&1 &
+done
+wait
+python more_epochs_and_learning_rates/run_reproduction.py merge --num-shards 4
+python more_epochs_and_learning_rates/run_reproduction.py aggregate
+```
+
+Each shard writes its own atomic checkpoint and final CSV. Do not run `aggregate` before `merge` succeeds. The pair-disjoint sensitivity analysis should be run only after the primary analysis and can use the same shard pattern with `sensitivity` and `merge --sensitivity-merge`.
+
 Use `--smoke-test` for a small structural check. Results are written to `more_epochs_and_learning_rates/results/` and are intentionally ignored by version control.
 
 ## Outputs
