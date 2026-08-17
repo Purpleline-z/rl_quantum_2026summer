@@ -49,30 +49,27 @@ with `1`, `2`, and `3` respectively. The queue prints completed/total progress
 and skips completed cells after interruption. Its actual elapsed time is
 measured from this run; no unmeasured 10–30 minute estimate is claimed.
 
-## Task 2: lock calibration and generate the complete final curve
+## Task 2: summarize the initial-10-pair diagnostic
 
-After all four Task 1 queues finish, run this once on any account. It selects
-one LR/epoch protocol separately for SimCLR and ImageNet using validation only,
-then writes the 250-cell final manifest: 5 seeds x 2 encoders x 5 approved
-strategies x 5 budgets.
+After all four Task 1 queues finish and their small result JSON files have been
+pushed to GitHub, run this once on any account after pulling `main`. It
+summarizes LR/epoch sensitivity at the initial ten labelled pair groups. It
+does **not** lock a single LR/epoch protocol for every acquisition budget.
 
 ```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py lock_calibration_and_write_final_manifest --drive-output "$DRIVE_OUTPUT" --device cuda
+!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py aggregate_initial_ten_pair_calibration_diagnostic --drive-output "$DRIVE_OUTPUT" --device cuda
 ```
 
 The four accounts keep separate Drive backups. After Task 1, copy only each
 account's small `calibration_results/*.json` files into the repository and
-push them to GitHub one account at a time. A later merge command reads these
+push them to GitHub one account at a time. This diagnostic reads those
 Git-tracked raw results; do not share Drive folders or push checkpoints.
 
-## Task 3: complete final strategy/budget curve
+## Task 3: not yet runnable
 
-After Task 2, run one queue per account using its own `DRIVE_OUTPUT`:
-
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_account_final_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
-```
-
-Use account indices 1, 2, and 3 on the other accounts. Each account receives
-about 63 final cells. Each final cell retrains from scratch and saves its own
-JSON under `$DRIVE_OUTPUT/final_budget_curve_cells/` before the next begins.
+The old plan would have applied one LR/epoch choice from initial ten labelled
+pairs to every budget. That is invalid because the appropriate number of
+epochs can change as the labelled set grows. Before final strategy/budget
+curves, the project needs a budget-aware validation calibration and a
+fixed-total-optimizer-updates control. Do not run a final strategy queue until
+that replacement protocol and its commands are added.

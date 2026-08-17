@@ -102,49 +102,43 @@ def run_account_calibration_queue(protocol: dict[str, Any], output: Path, accoun
         print(f"calibration queue progress {number}/{len(assigned)} ({100 * number / len(assigned):.1f}%)", flush=True)
 
 
-def lock_calibration_and_write_final_manifest(protocol: dict[str, Any], output: Path) -> None:
+def aggregate_initial_ten_pair_calibration_diagnostic(protocol: dict[str, Any], output: Path) -> None:
+    """Summarize the initial-10-pair grid without selecting a final protocol.
+
+    A single epoch count cannot be carried from ten labelled groups to all
+    acquisition budgets.  This action deliberately creates only a diagnostic
+    table; a later budget-aware validation calibration will choose protocols.
+    """
+    result_root = HERE / "results"
     rows = []
-    for task in calibration_tasks(protocol):
-        spec = {key: task[key] for key in ("seed", "encoder", "learning_rate", "weight_decay")}
-        path = output / "calibration_results" / f"{task_id(spec)}_epochs_{task['total_epochs']}.json"
-        if not path.exists(): raise RuntimeError(f"Calibration is incomplete: {path.name} is missing.")
-        rows.append(read_json(path))
+    for directory in sorted(result_root.glob("calibration_grid_account_*")):
+        for path in directory.glob("*.json"):
+            row = read_json(path)
+            row["source_directory"] = directory.name
+            rows.append(row)
+    if not rows:
+        raise RuntimeError(f"No Git-tracked calibration JSON files found under {result_root}.")
     frame = pd.DataFrame(rows)
-    summary = frame.groupby(["encoder", "learning_rate", "weight_decay", "total_epochs"], as_index=False).agg(utility_validation_accuracy_mean=("utility_validation_accuracy", "mean"), utility_validation_accuracy_sd=("utility_validation_accuracy", "std"), outer_test_accuracy_mean=("outer_test_accuracy", "mean"), seeds=("seed", "nunique"))
-    summary.to_csv(output / "calibration_results" / "calibration_summary.csv", index=False)
-    locked: dict[str, dict[str, Any]] = {}
-    for encoder, group in summary.groupby("encoder"):
-        best = group.sort_values(["utility_validation_accuracy_mean", "total_epochs", "learning_rate"], ascending=[False, True, True]).iloc[0]
-        locked[encoder] = {"learning_rate": float(best.learning_rate), "weight_decay": float(best.weight_decay), "epochs": int(best.total_epochs)}
-    write_json({"locked_protocol_by_encoder": locked, "selection_endpoint": "utility_validation_accuracy_mean", "outer_test_not_used_for_selection": True}, output / "locked_calibration_protocol.json")
-    strategies = ("random", "uncertainty", "core_set", "mc_dropout_mutual_information", "mc_dropout_probability_variance")
-    tasks = [{"seed": seed, "encoder": encoder, "strategy": strategy, "budget": budget, **locked[encoder]} for seed in protocol["seeds"] for encoder in protocol["encoder_initializations"] for strategy in strategies for budget in protocol["budgets"]]
-    write_json({"tasks": tasks, "expected_cells": len(tasks), "strategies": strategies, "rule": "Each cell trains a fresh baseline and fresh final model; completed JSON files are never overwritten."}, output / "task_manifests" / "pair_disjoint_final_budget_curve_tasks.json")
-    print(f"Locked calibration protocol and wrote {len(tasks)} final strategy/budget cells.", flush=True)
-
-
-def run_final_budget_curve_cell(protocol: dict[str, Any], output: Path, task: dict[str, Any], device: str) -> None:
-    identifier = task_id(task); path = output / "final_budget_curve_cells" / f"{identifier}.json"
-    if path.exists(): print(f"completed final cell: {path.name}", flush=True); return
-    run_output = output / "final_budget_curve_runs" / identifier
-    spec = {key: task[key] for key in ("seed", "encoder", "learning_rate", "weight_decay")}
-    value = experiment(protocol, run_output, spec, int(task["epochs"]), device)
-    initial, candidates = value.load_and_split()
-    baseline, baseline_metrics = value.train(initial)
-    candidate_rows, cache = value.candidates_with_clusters(candidates, baseline)
-    selected, _, _ = value.select(task["strategy"], candidate_rows, baseline, cache, [], budget=int(task["budget"]), labeled_ids=initial)
-    selected_ids = [row["pair_id"] for row in selected]
-    final_model, final_metrics = value.train(initial + selected_ids)
-    write_json({**task, "initial_pair_groups": len(initial), "selected_pair_groups": len(selected_ids), "selected_pair_ids": selected_ids, "baseline_training_pairwise_accuracy": baseline_metrics["pairwise_accuracy"], "final_training_pairwise_accuracy": final_metrics["pairwise_accuracy"], "utility_validation_accuracy": value.evaluate(final_model, "utility_validation")["test_accuracy"], "outer_test_accuracy": value.evaluate(final_model, "outer_test")["test_accuracy"]}, path)
-
-
-def run_account_final_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int, device: str) -> None:
-    manifest = read_json(output / "task_manifests" / "pair_disjoint_final_budget_curve_tasks.json")
-    assigned = [task for index, task in enumerate(manifest["tasks"]) if index % account_count == account_index]
-    print(f"account {account_index + 1}/{account_count}: {len(assigned)} final cells; each result saves to Drive before the next begins", flush=True)
-    for number, task in enumerate(assigned, start=1):
-        run_final_budget_curve_cell(protocol, output, task, device)
-        print(f"final queue progress {number}/{len(assigned)} ({100 * number / len(assigned):.1f}%)", flush=True)
+    expected = pd.DataFrame(calibration_tasks(protocol))
+    keys = ["seed", "encoder", "learning_rate", "weight_decay", "total_epochs"]
+    matched = frame.merge(expected[keys].drop_duplicates(), on=keys, how="inner")
+    if len(matched) != len(expected):
+        raise RuntimeError(f"Initial-10 calibration is incomplete: found {len(matched)} expected results, need {len(expected)}.")
+    summary = matched.groupby(["encoder", "learning_rate", "weight_decay", "total_epochs"], as_index=False).agg(
+        utility_validation_accuracy_mean=("utility_validation_accuracy", "mean"),
+        utility_validation_accuracy_sd=("utility_validation_accuracy", "std"),
+        outer_test_accuracy_mean=("outer_test_accuracy", "mean"),
+        seeds=("seed", "nunique"),
+    )
+    diagnostic = output / "initial_ten_pair_calibration_diagnostic"
+    diagnostic.mkdir(parents=True, exist_ok=True)
+    matched.to_csv(diagnostic / "per_seed_initial_ten_pair_calibration.csv", index=False)
+    summary.to_csv(diagnostic / "validation_summary_initial_ten_pair_calibration.csv", index=False)
+    write_json({"purpose": "Initial-10-pair sensitivity diagnostic only", "not_a_locked_final_protocol": True,
+                "outer_test_not_used_for_selection": True,
+                "next_step": "Run budget-aware validation calibration before final acquisition curves."},
+               diagnostic / "README.json")
+    print(f"Wrote initial-10-pair diagnostic from {len(matched)} expected cells. No final protocol was locked.", flush=True)
 
 
 def run_calibration_segment(protocol: dict[str, Any], output: Path, spec: dict[str, Any], total_epochs: int, segment_number: int, device: str) -> None:
@@ -173,7 +167,7 @@ def run_calibration_segment(protocol: dict[str, Any], output: Path, spec: dict[s
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("audit_pair_disjoint_capacity", "write_calibration_manifest", "run_account_calibration_queue", "lock_calibration_and_write_final_manifest", "run_account_final_queue", "run_calibration_segment"))
+    parser.add_argument("action", choices=("audit_pair_disjoint_capacity", "write_calibration_manifest", "run_account_calibration_queue", "aggregate_initial_ten_pair_calibration_diagnostic", "run_calibration_segment"))
     parser.add_argument("--config", type=Path, default=HERE / "literature_backed_pair_disjoint_budget_curve_settings.json")
     parser.add_argument("--drive-output", type=Path, required=True)
     parser.add_argument("--device", default="cuda")
@@ -184,10 +178,8 @@ def main() -> None:
     elif args.action == "run_account_calibration_queue":
         if args.account_index is None: parser.error("run_account_calibration_queue requires --account-index")
         run_account_calibration_queue(protocol, output, args.account_index, args.account_count, args.device)
-    elif args.action == "lock_calibration_and_write_final_manifest": lock_calibration_and_write_final_manifest(protocol, output)
-    elif args.action == "run_account_final_queue":
-        if args.account_index is None: parser.error("run_account_final_queue requires --account-index")
-        run_account_final_queue(protocol, output, args.account_index, args.account_count, args.device)
+    elif args.action == "aggregate_initial_ten_pair_calibration_diagnostic":
+        aggregate_initial_ten_pair_calibration_diagnostic(protocol, output)
     else:
         needed = (args.seed, args.encoder, args.learning_rate, args.weight_decay, args.total_epochs, args.segment_number)
         if any(value is None for value in needed): parser.error("run_calibration_segment requires seed, encoder, learning-rate, weight-decay, total-epochs, and segment-number")
