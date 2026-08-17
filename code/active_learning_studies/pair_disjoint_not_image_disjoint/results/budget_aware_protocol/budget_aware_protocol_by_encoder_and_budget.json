@@ -1,0 +1,61 @@
+{
+  "outer_test_used_for_selection": false,
+  "protocol_by_encoder_and_acquisition_budget": {
+    "imagenet": {
+      "10": {
+        "epochs": 30,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001
+      },
+      "100": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      },
+      "25": {
+        "epochs": 10,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      },
+      "50": {
+        "epochs": 10,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      },
+      "75": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      }
+    },
+    "simclr": {
+      "10": {
+        "epochs": 30,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001
+      },
+      "100": {
+        "epochs": 30,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.0001
+      },
+      "25": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      },
+      "50": {
+        "epochs": 30,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      },
+      "75": {
+        "epochs": 10,
+        "learning_rate": 0.0003,
+        "weight_decay": 0.0001
+      }
+    }
+  },
+  "rule": "The selected setting is shared by all acquisition strategies at its encoder and budget.",
+  "selection_endpoint": "utility_validation_accuracy_mean"
+}
