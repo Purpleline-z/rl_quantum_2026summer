@@ -1,0 +1,48 @@
+{
+  "budget": 10,
+  "checkpoint": "/kaggle/working/task_3a_account_4_checkpoint_state/resumable_checkpoints/budget_aware_validation_calibration/5693923f18625f08.pth",
+  "encoder": "imagenet",
+  "epochs": 10,
+  "initial_pair_groups": 10,
+  "learning_rate": 0.0001,
+  "optimizer_updates": null,
+  "outer_test_not_evaluated": true,
+  "reference_selected_pair_ids": [
+    "Trajectories/2022-02-04/296_RR220204A_869C_2015.bmp || Trajectories/2022-04-11/009_RR220411A_206C_1423.bmp",
+    "Trajectories/2022-04-11/111_RR220411A_536C_1546.bmp || Trajectories/2022-04-11/175_RR220411A_765C_1645.bmp",
+    "Trajectories/2022-02-04/174_RR220204A_527C_1818.bmp || Trajectories/2022-04-11/164_RR220411A_724C_1635.bmp",
+    "Trajectories/2022-02-06/058_RR220206A_249C_1745.bmp || Trajectories/2022-04-11/178_RR220411A_774C_1649.bmp",
+    "Trajectories/2022-02-04/038_RR220204A_576C_0147.bmp || Trajectories/2022-02-06/171_RR220206A_1085C_2027.bmp",
+    "Trajectories/2022-02-04/341_RR220204A_937C_2114.bmp || Trajectories/2022-02-06/163_RR220206A_1105C_2015.bmp",
+    "Trajectories/2022-02-04/266_RR220204A_783C_1938.bmp || Trajectories/2022-02-04/356_RR220204A_949C_2144.bmp",
+    "Trajectories/2022-02-06/189_RR220206A_971C_2054-01.bmp || Trajectories/2022-04-11/286_RR220411A_906C_1837.bmp",
+    "Trajectories/2022-02-06/055_RR220206A_239C_1742.bmp || Trajectories/2022-04-11/409_RR220411A_474C_1953.bmp",
+    "Trajectories/2022-04-11/008_RR220411A_193C_1422.bmp || Trajectories/2022-04-11/093_RR220411A_482C_1531.bmp"
+  ],
+  "seed": 303,
+  "training_pairwise_accuracy": 1.0,
+  "utility_validation_accuracy": 0.6,
+  "utility_validation_by_class": {
+    "(1 x 1)": {
+      "accuracy": 0.875,
+      "correct": 7,
+      "total": 8
+    },
+    "(\u221a13 x \u221a13)": {
+      "accuracy": 0.875,
+      "correct": 7,
+      "total": 8
+    },
+    "HTR": {
+      "accuracy": 0.6666666666666666,
+      "correct": 4,
+      "total": 6
+    },
+    "c(6 x 2)": {
+      "accuracy": 0.0,
+      "correct": 0,
+      "total": 8
+    }
+  },
+  "weight_decay": 0.0001
+}
