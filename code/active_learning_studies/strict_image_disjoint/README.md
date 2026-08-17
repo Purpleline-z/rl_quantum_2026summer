@@ -25,22 +25,28 @@ The four accounts do not share a filesystem, process, GPU, or Drive mount.
 They are not GPU numbers `0`, `1`, `2`, and `3` on one machine. Each account
 writes to its own Google Drive directory.
 
-Run this first cell separately in each account:
+Run this first cell separately in each account. It clones the code into
+temporary Colab storage and puts every result and checkpoint on Google Drive.
+Use a fresh runtime; do not clone into Drive.
 
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
 
-REPOSITORY_ROOT = '/content/Quantum'  # Change only if your git clone differs.
-CODE_ROOT = f'{REPOSITORY_ROOT}/code'
-ACCOUNT_NAME = 'account_1'  # account_1, account_2, account_3, or account_4
+!git clone https://github.com/Purpleline-z/rl_quantum_2026summer.git
+%cd /content/rl_quantum_2026summer/code
+
+# Change only this account-specific label.
+ACCOUNT_NAME = 'account_1'  # Use account_1, account_2, account_3, or account_4.
 DRIVE_OUTPUT = f'/content/drive/MyDrive/rheed_strict_image_disjoint/{ACCOUNT_NAME}'
 !mkdir -p "$DRIVE_OUTPUT"
-%cd "$CODE_ROOT"
 ```
 
-Nothing in this repository pushes results automatically. The Drive output is
-the persistent location; the Colab checkout holds code only.
+The clone under `/content/` is disposable. Every command below passes
+`--drive-output "$DRIVE_OUTPUT"`, so completed cell results are saved under
+Drive immediately and epoch checkpoints are also written there. A Colab
+timeout can remove `/content/`, but it does not remove these Drive outputs.
+Nothing in this repository pushes results automatically.
 
 ## Task 0: capacity and leakage gate (one account only)
 
