@@ -4,7 +4,7 @@
 
 This study selects additional **unordered image-pair groups** for human preference labeling. A selected group exposes its existing hidden preference rows; those rows train a five-output Bradley--Terry image reward model. The reported endpoint is reconstruction accuracy on held-out ideal images after retraining.
 
-The study is pair-disjoint: a pair cannot be in both the initial labeled set and candidate pool. It is not image-disjoint: an image can appear in two different pair groups. This is intentional historical protocol compatibility, not an unnoticed split condition. Read [study_description.md](study_description.md) before comparing its outputs with image-disjoint studies.
+The study is pair-disjoint: a pair cannot be in both the initial labeled set and candidate pool. It is not image-disjoint: an image can appear in two different pair groups. This is intentional historical protocol compatibility. A later SHA-256 audit also found that path-disjoint ideal partitions contain byte-identical copies of some pairwise and ideal images; that identity-level leakage is an error to repair before Task 3c, not a feature of the historical protocol. Read [study_description.md](study_description.md) before comparing its outputs with image-disjoint studies.
 
 ## Evidence map
 
@@ -14,7 +14,7 @@ The study is pair-disjoint: a pair cannot be in both the initial labeled set and
 | `selection_benchmark/stage2_symmetry_factorial/` | Does horizontal-symmetry preprocessing alter the selection result? | Yes. Symmetry choice is an experimental factor, not a universal preprocessing default. |
 | `protocol_diagnostics/` | How did LR and encoder screens behave in their recorded protocols? | ImageNet and `3e-4` screened better in selected fixed settings; budget-aware validation is needed before using one schedule everywhere. |
 | `selected_summaries/lambda_sweep/` | Which diversity weight worked at the tested endpoint? | The recorded lambda `0.5` was the best of the tested weights; it remains a project-specific design choice. |
-| `budget_aware_validation_calibration_account_*/` | Which LR/epoch setting is appropriate for each budget and encoder? | In progress: 583/600 cells are present, so no final protocol table yet. |
+| `budget_aware_validation_calibration_account_*/` and `budget_aware_protocol/` | Which LR/epoch setting is appropriate for each budget and encoder? | Complete path-based calibration: ImageNet is higher at four budgets, SimCLR at budget 50. It must be rerun after identity-level split repair. |
 
 ## Task sequence
 
@@ -30,15 +30,15 @@ Task 2 reads compact per-cell JSON records, checks that expected specifications 
 
 Task 3a is the corrective calibration. It spans five seeds, two encoders, five budgets, four learning rates, and three epoch counts: 600 validation-only cells. Each cell uses the initial ten pair groups plus a deterministic random-reference acquisition at the specified budget. It chooses no candidate preference labels while building that reference set.
 
-The current repository has 150 completed cells for Account 1, 150 for Account 2, 150 for Account 3, and 133 for Account 4. The 17 remaining Account 4 cells must be recovered before aggregation. A recovery account should run the same queue with `--account-index 3 --account-count 4`; the queue skips JSONs already tracked under `results/budget_aware_validation_calibration_account_4/` and writes only missing completions to its own Drive directory.
+All 600 cells are complete and Task 3b has written `results/budget_aware_protocol/`. Within the shared Task 3a protocol, ImageNet has the higher selected validation mean at budgets 10, 25, 75, and 100; SimCLR has the higher selected validation mean at budget 50. This is a fair encoder comparison within this pipeline, but it uses a different downstream protocol from historical Classifier2 experiments.
 
 ### Task 3b: budget-aware protocol aggregation
 
-After all 600 JSONs are present, the aggregation action selects a learning rate and epoch count for each `(encoder, budget)` from utility validation only. It writes `results/budget_aware_protocol/`. It refuses partial, duplicate, or malformed input because any of those conditions would make the selected schedule depend on account availability rather than the intended grid.
+The aggregation action selected a learning rate and epoch count for each `(encoder, budget)` from utility validation only and wrote `results/budget_aware_protocol/`. The result is retained because it explains the observed encoder difference, but it is not a final selection protocol: a SHA-256 audit found approximately one to two duplicated image identities per seed on average (one to three across seeds) between pairwise data and the ideal outer test, plus duplicate identities across ideal reference/validation/test partitions.
 
 ### Task 3c: final paired budget curves
 
-Task 3c uses the Task 3b protocol table to compare the approved strategies at budgets 10, 25, 50, 75, and 100. Every cell starts a fresh acquisition model and fresh final model. The standard control trains for its selected epoch count; the fixed-update control limits both acquisition and final-model training to the same optimizer-update total. The two controls separate “selected better labels” from “ran more updates because the acquired set was larger.”
+Task 3c must not start from the current Task 3b table. First rebuild all ideal and pairwise partitions around SHA-256 image identity, remove or jointly partition duplicate copies, and confirm capacity for ten initial plus 100 candidate pair groups. Then rerun validation calibration. Only the repaired protocol may be used to compare approved strategies at budgets 10, 25, 50, 75, and 100. Every final cell will start a fresh acquisition model and fresh final model; the standard and fixed-update controls will then separate “selected better labels” from “ran more updates because the acquired set was larger.”
 
 ## Persistence and result handling
 
