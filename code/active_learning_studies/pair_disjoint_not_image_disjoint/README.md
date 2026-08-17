@@ -60,12 +60,14 @@ strategies x 5 budgets.
 !python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py lock_calibration_and_write_final_manifest --drive-output "$DRIVE_OUTPUT" --device cuda
 ```
 
-The four Drive account directories must be copied into one shared
-`DRIVE_OUTPUT` before Task 2, because locking requires all 120 JSON files.
+The four accounts keep separate Drive backups. After Task 1, copy only each
+account's small `calibration_results/*.json` files into the repository and
+push them to GitHub one account at a time. A later merge command reads these
+Git-tracked raw results; do not share Drive folders or push checkpoints.
 
 ## Task 3: complete final strategy/budget curve
 
-After Task 2, run one queue per account using the same shared `DRIVE_OUTPUT`:
+After Task 2, run one queue per account using its own `DRIVE_OUTPUT`:
 
 ```python
 !python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_account_final_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
