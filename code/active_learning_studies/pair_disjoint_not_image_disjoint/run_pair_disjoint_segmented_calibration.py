@@ -121,6 +121,16 @@ def aggregate_initial_ten_pair_calibration_diagnostic(protocol: dict[str, Any], 
     frame = pd.DataFrame(rows)
     expected = pd.DataFrame(calibration_tasks(protocol))
     keys = ["seed", "encoder", "learning_rate", "weight_decay", "total_epochs"]
+    # A task can have been rerun on another account after an interruption.  If
+    # it produced an identical durable JSON, retain one copy for aggregation;
+    # conflicting duplicate measurements remain a hard error.
+    duplicate_rows = frame[frame.duplicated(keys, keep=False)]
+    if not duplicate_rows.empty:
+        measurements = ["training_pairwise_accuracy", "utility_validation_accuracy", "outer_test_accuracy"]
+        conflicts = duplicate_rows.groupby(keys, dropna=False)[measurements].nunique(dropna=False).max(axis=1) > 1
+        if conflicts.any():
+            raise RuntimeError("Duplicate initial-10 calibration task records disagree; do not aggregate them.")
+        frame = frame.sort_values("source_directory").drop_duplicates(keys, keep="first")
     matched = frame.merge(expected[keys].drop_duplicates(), on=keys, how="inner")
     if len(matched) != len(expected):
         raise RuntimeError(f"Initial-10 calibration is incomplete: found {len(matched)} expected results, need {len(expected)}.")
