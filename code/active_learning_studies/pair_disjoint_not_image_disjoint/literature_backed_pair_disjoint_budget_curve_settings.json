@@ -13,5 +13,6 @@
   "train_batch_size": 16,
   "dropout_probability": 0.2,
   "maximum_epochs_per_gpu_segment": 10,
+  "fixed_total_optimizer_updates": 30,
   "checkpoint_heartbeat_seconds": 1800
 }
