@@ -71,12 +71,12 @@ This replacement calibration has 600 cells: five seeds, two encoders, five
 acquisition budgets, four learning rates, and three epoch counts. For each
 budget it trains on the initial ten pair groups plus a deterministic random
 reference acquisition of that budget. It evaluates validation images only;
-it never evaluates outer test. Each account owns 150 cells. To keep a Colab
-session bounded, one invocation runs at most five cells and then stops safely.
-Re-run the identical command until it reports zero remaining cells.
+it never evaluates outer test. Each account owns 150 cells. One invocation
+automatically runs all remaining account cells. Results are saved to Drive
+after every complete cell and checkpoints are saved after every epoch.
 
 ```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_validation_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0 --maximum-cells 5
+!python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_validation_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
 ```
 
 Use account indices 1, 2, and 3 on the other accounts. Every epoch checkpoint
@@ -113,7 +113,7 @@ acquisition model and a fresh final model and then evaluates outer test.
 !python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_final_strategy_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0 --maximum-cells 5
 ```
 
-Use account indices 1, 2, and 3 on the other accounts and rerun the identical
-command until it reports zero remaining cells. Results save under
+Use account indices 1, 2, and 3 on the other accounts. One invocation runs all
+remaining assigned cells automatically. Results save under
 `$DRIVE_OUTPUT/budget_aware_final_strategy_cells/`; copy only those JSON files
 to a corresponding `results/` directory before committing them.

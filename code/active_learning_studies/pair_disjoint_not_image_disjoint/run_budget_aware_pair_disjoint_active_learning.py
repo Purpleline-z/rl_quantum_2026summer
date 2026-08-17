@@ -115,10 +115,12 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
 def run_bounded_validation_calibration_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int, maximum_cells: int, device: str) -> None:
     assigned = [task for index, task in enumerate(validation_calibration_tasks(protocol)) if index % account_count == account_index]
     pending = [task for task in assigned if not (output / "budget_aware_validation_calibration" / f"{task_id(task)}.json").exists()]
-    print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} calibration cells complete; running at most {maximum_cells} now", flush=True)
-    for number, task in enumerate(pending[:maximum_cells], start=1):
+    scheduled = pending if maximum_cells == 0 else pending[:maximum_cells]
+    scope = "until complete" if maximum_cells == 0 else f"at most {maximum_cells} cells"
+    print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} calibration cells complete; running {scope}", flush=True)
+    for number, task in enumerate(scheduled, start=1):
         run_validation_calibration_cell(protocol, output, task, device)
-        print(f"bounded calibration progress {number}/{min(maximum_cells, len(pending))}; account remaining={len(pending) - number}", flush=True)
+        print(f"calibration progress {number}/{len(scheduled)}; account remaining={len(pending) - number}", flush=True)
 
 
 def aggregate_budget_aware_validation_calibration(protocol: dict[str, Any]) -> None:
@@ -214,10 +216,12 @@ def run_bounded_final_strategy_queue(protocol: dict[str, Any], output: Path, acc
     tasks = final_tasks(protocol)
     assigned = [task for index, task in enumerate(tasks) if index % account_count == account_index]
     pending = [task for task in assigned if not (output / "budget_aware_final_strategy_cells" / f"{task_id(task)}.json").exists()]
-    print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} final cells complete; running at most {maximum_cells} now", flush=True)
-    for number, task in enumerate(pending[:maximum_cells], start=1):
+    scheduled = pending if maximum_cells == 0 else pending[:maximum_cells]
+    scope = "until complete" if maximum_cells == 0 else f"at most {maximum_cells} cells"
+    print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} final cells complete; running {scope}", flush=True)
+    for number, task in enumerate(scheduled, start=1):
         run_final_strategy_cell(protocol, output, task, device)
-        print(f"bounded final progress {number}/{min(maximum_cells, len(pending))}; account remaining={len(pending) - number}", flush=True)
+        print(f"final progress {number}/{len(scheduled)}; account remaining={len(pending) - number}", flush=True)
 
 
 def main() -> None:
@@ -228,14 +232,15 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--account-index", type=int)
     parser.add_argument("--account-count", type=int, default=4)
-    parser.add_argument("--maximum-cells", type=int, default=5)
+    parser.add_argument("--maximum-cells", type=int, default=0,
+                        help="0 runs all remaining assigned cells automatically; a positive value is a debugging limit.")
     args = parser.parse_args(); protocol = read_json(args.config)
     if args.action == "aggregate_budget_aware_validation_calibration":
         aggregate_budget_aware_validation_calibration(protocol); return
     if args.drive_output is None or args.account_index is None:
         parser.error("queue actions require --drive-output and --account-index")
     if not 0 <= args.account_index < args.account_count: parser.error("--account-index must be in [0, account-count)")
-    if args.maximum_cells < 1: parser.error("--maximum-cells must be positive")
+    if args.maximum_cells < 0: parser.error("--maximum-cells must be non-negative")
     output = args.drive_output.expanduser().resolve(); output.mkdir(parents=True, exist_ok=True)
     if args.action == "run_bounded_validation_calibration_queue":
         run_bounded_validation_calibration_queue(protocol, output, args.account_index, args.account_count, args.maximum_cells, args.device)
