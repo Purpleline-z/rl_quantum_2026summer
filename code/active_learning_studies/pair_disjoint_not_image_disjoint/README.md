@@ -33,28 +33,44 @@ The result is `$DRIVE_OUTPUT/pair_disjoint_audits/capacity_summary.csv`. It
 must show zero exact pair overlap and at least 10 initial plus 100 candidate
 pair groups for every seed. Image overlap is reported but permitted.
 
-## Task 1: bounded calibration segments
+## Task 1: complete calibration grid
 
-Every GPU segment contains at most 10 epochs. It saves an epoch checkpoint to
-`$DRIVE_OUTPUT/resumable_checkpoints/pair_disjoint_calibration/` and prints
-epoch progress. A 3-epoch task has one segment, a 10-epoch task has one, and a
-30-epoch task has three segments. Start with these four timing/calibration
-tasks after Task 0 passes:
+The full grid is 120 cells: 5 seeds x 2 encoders x 4 learning rates x 3 epoch
+counts. The runner gives each independent account 30 cells. Every 30-epoch
+cell is internally split into three 10-epoch checkpoints; every completed cell
+writes its final JSON to Drive before the queue advances.
 
 ```python
-# Account 1: expected 10–30 minutes
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_calibration_segment --drive-output "$DRIVE_OUTPUT" --device cuda --seed 42 --encoder simclr --learning-rate 0.0001 --weight-decay 0.0001 --total-epochs 10 --segment-number 1
-
-# Account 2: expected 10–30 minutes
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_calibration_segment --drive-output "$DRIVE_OUTPUT" --device cuda --seed 42 --encoder imagenet --learning-rate 0.0001 --weight-decay 0.0001 --total-epochs 10 --segment-number 1
-
-# Account 3: expected 10–30 minutes
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_calibration_segment --drive-output "$DRIVE_OUTPUT" --device cuda --seed 79 --encoder simclr --learning-rate 0.0001 --weight-decay 0.0001 --total-epochs 10 --segment-number 1
-
-# Account 4: expected 10–30 minutes
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_calibration_segment --drive-output "$DRIVE_OUTPUT" --device cuda --seed 79 --encoder imagenet --learning-rate 0.0001 --weight-decay 0.0001 --total-epochs 10 --segment-number 1
+!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_account_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
 ```
 
-For a 30-epoch task, run the identical command with `--segment-number 1`,
-then `2`, then `3`. No segment is longer than 10 epochs. The final segment
-writes the result JSON to `$DRIVE_OUTPUT/calibration_results/`.
+Use the same command on Accounts 2, 3, and 4, replacing `--account-index 0`
+with `1`, `2`, and `3` respectively. The queue prints completed/total progress
+and skips completed cells after interruption. Its actual elapsed time is
+measured from this run; no unmeasured 10–30 minute estimate is claimed.
+
+## Task 2: lock calibration and generate the complete final curve
+
+After all four Task 1 queues finish, run this once on any account. It selects
+one LR/epoch protocol separately for SimCLR and ImageNet using validation only,
+then writes the 250-cell final manifest: 5 seeds x 2 encoders x 5 approved
+strategies x 5 budgets.
+
+```python
+!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py lock_calibration_and_write_final_manifest --drive-output "$DRIVE_OUTPUT" --device cuda
+```
+
+The four Drive account directories must be copied into one shared
+`DRIVE_OUTPUT` before Task 2, because locking requires all 120 JSON files.
+
+## Task 3: complete final strategy/budget curve
+
+After Task 2, run one queue per account using the same shared `DRIVE_OUTPUT`:
+
+```python
+!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_account_final_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
+```
+
+Use account indices 1, 2, and 3 on the other accounts. Each account receives
+about 63 final cells. Each final cell retrains from scratch and saves its own
+JSON under `$DRIVE_OUTPUT/final_budget_curve_cells/` before the next begins.
