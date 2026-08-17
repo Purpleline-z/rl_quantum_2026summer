@@ -2,18 +2,30 @@
 
 ## Question
 
-Does labelled, simulator-generated RHEED data improve a Classifier2-compatible model on a real-image, strictly image-disjoint three-class outer test after real-data fine-tuning?
+The simulator can generate large numbers of RHEED-like raster images with known reconstruction labels. This study tests whether those labels improve a Classifier2-compatible model on real images, rather than assuming that more synthetic images are automatically useful.
 
-## Data, split, and model version
+## Available synthetic data
 
-The preliminary synthetic source is the schema-v6 `p656_aligned_peak` archive. It contains only Twinned(2 x 1), c(6 x 2), and (√13 x √13) synthetic images and is marked `synthetic_training_only` in its manifest. The archive is never evaluation data.
+The schema-v6 `p656_aligned_peak` archive contains 2,250 images: three views of 250 latent surfaces for each of Twinned(2 x 1), c(6 x 2), and root-13. The archive marks every image `synthetic_training_only`. Its three views of the same latent surface are correlated; the study partitions by `same_surface_group`, never by individual PNG.
 
-Real image IDs are partitioned before training into disjoint train, validation, and outer-test sets. Synthetic views are partitioned by `same_surface_group`, not by individual PNG. The model is a five-output ResNet-18 Bradley--Terry reward model initialized from the shipped SimCLR encoder. Synthetic pretraining applies standard cross-entropy only to the three simulator-supported output dimensions; real fine-tuning uses the same pairwise, ideal-anchor, and Bad-image losses as the Classifier2-style protocol.
+The simulator does not supply `(1 x 1)` or HTR labels. Its result therefore uses a real-image, three-class outer test and cannot be numerically pooled with historical five-class Classifier2 results.
 
-## Use in the technical report
+## Model and comparison arms
 
-This is a preliminary sim-to-real study. Its primary endpoint is three-class real outer-test macro accuracy, reported per seed and with paired differences from a real-only baseline. It cannot revise historical five-class Classifier2 results.
+All arms use the shipped SimCLR ResNet-18 initialization and the compatible five-output reward head. Synthetic supervised loss is applied only to the three output dimensions the simulator supports. Real fine-tuning keeps the existing pairwise, ideal-anchor, and Bad-image losses.
 
-## Comparability limits
+The five paired seeds compare:
 
-The simulator does not provide 1x1 or HTR labels. The outer test contains few real Twinned ideal images, so all class counts and uncertainty intervals must accompany aggregate values. Synthetic-only real performance is a domain-gap diagnostic, not independent validation evidence.
+1. **real-only baseline** — what real labeled data achieves without simulated images;
+2. **synthetic-only transfer diagnostic** — how a simulator-trained model behaves on real outer-test images before real fine-tuning;
+3. **synthetic pretrain then real fine-tune** — whether synthetic labels provide a useful starting representation once the model adapts to real data.
+
+The synthetic-only arm is essential. A low score measures the simulator-to-real gap; a transfer gain despite that gap would show that some features still transfer after real fine-tuning.
+
+## Split and evaluation policy
+
+Real images are partitioned by image identity before training into mutually exclusive train, validation, and outer-test sets. Synthetic partitions preserve latent-surface groups. Hyperparameters use validation only. The primary endpoint is real-only, image-disjoint outer-test accuracy with per-class counts, especially the small Twinned count, reported alongside aggregate performance.
+
+## Current status and research decision
+
+The folder contains a preflight validator, strict real split builder, resumable queue, aggregation code, and behavior tests. No performance result is currently committed. The first experimental decision will come from the paired real outer test: if transfer consistently exceeds real-only across seeds, simulator pretraining becomes a justified augmentation direction; if synthetic-only and transfer both underperform, the next research task is to inspect domain mismatch rather than increase synthetic image count blindly.

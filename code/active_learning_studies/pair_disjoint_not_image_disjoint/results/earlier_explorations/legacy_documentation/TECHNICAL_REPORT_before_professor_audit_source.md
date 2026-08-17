@@ -1,8 +1,42 @@
-# Technical Report: RHEED Pairwise Active Learning
+# Historical Technical Report Before the Protocol Audit (Source Snapshot)
+
+## Role of this report
+
+This source snapshot preserves the report that preceded the later audit of
+training duration, learning-rate selection, image reuse, and evaluation
+comparability. It is evidence about what was run and how it was interpreted at
+the time; it is not the maintained technical report. References below to
+`results/published`, `results/local_runs`, and the former `src/` layout are
+therefore intentionally historical and may not resolve in the reorganized tree.
+
+### What the historical evidence established
+
+The report distinguishes acquisition of a pairwise preference label from the
+downstream ideal-image endpoint, a distinction still central to the project. It
+also records a SimCLR ResNet-18 plus Bradley--Terry reward-head direction.
+However, its fixed three-epoch protocol, pair-disjoint split policy, and older
+data/output paths mean that its numerical comparisons cannot answer whether a
+method generalizes to unseen images or whether a larger label budget was trained
+to a comparable degree of convergence.
+
+### Research handoff
+
+- **Observed artifact:** the text below captures the original protocol inventory
+  and the result families then considered comparable.
+- **What it means:** it shows why later work explicitly audits pair/image reuse,
+  records calibration by budget, and keeps historical summaries separate.
+- **Research decision:** interpret current selection evidence through
+  [`code/TECHNICAL_REPORT.md`](../../../../../TECHNICAL_REPORT.md) and the
+  current pair-disjoint study; retain this file to preserve the provenance of
+  claims made before that audit.
+
+---
+
+# Original technical-report text
 
 ## Purpose and scope
 
-This is the maintained project report for review and reproduction. It inventories legacy materials and current controlled studies instead of pooling incompatible experiments. Every current value has a corresponding artifact under [`results/published`](results/published). Historical job states, caches, and checkpoints remain locally in `results/local_runs`.
+This is the maintained project report for review and reproduction. It inventories legacy materials and current controlled studies instead of pooling incompatible experiments. In the source snapshot, `results/published` was the historical evidence location; it is not a live path in the reorganized repository. Historical job states, caches, and checkpoints remained locally in `results/local_runs`.
 
 The question is: under a limited label budget, which candidate **pairwise RHEED comparisons** should be revealed so retraining improves classification of ideal reconstruction types? For labeled pairs \(L\) and candidate \(p\), utility is \(U(p\mid L)=Acc(L\cup\{p\})-Acc(L)\), where accuracy is fixed ideal-image test accuracy after retraining. Selection is pairwise; evaluation is image classification.
 
@@ -33,25 +67,25 @@ The five-seed budget-100 point is shared between the endpoint extension and budg
 
 ## Representation exploration
 
-On the ideal-image subset, 5-nearest-neighbor cross-validation accuracy was 0.832 for raw pixels, 0.896 for ImageNet ResNet-18 features, and 0.884 for domain-specific SimCLR features. Sources: [`representation_metrics.csv`](results/published/representation_exploration/tables/representation_metrics.csv) and [`simclr_resnet18_tsne.png`](results/published/representation_exploration/figures/simclr_resnet18_tsne.png).
+On the ideal-image subset, 5-nearest-neighbor cross-validation accuracy was 0.832 for raw pixels, 0.896 for ImageNet ResNet-18 features, and 0.884 for domain-specific SimCLR features. Historical sources were `results/published/representation_exploration/tables/representation_metrics.csv` and `results/published/representation_exploration/figures/simclr_resnet18_tsne.png`.
 
 PCA/t-SNE are exploratory representation evidence only. t-SNE can exaggerate separation and does not establish classifier performance, selection utility, or significance.
 
 ## Controlled active-learning results
 
-At epoch 3, the three-seed fixed protocol gave uncertainty 0.744 +/- 0.077 post-test accuracy and +0.311 +/- 0.038 batch utility. Random gave 0.511 +/- 0.077 and +0.078 +/- 0.168. The custom K-means quota heuristic, uncertainty plus diversity, and core-set had mean accuracy 0.522 +/- 0.139, 0.544 +/- 0.107, and 0.478 +/- 0.139. Sources: [`strategy_summary.csv`](results/published/fixed_protocol_3seed/tables/strategy_summary.csv), [`per_seed_outcomes.csv`](results/published/fixed_protocol_3seed/tables/per_seed_outcomes.csv), and [`post_test_accuracy_by_epoch.png`](results/published/fixed_protocol_3seed/figures/post_test_accuracy_by_epoch.png). Epoch 3 was selected because uncertainty peaked before later epochs showed overfitting signs; epoch is a model setting, not an acquisition axis. Three seeds are directional, not definitive significance evidence.
+At epoch 3, the three-seed fixed protocol gave uncertainty 0.744 +/- 0.077 post-test accuracy and +0.311 +/- 0.038 batch utility. Random gave 0.511 +/- 0.077 and +0.078 +/- 0.168. The custom K-means quota heuristic, uncertainty plus diversity, and core-set had mean accuracy 0.522 +/- 0.139, 0.544 +/- 0.107, and 0.478 +/- 0.139. Historical sources were `strategy_summary.csv`, `per_seed_outcomes.csv`, and `post_test_accuracy_by_epoch.png` under `results/published/fixed_protocol_3seed/`. Epoch 3 was selected because uncertainty peaked before later epochs showed overfitting signs; epoch is a model setting, not an acquisition axis. Three seeds are directional, not definitive significance evidence.
 
-At the shared five-seed budget-100 endpoint, uncertainty achieved 0.647 +/- 0.202 accuracy and +0.220 +/- 0.258 utility, versus random at 0.493 +/- 0.076 and +0.067 +/- 0.176. Source: [`endpoint_5seed_strategy_summary.csv`](results/published/endpoint_extension_5seed/tables/endpoint_5seed_strategy_summary.csv).
+At the shared five-seed budget-100 endpoint, uncertainty achieved 0.647 +/- 0.202 accuracy and +0.220 +/- 0.258 utility, versus random at 0.493 +/- 0.076 and +0.067 +/- 0.176. Historical source: `results/published/endpoint_extension_5seed/tables/endpoint_5seed_strategy_summary.csv`.
 
-At 15 seeds, uncertainty remained higher on average: 0.522 +/- 0.188 accuracy and +0.144 +/- 0.255 utility, versus random at 0.460 +/- 0.130 and +0.082 +/- 0.208. Sources: [`endpoint_15seed_strategy_summary.csv`](results/published/endpoint_extension_15seed/tables/endpoint_15seed_strategy_summary.csv) and [`post_test_accuracy_by_strategy.png`](results/published/endpoint_extension_15seed/figures/post_test_accuracy_by_strategy.png). The large sample standard deviations are central: the evidence supports an average advantage, not a fixed ordering in every run.
+At 15 seeds, uncertainty remained higher on average: 0.522 +/- 0.188 accuracy and +0.144 +/- 0.255 utility, versus random at 0.460 +/- 0.130 and +0.082 +/- 0.208. Historical sources were `endpoint_15seed_strategy_summary.csv` and `post_test_accuracy_by_strategy.png` under `results/published/endpoint_extension_15seed/`. The large sample standard deviations are central: the evidence supports an average advantage, not a fixed ordering in every run.
 
-The five-seed curve is reported directly in [`strategy_performance_by_acquisition_budget.csv`](results/published/budget_curve_5seed/tables/strategy_performance_by_acquisition_budget.csv), [`post_test_accuracy_by_acquisition_budget.png`](results/published/budget_curve_5seed/figures/post_test_accuracy_by_acquisition_budget.png), and [`batch_utility_by_acquisition_budget.png`](results/published/budget_curve_5seed/figures/batch_utility_by_acquisition_budget.png). Its intermediate budgets are noisy and non-monotonic; it does not show that every additional pair improves every seed.
+The five-seed curve was reported in `strategy_performance_by_acquisition_budget.csv`, `post_test_accuracy_by_acquisition_budget.png`, and `batch_utility_by_acquisition_budget.png` under the historical `results/published/budget_curve_5seed/`. Its intermediate budgets are noisy and non-monotonic; it does not show that every additional pair improves every seed.
 
 ## Diversity, coverage, and limitations
 
 The custom K-means quota selector is named `cluster_quota_uncertainty`; it is not a standard algorithm. The exploratory Cluster-Margin selector is also not claimed to beat uncertainty in this low-budget setting.
 
-The redundancy analysis found no clear similarity/reuse–utility relationship. Thus redundancy alone neither explains the utility/accuracy mismatch nor establishes that diversity constraints help. PCA overlap does not validate core-set selection: core-set uses full-space local Euclidean coverage, while PCA is a global 2D projection. Sources: [`redundancy_utility_accuracy.csv`](results/published/diversity_and_coverage/tables/redundancy_utility_accuracy.csv), [`pair_similarity_vs_batch_utility.png`](results/published/diversity_and_coverage/figures/pair_similarity_vs_batch_utility.png), and [`core_set_interpretation.md`](results/published/diversity_and_coverage/core_set_interpretation.md).
+The redundancy analysis found no clear similarity/reuse–utility relationship. Thus redundancy alone neither explains the utility/accuracy mismatch nor establishes that diversity constraints help. PCA overlap does not validate core-set selection: core-set uses full-space local Euclidean coverage, while PCA is a global 2D projection. Historical sources were `redundancy_utility_accuracy.csv`, `pair_similarity_vs_batch_utility.png`, and `core_set_interpretation.md` under `results/published/diversity_and_coverage/`.
 
 Simulated ideal images are pristine and may not represent online RHEED with haze, mixtures, substrate-angle changes, beam-energy changes, or exposure changes. Ideal-image accuracy therefore is not deployment proof for growth control.
 

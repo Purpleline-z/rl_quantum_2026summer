@@ -1,151 +1,77 @@
-# Technical Report: RHEED Active Pair Selection
+# Technical Report: RHEED Active Pair Selection and Reconstruction Prediction
 
-## 1. Introduction
+## Executive interpretation
 
-This project asks a practical active-learning question: **under a limited labeling budget, which unordered RHEED image-pair groups should be revealed so that retraining improves downstream classification of ideal reconstruction types?** The selected object is a pair group; the primary outcome is post-acquisition accuracy on an untouched ideal-image outer test set.
+This project uses human pairwise RHEED preferences to train an image reward model and asks which additional pair groups are most useful to label. The completed five-selector benchmark does not identify one selector that wins at every label budget. It shows that the useful acquisition rule depends on budget and image preprocessing. The strongest unmodified-image endpoint in the completed five-seed curve is uncertainty at budget 100 (outer-test accuracy `0.647 ± 0.202`, mean batch utility `+0.220`). At budget 75, the project-specific uncertainty-plus-diversity rule is strongest (`0.513 ± 0.126`, `+0.167`). At budget 50, the project-specific cluster-quota uncertainty rule is strongest (`0.460 ± 0.123`, `+0.113`). [Stage 1 table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv)
 
-The completed controlled evidence shows that selection is **budget- and preprocessing-dependent**. In the five-selector, no-symmetry benchmark, the highest mean outer-test accuracy at budgets 10, 25, 50, 75, and 100 was respectively random (0.413), uncertainty (0.440), cluster-quota uncertainty (0.460), uncertainty + diversity (0.513), and uncertainty (0.647). Each is a five-seed mean and every comparison has substantial run-to-run variation; these are directional results, not significance claims. [Stage 1 aggregate CSV](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv)
+The practical implication is not that more labels always improve the current model. It is that the old single schedule—three epochs and one learning rate at all budgets—can confound selection quality with training behavior. The active work therefore calibrates learning rate and epochs with validation data separately by budget before producing the next budget curve. That Task 3a calibration is currently **583/600 cells complete**: Accounts 1–3 have 150 cells each and Account 4 has 133, leaving 17 cells. No budget-aware final curve exists yet.
 
-The completed symmetry factorial confirms that neither a selector nor a symmetry mode is a universal winner. Symmetry preprocessing changes the ranking at particular budgets. Its present contribution is a reproducible benchmark that identifies promising, conditional acquisition strategies and exposes the current downstream limitations. [Stage 2 interaction table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/selector_symmetry_budget_interaction.csv)
+## 1. What is selected and what is evaluated
 
-## 2. Objective and controlled pipeline
+The acquisition object is an **unordered pair group**. A group may include several preference rows for the same two images and reconstruction type. Before selection, the model can see candidate images and permitted model scores, but not the candidate preference outcome. Once selected, the hidden preference rows are revealed and used to retrain a Bradley--Terry reward model.
 
-For a candidate pair group \(p\) and currently revealed set \(L\), utility is defined operationally as
+The downstream endpoint is not pairwise agreement alone. After retraining, the model predicts reconstruction type on held-out ideal images. This separates the question “which human comparisons are informative?” from the question “does the resulting model classify reconstruction images better?” The controlled studies use single-shot acquisition: select one budgeted batch, reveal it, retrain from scratch, and evaluate once.
 
-\[
-U(p \mid L) = \operatorname{Acc}(L \cup \{p\}) - \operatorname{Acc}(L),
-\]
+## 2. Data, split, and model contract
 
-where accuracy is fixed ideal-image outer-test accuracy after downstream Bradley–Terry retraining. A pair group can contain multiple CSV preference rows. The controlled studies use **single-shot acquisition**: train on the initial pair groups, rank the candidate pool without revealing candidate preferences, acquire a budgeted set of groups, reveal their rows, retrain, and evaluate once.
+The v1.8 preference source has 669 valid rows representing 179 unordered pair groups. In the completed controlled benchmark, 50 groups form the initial labeled set, 120 form the candidate pool, and 9 are unused. Initial and candidate groups are pair-disjoint. They are **not image-disjoint**: an image may appear in an initial pair and in a different candidate pair. Ideal reference, utility-validation, and outer-test images are separately partitioned. There is no separate pairwise validation partition: preference data are allocated to the initial labeled set, candidate pool, or unused pairs. [Stage 1 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/study_manifest.json)
 
-The active-learning x-axis is acquired-pair-group budget (10, 25, 50, 75, or 100). The controlled benchmark fixes epoch 3, learning rate 1e-4, full-model fine-tuning, 50 initial pair groups, a 120-group candidate pool, and the ideal reference/test policy. Tolerance is not an exposed parameter. [Stage 1 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/study_manifest.json)
+The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head. For each reconstruction type, the model learns relative rewards for the two images; Bradley--Terry losses train the preferred ordering, while ideal reference images support reconstruction evaluation. The completed curves use full-model fine-tuning, batch size 16, learning rate `1e-4`, and three epochs. [Model implementation](active_learning_program/pairwise_active_learning_pipeline.py)
 
-The five evaluated selectors are random, uncertainty, uncertainty + diversity (lambda = 0.5), cluster-quota uncertainty, and core-set. `cluster_quota_uncertainty` is a custom K-means quota heuristic; historical artifacts may call it `cluster_diverse`, and it is not presented as a standard named algorithm. The additional Cluster-Margin method and three MC-dropout scores are exploratory selector studies.
+The shipped SimCLR checkpoint is image-only self-supervised initialization; it is not trained on the pairwise preference labels. SimCLR is image-only self-supervised pretraining, not pairwise preference learning. Pairwise labels enter only in downstream reward-model training. The checkpoint hash is recorded in manifests, but the repository does not contain a matching full pretraining manifest. This matters when comparing it with ImageNet initialization: a result can compare downstream behavior of the two initializations, but cannot reconstruct every upstream pretraining difference.
 
-## 3. Dataset, splits, leakage, and evaluation contract
+## 3. Completed unmodified-image budget curve
 
-The source preference data contain 669 valid rows representing 179 unique unordered pair groups. In each controlled seed, 50 groups form the initially revealed pairwise-training set, 120 groups form the candidate pool, and 9 groups are unused. Candidate preference labels are hidden from the selector until acquisition. [Stage 2 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/study_manifest.json)
+The following completed curve is the most direct evidence for selection under the original no-symmetry input mode. Values are mean outer-test accuracy over five seeds; utility is the mean change from the pre-acquisition model.
 
-| Partition / check | Controlled protocol meaning |
-|---|---|
-| Initial pairwise training | 50 unordered groups; the number of revealed preference rows is seed-dependent because groups contain different numbers of rows. |
-| Candidate pool | 120 unordered groups; only image content and permitted model scores are visible before acquisition. |
-| Selected set | A budgeted subset of the candidate groups; exactly pair-disjoint from the initial set. |
-| Unused groups | 9 groups outside that seed’s initial/pool partition. |
-| Pairwise validation | None. There is no separate pairwise validation partition in the controlled protocol. |
-| Ideal reference anchors | Fixed ideal images used by the downstream evaluation contract. |
-| Utility-validation images | An ideal-image split used only where a diagnostic explicitly selects a hyperparameter. |
-| Outer test | Untouched ideal images used for the main post-acquisition result; job artifacts report 30 images per run. |
+| Budget | Highest accuracy arm | Accuracy | Interpretation | Research decision |
+|---:|---|---:|---|---|
+| 10 | Random | 0.413 | With very few labels, the selector scores are not yet more useful than a random draw. | Keep random as a required paired baseline. |
+| 25 | Uncertainty | 0.440 | Model uncertainty begins to identify useful comparisons, but the difference from random is small relative to seed variation. | Re-evaluate under budget-aware training. |
+| 50 | Cluster-quota uncertainty | 0.460 | Combining uncertainty with K-means coverage can help at a middle budget. This is a project heuristic, not a standard named acquisition method. | Preserve it as a documented comparator; test whether its gain survives the updated protocol. |
+| 75 | Uncertainty + diversity | 0.513 | A weighted combination of uncertainty and embedding diversity performed best at this budget. This is a project-specific rule, not a literature-standard algorithm. | Keep the exact formula and weight visible; compare it with standard methods rather than relabeling it. |
+| 100 | Uncertainty | 0.647 | The largest completed endpoint favors uncertainty, with positive mean utility. | Make budget-100 uncertainty a principal reference in the budget-aware rerun. |
 
-Pair-disjoint is not image-disjoint: an image can occur in different unordered pairs. The manifests explicitly audit exact-pair overlap, image overlap between pairwise partitions, pairwise-image overlap with ideal test images, and reference/test overlap. The raw manifests are the authoritative per-run audit because those counts vary with seed and selected budget. The compact Git-tracked stage aggregates do not include every historical per-job manifest.
+The curve is non-monotonic within several arms. In this dataset, increasing the number of acquired groups also changes how much data each fixed-epoch run processes; the next protocol explicitly separates that effect with validation-selected epochs and a fixed-total-update control. [Per-budget aggregate](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv) and [per-seed accuracy figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/post_test_accuracy_by_budget.png)
 
-This distinction answers the key split question: SimCLR pretraining and downstream pairwise training are different stages. The current controlled run does **not** begin with 100+ labeled pair groups; it begins with 50 unordered groups. A budget of 10 is consequently a small, variable addition of ten groups, not ten fixed CSV rows. The small 30-image outer test also makes accuracy change in discrete increments. Together with seed-dependent group composition and full-model fine-tuning, this explains why low-budget and random results can vary substantially; it does not prove a causal mechanism or monotonic gain with budget.
+## 4. What the custom and standard selectors mean
 
-## 4. Model, SimCLR provenance, and training protocol
+`random` samples candidate groups without model scoring. `uncertainty` prioritizes pairs where the current reward model is least decisive. **Core-set** (`core_set`) seeks coverage in embedding space. **Cluster-quota uncertainty** (`cluster_quota_uncertainty`) first allocates selections across K-means clusters and then prioritizes uncertain pairs within that allocation. **Uncertainty + diversity** (`uncertainty_diversity`) combines normalized uncertainty and a diversity score with a configured weight. The last two are implemented project methods; their observed gains show that candidate-pool coverage can matter, not that they have an established universal name or guarantee.
 
-The downstream system uses a ResNet-18 image encoder with a 512-dimensional embedding and a 512-to-256-to-5 reward head. Each image receives reconstruction-specific rewards; Bradley–Terry comparisons train the relative preference model, while ideal reference anchors support ideal-image evaluation. The full model is trainable in the controlled protocol. [Current model implementation](active_learning_program/pairwise_active_learning_pipeline.py)
+The completed lambda screen supports weight `0.5` for the project uncertainty-diversity rule at its tested endpoint: `0.544 ± 0.107` at lambda `0.5`, compared with `0.478 ± 0.102` at `0.25` and `0.300 ± 0.153` at `0.75`. This suggests that forcing diversity too strongly can discard useful uncertain pairs, while no diversity component can leave redundant acquisitions. [Lambda screen](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/lambda_sweep/summary.csv)
 
-**SimCLR is image-only self-supervised pretraining, not pairwise preference learning.** Pairwise labels are used only after encoder initialization to train the downstream Bradley–Terry model. The known downstream augmentation is affine rotation ±5°, translation ±5%, scale 0.95–1.05, and brightness/contrast jitter 0.2. [Downstream augmentation implementation](classifier2/classifier_training_code/train_unified.py)
+Cluster-Margin reached `0.533 ± 0.097` at budget 100, below uncertainty's no-symmetry endpoint. It remains a useful alternative mechanism for selecting boundaries between clusters, but the next comparison should prioritize uncertainty, the two documented project rules, random, and one coverage baseline under the same budget-aware training protocol. [Cluster-Margin curve](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/cluster_margin_curve_none/aggregate/strategy_budget_summary.csv)
 
-The supplied encoder checkpoint is auditable by hash in run manifests, but the exact image population and recipe that produced that checkpoint are not established by a matching pretraining run manifest. [Pretraining provenance audit](classifier2/pretraining_source_notes/UPSTREAM_SOURCE.md)
+## 5. Completed symmetry factorial: image preprocessing changes the answer
 
-Epoch 3 was selected in an earlier epoch sweep because uncertainty peaked before later epochs showed overfitting signs. That historical model-selection result fixes a downstream setting; it is not an active-learning curve. [Epoch-selection figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/fixed_protocol_3seed/figures/post_test_accuracy_by_epoch.png)
+Stage 2 completed the factorial across five selectors, three image modes, five budgets, and five seeds. `left_half_mirror` reconstructs a full image from the left half; `symmetric_average` averages the image with its horizontal reflection. These are not cosmetic augmentations: they alter the information supplied to the encoder.
 
-## 5. Representation context and earlier Classifier2 evidence
+At budget 10, symmetric-average core-set reached `0.533`, whereas no-symmetry random reached `0.413`; at budget 100, left-half-mirror random reached `0.553`, whereas no-symmetry uncertainty reached `0.647`. The meaning is that symmetry assumptions can help particular selector/budget combinations but can also remove discriminatory asymmetry. The next step is not to globally enable a symmetry transform; it is to keep image mode as an explicit factor when a physical symmetry assumption is being tested. [Full selector-by-symmetry table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/selector_symmetry_budget_interaction.csv)
 
-The representation exploration contains 1,278 images: 154 labeled ideal images and 1,124 unlabeled trajectory images. On the ideal subset, 5-nearest-neighbor cross-validation accuracy was 0.884 for the domain SimCLR representation, 0.896 for ImageNet ResNet-18, and 0.832 for raw pixels. PCA and t-SNE are exploratory support only: t-SNE can visually exaggerate separation and neither visualization proves downstream classifier performance. [Representation metrics](active_learning_studies/image_representation_analysis/results/selected_summaries/representation_exploration/tables/representation_metrics.csv) and [SimCLR t-SNE](active_learning_studies/image_representation_analysis/results/selected_summaries/representation_exploration/figures/simclr_resnet18_tsne.png)
+## 6. Training and encoder diagnostics
 
-The older Classifier2 report uses a different data/model/evaluation version. Its measured 83.3% and 71.4% values are pairwise-holdout results; 66.7% is a reported single-image result. Its 88–92% value is a projection, not an achieved result. These numbers cannot be pooled with the current ideal-image outer-test benchmark. [Classifier2 report](classifier2/TECHNICAL_REPORT.md)
+Validation-only learning-rate screening over three seeds selected `3e-4` in the earlier fixed protocol: random validation accuracy was `0.544` and uncertainty was `0.444` at that LR. This selected setting is an observation about that fixed budget-100 setup, not evidence that `3e-4` is optimal at every acquisition budget. [LR calibration](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/learning_rate_calibration/aggregate/learning_rate_utility_validation_summary.csv)
 
-A completed bridge gives useful but limited context: the legacy pairwise-only bridge obtained 0.824 (28/34) after 30 epochs, while the current pipeline recorded 0.832 on 137 rows after 3 epochs. Though denominators and legacy supported-class handling differ, and no comparable ideal-image evaluation was run. [Bridge comparison](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/classifier2_protocol_bridge/pairwise_bridge_comparison.csv) and [compatibility audit](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/classifier2_protocol_bridge/compatibility_audit.md)
+In the completed encoder screen, ImageNet initialization exceeded the shipped SimCLR checkpoint on validation for random (`0.556` versus `0.389`) and uncertainty (`0.611` versus `0.300`). The associated outer-test confirmation reported `0.593 ± 0.098` for random and `0.593 ± 0.101` for uncertainty. The useful research conclusion is to compare initializations under identical partitions and training budgets, rather than treat an encoder name as a result by itself. [Encoder screen](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_screen/aggregate/encoder_utility_validation_summary.csv) and [confirmation](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_confirmation/aggregate/outer_test_confirmation_summary.csv)
 
-## 6. Main result: five-selector performance versus budget without symmetry
+Representation analysis gives compatible context: five-nearest-neighbor accuracy on labeled ideal images was `0.884` for the shipped SimCLR features, `0.896` for ImageNet features, and `0.832` for raw pixels. This means both learned encoders organize the ideal-image population more effectively than raw pixels in that diagnostic; it does not substitute for the preference-trained downstream evaluation. [Representation metrics](active_learning_studies/image_representation_analysis/results/selected_summaries/representation_exploration/tables/representation_metrics.csv)
 
-This is the primary selector benchmark under the unmodified input mode. Values are mean ± sample SD outer-test accuracy; utility is the corresponding mean batch utility. All cells have five seeds. [Complete Stage 1 table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv)
+## 7. Task 3a, 3b, and 3c status
 
-| Budget | Random | Uncertainty | Uncertainty + diversity | Cluster-quota uncertainty | Core-set |
-|---:|---:|---:|---:|---:|---:|
-| 10 | 0.413 ± 0.065 / -0.013 | 0.387 ± 0.084 / -0.040 | 0.340 ± 0.177 / -0.007 | 0.360 ± 0.098 / +0.013 | 0.307 ± 0.134 / -0.040 |
-| 25 | 0.433 ± 0.127 / +0.007 | **0.440 ± 0.126 / +0.013** | 0.387 ± 0.214 / +0.040 | 0.380 ± 0.185 / +0.033 | 0.347 ± 0.139 / 0.000 |
-| 50 | 0.327 ± 0.116 / -0.100 | 0.300 ± 0.113 / -0.127 | 0.380 ± 0.065 / +0.033 | **0.460 ± 0.123 / +0.113** | 0.353 ± 0.107 / +0.007 |
-| 75 | 0.293 ± 0.043 / -0.133 | 0.380 ± 0.141 / -0.047 | **0.513 ± 0.126 / +0.167** | 0.407 ± 0.220 / +0.060 | 0.420 ± 0.061 / +0.073 |
-| 100 | 0.493 ± 0.076 / +0.067 | **0.647 ± 0.202 / +0.220** | 0.513 ± 0.090 / +0.087 | 0.440 ± 0.150 / +0.013 | 0.420 ± 0.173 / -0.007 |
+Task 3a is a validation-only calibration grid: five seeds × two encoder initializations × five budgets × four learning rates × three epoch counts = 600 cells. Each cell trains on the initial ten pair groups plus a deterministic random reference acquisition for that budget, evaluates utility validation only, and never evaluates outer test. The resulting table will choose LR/epochs separately for each encoder and budget.
 
-Each entry is `post-test accuracy / batch utility`. The curve is non-monotonic: more acquired groups do not always improve a method’s mean result. The completed figures show per-seed lines as well as the aggregate summaries. [Accuracy figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/post_test_accuracy_by_budget.png) and [utility figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/batch_utility_by_budget.png)
+The Git-tracked state is 583 complete cells: Account 1 = 150, Account 2 = 150, Account 3 = 150, Account 4 = 133. The remaining 17 Account 4 cells are all required because Task 3b refuses to aggregate a partial grid. Task 3b is CPU-only aggregation of the complete validation grid into a protocol table. Task 3c then uses that table to run paired final curves with five strategies, five budgets, five seeds, two encoder initializations, and both epoch-based and fixed-update controls. This sequence directly tests whether an apparent selection gain survives a protocol that lets training effort vary appropriately with the amount of labeled data.
 
-**Conclusion.** At no symmetry, uncertainty is strongest at budget 100, while cluster-quota uncertainty and uncertainty + diversity lead at intermediate budgets. There is no global ranking across every budget.
+## 8. Related research directions
 
-## 7. Completed symmetry factorial
+The simulator study tests a different question: whether labeled simulator images improve a real-image, strictly image-disjoint three-class evaluation after real fine-tuning. Its synthetic-only arm measures domain gap; its transfer arm measures whether synthetic supervised pretraining helps. It cannot be merged with five-class historical Classifier2 numbers because it supports only Twinned, c(6 x 2), and root-13 classes. [Simulator study](active_learning_studies/simulator_augmented_classifier2_preliminary/study_description.md)
 
-Stage 2 completed the 5-selector × 3-symmetry × 5-budget × 5-seed factorial. It contains 250 newly run left-half-mirror/symmetric-average jobs plus 125 reused protocol-compatible `none` cells, for 375 completed selector–symmetry–budget cells. [Aggregation manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/aggregation_manifest.json) and [full interaction CSV](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/selector_symmetry_budget_interaction.csv)
+The process-metadata study tests whether causal monitor context improves image prediction. Its available bundle has one session and no image bytes, so it currently establishes a data interface: explicit image mapping, causal sensor joins, image/run-disjoint splitting, and image-only/metadata-only/fusion controls. The next requirement is multiple image-resolved growth sessions. [Metadata study](active_learning_studies/process_metadata_fusion_for_rheed_prediction/study_description.md)
 
-The best mean accuracy in each mode at budgets 10/25/50/75/100 was:
+Trajectory ordering is a third, separate direction. It converts physics-team statements such as “HTR comes last” into a soft whole-trajectory decoder for externally supplied classifier probabilities. It does not append temperature as an image feature and it does not create labels. [Trajectory study](active_learning_studies/rheed_trajectory_ordering_analysis/study_description.md)
 
-| Input mode | 10 | 25 | 50 | 75 | 100 |
-|---|---|---|---|---|---|
-| `none` | random, 0.413 | uncertainty, 0.440 | cluster-quota, 0.460 | uncertainty + diversity, 0.513 | uncertainty, 0.647 |
-| `left_half_mirror` | uncertainty + diversity, 0.447 | uncertainty, 0.427 | core-set, 0.527 | uncertainty + diversity, 0.493 | random, 0.553 |
-| `symmetric_average` | core-set, 0.533 | random, 0.507 | core-set and uncertainty + diversity, 0.460 | random, 0.460 | uncertainty + diversity, 0.453 |
+## 9. Evidence map and next step
 
-The full CSV reports mean ± sample SD accuracy and utility for every cell. The paired output is available for direct comparisons with random under the same seed/mode/budget. [Accuracy figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/post_test_accuracy_by_budget.png), [utility figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/batch_utility_by_budget.png), and [paired differences](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/paired_differences_vs_random.csv)
+Historical pair-disjoint curves, the symmetry factorial, LR/encoder diagnostics, and representation analysis are completed evidence families. Task 3a is an incomplete but directly actionable protocol-calibration result. The simulator, metadata, and trajectory studies are implemented research paths with distinct data requirements.
 
-**Conclusion.** Symmetry preprocessing can improve individual cells, but it changes selector rankings and has no uniform benefit.
-
-## 8. Secondary selector evidence
-
-The completed lambda sweep selected diversity weight 0.5 within its limited endpoint scope. [Lambda-sweep summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/lambda_sweep/summary.csv) and [choice record](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/lambda_sweep/choice.json)
-
-MC-dropout was intentionally screened only at budgets 10 and 25, which is why its plot has few points. Reward variance was the strongest of the three MC scores within that screen (0.360 at budget 10 and 0.333 at budget 25), but it did not exceed the matching random or uncertainty means. It is not a current winner. [MC-dropout table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/mc_dropout_screen_low_budget/aggregate/strategy_budget_summary.csv) and [MC accuracy figure](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/mc_dropout_screen_low_budget/aggregate/post_test_accuracy_by_budget.png)
-
-Cluster-Margin was evaluated across the full five-budget curve. Its budget-100 result was 0.533 ± 0.097 with +0.187 mean utility, below no-symmetry uncertainty at that budget (0.647 ± 0.202). It remains an exploratory alternative. [Cluster-Margin table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/cluster_margin_curve_none/aggregate/strategy_budget_summary.csv)
-
-**Conclusion.** The added selectors expand the search space and document negative or conditional findings.
-
-## 9. Downstream protocol diagnostics
-
-Learning-rate calibration used utility-validation only—without outer-test access—to compare 1e-5, 3e-5, 1e-4, and 3e-4 for frozen random and uncertainty budget-100 selections over seeds 42, 79, and 123. The predeclared rule was highest mean utility-validation accuracy, then lower sample SD, then lower learning rate. It locked 3e-4. [LR calibration table](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/learning_rate_calibration/aggregate/learning_rate_utility_validation_summary.csv)
-
-The independent five-seed outer-test confirmation at that locked setting was 0.527 ± 0.201 for random and 0.513 ± 0.107 for uncertainty. [LR confirmation table](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/learning_rate_confirmation/aggregate/outer_test_confirmation_summary.csv)
-
-Encoder screening likewise used utility validation only. ImageNet initialization outperformed the shipped SimCLR checkpoint in this screen: random 0.556 ± 0.164 versus 0.389 ± 0.019, and uncertainty 0.611 ± 0.038 versus 0.300 ± 0.088. ImageNet was therefore locked for confirmation. [Encoder screen](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_screen/aggregate/encoder_utility_validation_summary.csv) The five-seed outer-test confirmation then gave 0.593 ± 0.098 for random and 0.593 ± 0.101 for uncertainty. [Encoder confirmation](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_confirmation/aggregate/outer_test_confirmation_summary.csv)
-
-**Conclusion.** These diagnostics improve calibration of the current downstream protocol but do not prove universal optimizer or encoder superiority. 
-
-## 10. Historical-result reconciliation
-
-| Evidence family | Role | Status | Pool with main curve? |
-|---|---|---|---|
-| Older Classifier2 | Earlier architecture/evaluation context | Complete | No |
-| Early sequential exploration | Exploratory sequential acquisition | Complete | No |
-| Fixed 3-seed endpoint | Initial controlled five-selector direction | Complete | No; different seed population |
-| 15-seed endpoint | Larger budget-100 endpoint population | Complete | No; endpoint only |
-| Original random/uncertainty curve | Historical two-selector curve | Complete | Shared with later no-symmetry evidence where provenance matches |
-| Stage 1 no-symmetry curve | Main five-selector budget comparison | Complete | Yes, primary evidence |
-| Lambda sweep | Diversity-weight screen | Complete | No; limited endpoint scope |
-| MC-dropout screen | Low-budget exploratory screen | Complete | No; two budgets only |
-| Cluster-Margin curve | Exploratory full curve | Complete | Compare explicitly, not pooled implicitly |
-| Stage 2 symmetry factorial | Controlled selector × preprocessing interaction | Complete | Yes, with matching `none` provenance |
-| Classifier2 bridge | Pairwise-contract context | Complete | No |
-| LR / encoder diagnostics | Downstream calibration | Complete | No |
-
-The five-seed budget-100 endpoint is shared evidence between endpoint and curve views, not an independent replication. The 15-seed endpoint is a larger seed population, not a contradiction of the five-seed curve. Early sequential results are not pooled with the controlled single-shot evidence. [15-seed endpoint table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/endpoint_extension_15seed/tables/endpoint_15seed_strategy_summary.csv) and [fixed 3-seed table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/fixed_protocol_3seed/tables/strategy_summary.csv)
-
-
-## 11. Limits, deployment relevance, and next experiments
-
-Simulator-generated ideal images provide clean labels and scalable test material, but they do not contain the haze and multi-reconstruction mixtures common in online RHEED. High ideal-image accuracy may therefore be not sufficient evidence of growth-control usefulness. 
-
-Metadata fusion is registered but not evaluated. The available `AI_AJ002_STO_20260805_165051.zip` is a compact, single-session metadata bundle, not an image archive: it contains timestamped sensor values and image-path references but no image bytes. The registered study uses only causal elapsed time, pyrometer temperature, actual voltage/current, chamber pressure, and backward-looking temperature/voltage/current rates. It excludes reconstruction labels, classifier outputs, notes, and event outcomes; it requires explicit path mapping plus run-disjoint and image-disjoint partitions before training can begin. Its three planned arms are image-only, metadata-only, and late image-plus-metadata fusion. This is a safety and architecture contract, not evidence that metadata improves accuracy or active learning. [Study description](active_learning_studies/process_metadata_fusion_for_rheed_prediction/study_description.md)
-
-The feature-space NMF mixture surrogate remains diagnostic because its reference audit did not establish one-to-one component coverage and had negative silhouette. Temporal observations such as “HTR comes last,” “starts at 1×1,” and possible 1×1 → bad → other sequences remain tentative physics hypotheses, not current labels, losses, or constraints.
-
-Temporal constraints is in progress. Eg 1x1 first, HTR usually last.
-
-Future stream-based acquisition should form candidate pairs only from temporally adjacent frames in the same trajectory.
-
-## 12. Reproducibility and handoff
-
-Each study owns its results: pair-disjoint active-learning evidence is under `active_learning_studies/pair_disjoint_not_image_disjoint/results/`; representation outputs are under `active_learning_studies/image_representation_analysis/results/`; trajectory-ordering outputs are under `active_learning_studies/rheed_trajectory_ordering_analysis/results/`; and the separate strict image-disjoint reproduction attempt is under `active_learning_studies/strict_image_disjoint/results/`. A study is reportable only when its immutable manifest, expected results, aggregate CSVs, figures, and provenance record are present.
-
-For Colab, clone the repository so its sibling `data/` directory is available, then run the relevant launcher from `code/active_learning_studies/`. Generated evidence belongs only to its owning study; data are immutable inputs unless deliberately updated. Use the repository README for current commands; this report intentionally contains no credentials, personal paths, or branch troubleshooting.
-
+The immediate active-learning next step is to finish the 17 Task 3a cells, aggregate the validation-only protocol, and run Task 3c. The immediate laboratory-data next step is to collect image-resolved session bundles for the metadata study. The immediate simulator next step is to run its preflight and then compare real-only, synthetic-only, and transfer arms on the fixed real outer test. These are complementary experiments, not substitutes for each other.

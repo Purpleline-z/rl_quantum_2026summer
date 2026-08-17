@@ -1,4 +1,25 @@
-# RHEED active learning experiment
+# Historical Pre-Reorganization Active-Learning Guide
+
+## How to use this document
+
+This file records the code and protocol that existed before the current study reorganization. It is retained because it explains where early selector, metadata, mixture, and sequential-exploration ideas came from. It is not the current execution guide and its result tables must not be combined with the current pair-disjoint benchmark without checking the recorded data version, split, initial set, acquisition mode, and endpoint.
+
+### What this historical work contributed
+
+- It established that pairwise human labels can be treated as an acquisition resource rather than a fixed dataset.
+- It introduced audits for CSV hashes, pair overlap, and candidate-label hiding.
+- It explored metadata novelty, mixture surrogates, symmetry transformations, sequential acquisition, and several selectors.
+- It also exposed why later studies separate pair-disjoint from image-disjoint evaluation, validation from outer test, and fixed-protocol curves from budget-aware calibration.
+
+### What replaced it
+
+The current implementation is under `code/active_learning_program/`. The current pair-disjoint study and its owned result folders are under `code/active_learning_studies/pair_disjoint_not_image_disjoint/`. The simulator, causal metadata, and trajectory paths each now have a separate study directory. Read their current descriptions before acting on any command or conclusion below.
+
+The remaining sections preserve the historical technical details and raw-result interpretation that motivated those later designs.
+
+---
+
+# Original pre-reorganization README
 
 ## Stage-A audit protocol (v1.8 and v5.7)
 

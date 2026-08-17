@@ -1,4 +1,36 @@
-# RHEED Active Learning and Reconstruction Classification: Technical Report
+# Historical Generated Technical Report (Pre-Reorganization)
+
+## Purpose and current interpretation
+
+This was generated against the earlier repository layout. It remains valuable as
+a record of the original downstream question—whether selected pairwise RHEED
+comparisons improve ideal reconstruction classification—but its directory map,
+commands, and result locations are no longer the live project interface.
+
+### What the historical report contributes
+
+It clearly separates Bradley--Terry preference learning from the ideal-image
+classification endpoint and records the early rationale for candidate-label
+hiding. Those are durable design principles. Conversely, its result tables were
+created before the present study-owned result structure and before the
+budget-aware calibration follow-up; they should be read as historical observations
+under their recorded protocol, not as a current budget curve or an image-disjoint
+generalization result.
+
+### Evidence, meaning, and successor
+
+- **Observed artifact:** the generated sections below describe the old project
+  layout and its then-current protocol.
+- **What it means:** they provide provenance for early terminology and motivate
+  the current separation of source code, evidence, and study-specific questions.
+- **Research decision:** consult the current
+  [`technical report`](../../../../../TECHNICAL_REPORT.md) and study README
+  for current conclusions; use this file only when an old figure or table needs
+  its original provenance.
+
+---
+
+# Original generated report
 
 **Status:** Generated from current code configuration and result artifacts.
 **Purpose:** A reproducible technical reference for research-group review, GitHub, and Google Colab runs.

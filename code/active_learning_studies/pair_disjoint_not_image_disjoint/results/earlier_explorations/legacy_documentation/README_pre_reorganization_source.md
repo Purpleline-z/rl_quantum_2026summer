@@ -1,4 +1,41 @@
-# RHEED active learning experiment
+# Historical Pre-Reorganization Active-Learning README (Source Snapshot)
+
+## Why this source snapshot is kept
+
+This is an unedited-content snapshot of the repository README before the current
+`active_learning_program/` and study-owned-results organization. It documents
+the origin of several ideas that remain useful: selecting *unlabeled pair
+groups* rather than rows, hiding preference labels until selection, and logging
+pair/image overlap. It is not a launcher for the present repository: paths such
+as `active learning code/`, `results/published/`, and the named dataset versions
+are historical.
+
+### Historical protocol and what it can tell us
+
+The historical work used pair-disjoint partitions, which prevent exactly the
+same unordered pair appearing twice but allow an image to recur with a new
+partner. Thus its curves describe performance under repeated-image exposure,
+not generalization to a completely unseen image population. Some runs also use
+different candidate pools, endpoints, and sequential schedules. Their useful
+contribution is diagnostic: they motivated the current comparison of acquisition
+rules and the later image-disjoint design. They cannot supply a numerical
+benchmark for the current budget-aware curve.
+
+### Evidence, interpretation, and successor
+
+- **Observed artifact:** the commands and protocol below record the original
+  Stage-A workflow and its v1.8/v5.7 data-version distinction.
+- **What it means:** the project had already separated candidate-label hiding
+  from model training, but did not yet solve comparability across historical
+  splits and schedules.
+- **Research decision:** use the current
+  [`pair-disjoint study README`](../../README.md) for the reproducing protocol,
+  and use the current technical report for results. Keep this snapshot only when
+  tracing a legacy result back to its original implementation context.
+
+---
+
+# Original README text
 
 ## Stage-A audit protocol (v1.8 and v5.7)
 

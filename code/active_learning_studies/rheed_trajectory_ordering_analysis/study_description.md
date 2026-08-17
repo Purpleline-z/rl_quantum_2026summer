@@ -1,26 +1,23 @@
 # RHEED Trajectory Ordering Analysis
 
-## Question
+## Physical question
 
-This study has two deliberately separated stages:
+Laboratory observations describe growth trajectories rather than isolated images: a run commonly begins in `(1 x 1)`, can pass through a disordered `Bad` regime before another reconstruction, and HTR generally appears late. These statements are higher-order constraints on a whole sequence. They are not the same as frame metadata such as temperature, and they should not be inserted as if they were image labels.
 
-1. a descriptive audit of chronological ordering recoverable from trajectory filenames; and
-2. a prepared, **soft higher-order decoding** analysis for externally supplied six-state classifier probabilities.
+## Two separate stages
 
-The decoder is not metadata embedding and does not train or modify an image model. It applies three physics-team trajectory preferences only at inference: start at `(1 x 1)`; pass through `Bad` before another reconstruction; and do not leave HTR after it appears. It reports weak, moderate, and strong penalty sensitivities alongside raw framewise predictions.
+The completed stage is a filename/order audit. It extracts trajectory IDs, leading indices, frame tokens, and any temperature token present in filenames. It reports missing indices, duplicates, and parsing ambiguity. A numerical filename index gives an ordering observation; it does not prove a physical state transition.
 
-## Data, split, and model version
+The implemented next stage is a soft decoder for externally supplied six-state frame probabilities: `(1 x 1)`, `Bad`, Twinned, c(6 x 2), root-13, and HTR. A Viterbi-style path score combines those frame probabilities with penalties for violating the three laboratory preferences. Weak, moderate, and strong penalties are evaluated as sensitivity settings so the physics assumption is visible rather than hidden inside a classifier.
 
-The completed filename audit uses trajectory image paths and filename-derived ordering fields only. There is no train/validation/test split, no preference label, and no trained model in that stage.
+## Why decoding is separate from model training
 
-The prepared decoding stage requires an external, calibrated six-state probability table. No downstream Classifier2 checkpoint is currently present locally or in the reviewed public repository, so it has not scored any real trajectory. When a checkpoint is supplied, scoring and decoding will be inference-only; they will not train on any trajectory image. Therefore train/validation/test/candidate image-disjoint requirements are not applicable to this inference-only study. Any future checkpoint reproduction must document an image-disjoint training/validation/test partition separately.
+The decoder acts after a framewise classifier has produced calibrated probabilities. It does not train the image encoder, alter active selection, append process metadata, or manufacture new labels. This separation lets a reader ask two clear questions: what did the image model score for each frame, and how did a stated trajectory preference alter the final sequence?
 
-## Use in the technical report
+## Current evidence and next requirement
 
-Its completed outputs support only cautious descriptive statements about observed frame ordering. The new configuration, literature review, decoder, and synthetic behavior tests are implementation evidence only. They are not used in the current active-learning conclusions and cannot support an accuracy claim until independently annotated trajectories and a frozen scoring model are available.
+The repository has filename-order evidence and decoder code, but no saved calibrated downstream six-state classifier probability table that includes a validated `Bad` state. Therefore there is no decoded trajectory result to interpret yet. The next concrete input is a table containing trajectory ID, ordered frame ID, and six calibrated class probabilities from an externally validated downstream classifier. The decoder can then report raw paths, constrained paths, changed frames, and rule-specific penalties for each run.
 
-## Comparability limits
+## Relation to other studies
 
-Filename order is an observation, not a physical-state annotation. The physics statements are laboratory priors with possible exceptions, not labels. The decoder therefore uses soft penalties and exposes every decoded change from raw model predictions. This study is not comparable to either active-learning protocol, and it must not be used to report active-learning performance.
-
-The full rationale and alternatives are in `higher_order_trajectory_constraint_literature_review.md`; the exact, versioned parameters are in `higher_order_trajectory_constraint_configuration.json`.
+This study is complementary to process-metadata fusion. Metadata changes a per-frame predictor using measurements available at image time; trajectory decoding uses a sequence-level physical preference after prediction. Neither result should be merged with pair-disjoint active-learning curves, which select human comparison labels rather than decode growth trajectories.

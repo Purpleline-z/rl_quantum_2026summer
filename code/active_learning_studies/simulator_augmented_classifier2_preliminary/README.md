@@ -1,116 +1,37 @@
-# One-T4 Simulator-Augmented Classifier2 Preliminary Study
+# Simulator-Augmented Classifier2: Research and Reproduction Guide
 
-This study tests whether synthetic **training-only** images improve a real-image, strictly image-disjoint three-class evaluation. It does not modify the PhD-authored documents under `classifier2/`, and it does not compare its result directly with historical five-class Classifier2 numbers.
+## Why this study exists
 
-## What is run
+The RHEED simulator produces images with absolute synthetic labels, while the real dataset is small and contains experimental variation that a simulator may not reproduce. The relevant question is therefore transfer to real held-out images, not synthetic classification accuracy. This folder implements that comparison without modifying the PhD-authored documents under `classifier2/`.
 
-The automatic queue completes 15 resumable cells in this order for seeds 42, 79, 123, 202, and 303:
+## Protocol at a glance
 
-1. real-only Classifier2-compatible baseline;
-2. synthetic-only transfer diagnostic evaluated on real outer-test images; and
-3. synthetic pretraining followed by real Classifier2-compatible fine-tuning.
+| Arm | Training history | Evaluation question |
+|---|---|---|
+| Real-only | Real pairwise/ideal/Bad training only | What does the available real training data achieve? |
+| Synthetic-only | Synthetic supervised three-class pretraining only | How large is the simulator-to-real domain gap before adaptation? |
+| Synthetic then real | Synthetic supervised pretraining followed by unchanged real fine-tuning | Do synthetic labels supply features that remain useful after real adaptation? |
 
-Each epoch prints progress and atomically overwrites one small resumable checkpoint on Drive. A completed cell writes a final JSON then removes its checkpoint. Re-run the identical queue command after an interruption; completed JSON files are skipped.
+All three arms use the same fixed real image partitions and the shipped SimCLR initialization for each seed. The outer test contains only real images and is image-disjoint from real train/validation data. The synthetic archive is never evaluation data.
 
-## Before Colab
+## Data contract
 
-Upload this single archive to Google Drive exactly once:
+The expected ZIP is `classifier-sto-v6-dual-raster__p656_aligned_peak.zip`. It contains 2,250 656×492 PNGs, arranged as three views for each of 250 latent surfaces per supported reconstruction class. The preflight validator checks archive hash, manifest version, image hashes, labels, dimensions, training-only designation, and latent-surface grouping.
 
-```text
-MyDrive/rheed_simulator_assets/classifier-sto-v6-dual-raster__p656_aligned_peak.zip
-```
+The supported simulator classes are Twinned, c(6 x 2), and root-13. The study's real outer test is therefore restricted to those three classes. `(1 x 1)` and HTR are not synthetic targets and no result here answers five-class performance.
 
-Do not extract it into Drive. It is about 312 MB; Colab extracts it to ephemeral `/content` instead. Drive retains only JSON/CSV/figures and a single currently active checkpoint.
+## Architecture and losses
 
-## Main T4 account: setup
+The model retains the five-output Classifier2-compatible reward head. During synthetic pretraining, cross-entropy is applied only to the three supported output dimensions. During real fine-tuning, the model uses the existing pairwise preference, ideal-anchor, and Bad-image objectives. This design asks whether the synthetic raster features help real training while preserving the real-data supervision contract.
 
-Run this one cell first. It is safe to re-run after a runtime reset.
+## Output and interpretation
 
-```python
-from google.colab import drive
-drive.mount('/content/drive')
+Each seed produces compact JSON with real outer-test accuracy, per-class metrics, confusion information, training provenance, and the selected arm. Aggregation reports raw per-seed values, paired transfer-minus-real-only differences, bootstrap intervals, and figures. A positive synthetic-to-real claim requires transfer to show a consistent paired advantage on the untouched real outer test. A strong synthetic-only result is not the target; it is a domain-gap diagnostic.
 
-REPOSITORY_ROOT = '/content/rl_quantum_2026summer'
-CODE_ROOT = f'{REPOSITORY_ROOT}/code'
-DRIVE_OUTPUT = '/content/drive/MyDrive/rheed_simulator_classifier2_preliminary/account_1'
-SYNTHETIC_ARCHIVE = '/content/drive/MyDrive/rheed_simulator_assets/classifier-sto-v6-dual-raster__p656_aligned_peak.zip'
+## Operational behavior
 
-!test -f "$SYNTHETIC_ARCHIVE"
-!if [ ! -d "$REPOSITORY_ROOT/.git" ]; then git clone https://github.com/Purpleline-z/rl_quantum_2026summer.git "$REPOSITORY_ROOT"; fi
-%cd "$REPOSITORY_ROOT"
-!git pull --rebase origin main
-%cd "$CODE_ROOT"
-!mkdir -p "$DRIVE_OUTPUT"
-!nvidia-smi
-```
+The preflight tools and queue write compact audits/results to the caller's output location. A queue cell writes a checkpoint each epoch, writes final JSON atomically on completion, and deletes only its own completed checkpoint. Re-running a queue skips completed JSONs. Extracted simulator images remain outside the repository and must not be committed.
 
-Expected time: 2–5 minutes, excluding Drive mounting and the initial clone.
+## Current research decision
 
-## CPU-only preflight
-
-Use a CPU runtime if available. Each command writes only compact files to:
-
-```text
-/content/drive/MyDrive/rheed_simulator_classifier2_preliminary/account_1/preflight_audits/
-```
-
-Run these in order. The first task streams all 2,250 image hashes and usually takes 3–10 minutes. The other three each take under 5 minutes.
-
-```python
-%cd "$CODE_ROOT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/validate_p656_synthetic_archive.py --synthetic-archive "$SYNTHETIC_ARCHIVE" --drive-output "$DRIVE_OUTPUT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/build_strict_real_image_partitions.py --drive-output "$DRIVE_OUTPUT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/audit_real_pairwise_image_capacity.py --drive-output "$DRIVE_OUTPUT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/run_simulator_study_behavior_tests.py --drive-output "$DRIVE_OUTPUT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/create_real_and_synthetic_contact_sheet.py --synthetic-archive "$SYNTHETIC_ARCHIVE" --drive-output "$DRIVE_OUTPUT"
-```
-
-The GPU queue fails closed if any required preflight audit is absent or the ZIP hash changes.
-
-## One-T4 automatic GPU queue
-
-```python
-%cd "$CODE_ROOT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/run_resumable_one_t4_simulator_pretraining_queue.py run_automatic_queue --synthetic-archive "$SYNTHETIC_ARCHIVE" --drive-output "$DRIVE_OUTPUT" --device cuda
-```
-
-Expected total T4 time is 2.5–5 hours. The 15 independent cells are designed for approximately 5–25 minutes each. The extraction is ephemeral and occurs once per Colab runtime; no image archive or model collection is copied to Drive. Output JSON files are under `per_seed_results/`; active checkpoints are under `resumable_checkpoints/` and are deleted automatically per completed cell.
-
-## Aggregate completed results
-
-After all 15 result JSON files exist:
-
-```python
-%cd "$CODE_ROOT"
-!python active_learning_studies/simulator_augmented_classifier2_preliminary/aggregate_paired_simulator_preliminary_results.py --drive-output "$DRIVE_OUTPUT"
-```
-
-Expected CPU time: under 2 minutes. Results are written to:
-
-```text
-/content/drive/MyDrive/rheed_simulator_classifier2_preliminary/account_1/aggregated_results/
-```
-
-## Push results without affecting implementation files
-
-```python
-%cd "$REPOSITORY_ROOT"
-!git pull --rebase origin main
-!mkdir -p code/active_learning_studies/simulator_augmented_classifier2_preliminary/results/account_1
-!cp -R "$DRIVE_OUTPUT/preflight_audits" code/active_learning_studies/simulator_augmented_classifier2_preliminary/results/account_1/
-!cp -R "$DRIVE_OUTPUT/per_seed_results" code/active_learning_studies/simulator_augmented_classifier2_preliminary/results/account_1/
-!cp -R "$DRIVE_OUTPUT/aggregated_results" code/active_learning_studies/simulator_augmented_classifier2_preliminary/results/account_1/
-!git add code/active_learning_studies/simulator_augmented_classifier2_preliminary/results/account_1
-!git config user.name "Purpleline-z"
-!git config user.email "purpleline@uchicago.edu"
-!git commit -m "Add simulator preliminary account 1 results"
-```
-
-```python
-import getpass
-GITHUB_PAT = getpass.getpass('GitHub PAT: ')
-!git remote set-url origin "https://{GITHUB_PAT}@github.com/Purpleline-z/rl_quantum_2026summer.git"
-!git push origin main
-```
-
-Do not commit the ZIP, extracted images, reciprocal targets, masks, or checkpoints.
+No arm has been run to completion in the committed evidence. The next step is the preflight audit followed by the three-arm paired comparison. Its outcome will determine whether to invest in simulator augmentation, inspect domain mismatch, or keep synthetic images out of downstream training.

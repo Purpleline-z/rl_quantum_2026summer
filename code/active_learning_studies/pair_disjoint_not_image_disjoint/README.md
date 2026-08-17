@@ -1,131 +1,47 @@
-# Pair-Disjoint Active-Learning Study
+# Pair-Disjoint Active-Learning Evidence and Workflow
 
-This is the active-learning main study. Unordered pair-group IDs are disjoint
-between initial labelled training and the candidate pool. Image IDs may repeat
-across groups; this matches Classifier2's pair-disjoint, not image-disjoint,
-design. No custom selector is included.
+## What this folder measures
 
-## Persistent Colab setup
+This study selects additional **unordered image-pair groups** for human preference labeling. A selected group exposes its existing hidden preference rows; those rows train a five-output Bradley--Terry image reward model. The reported endpoint is reconstruction accuracy on held-out ideal images after retraining.
 
-Run this on every independent Colab account. The repository clone is
-disposable; results and every epoch checkpoint are written directly to Drive.
+The study is pair-disjoint: a pair cannot be in both the initial labeled set and candidate pool. It is not image-disjoint: an image can appear in two different pair groups. This is intentional historical protocol compatibility, not an unnoticed split condition. Read [study_description.md](study_description.md) before comparing its outputs with image-disjoint studies.
 
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-!git -c http.version=HTTP/1.1 clone --depth 1 https://github.com/Purpleline-z/rl_quantum_2026summer.git
-%cd /content/rl_quantum_2026summer/code
-ACCOUNT_NAME = 'account_1'  # Change for each account.
-DRIVE_OUTPUT = f'/content/drive/MyDrive/rheed_pair_disjoint/{ACCOUNT_NAME}'
-!mkdir -p "$DRIVE_OUTPUT"
-```
+## Evidence map
 
-## Task 0: capacity audit
+| Result family | Question answered | What the result suggests |
+|---|---|---|
+| `selection_benchmark/stage1_selector_curves_none/` | Which selector helps under the unmodified-image, fixed-epoch protocol? | The leading selector changes with budget; uncertainty is strongest at 100, while project coverage/diversity rules lead at some intermediate budgets. |
+| `selection_benchmark/stage2_symmetry_factorial/` | Does horizontal-symmetry preprocessing alter the selection result? | Yes. Symmetry choice is an experimental factor, not a universal preprocessing default. |
+| `protocol_diagnostics/` | How did LR and encoder screens behave in their recorded protocols? | ImageNet and `3e-4` screened better in selected fixed settings; budget-aware validation is needed before using one schedule everywhere. |
+| `selected_summaries/lambda_sweep/` | Which diversity weight worked at the tested endpoint? | The recorded lambda `0.5` was the best of the tested weights; it remains a project-specific design choice. |
+| `budget_aware_validation_calibration_account_*/` | Which LR/epoch setting is appropriate for each budget and encoder? | In progress: 583/600 cells are present, so no final protocol table yet. |
 
-Run once on any T4 runtime. It does no model training and normally completes
-in under 10 minutes.
+## Task sequence
 
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py audit_pair_disjoint_capacity --drive-output "$DRIVE_OUTPUT" --device cuda
-```
+### Task 1: initial calibration diagnostic
 
-The result is `$DRIVE_OUTPUT/pair_disjoint_audits/capacity_summary.csv`. It
-must show zero exact pair overlap and at least 10 initial plus 100 candidate
-pair groups for every seed. Image overlap is reported but permitted.
+The initial grid screened encoder initialization, learning rate, and epoch count on utility-validation images. Its purpose was to identify whether the historical three-epoch schedule and default initialization were plausible starting points. It is a diagnostic, not the final answer to how every acquisition budget should be trained.
 
-## Task 1: complete calibration grid
+### Task 2: initial calibration aggregation
 
-The full grid is 120 cells: 5 seeds x 2 encoders x 4 learning rates x 3 epoch
-counts. The runner gives each independent account 30 cells. Every 30-epoch
-cell is internally split into three 10-epoch checkpoints; every completed cell
-writes its final JSON to Drive before the queue advances.
+Task 2 reads compact per-cell JSON records, checks that expected specifications are present once, and writes a validation-only summary. It does not start training and does not use outer-test accuracy to choose a protocol.
 
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py run_account_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
-```
+### Task 3a: budget-aware validation calibration
 
-Use the same command on Accounts 2, 3, and 4, replacing `--account-index 0`
-with `1`, `2`, and `3` respectively. The queue prints completed/total progress
-and skips completed cells after interruption. Its actual elapsed time is
-measured from this run; no unmeasured 10–30 minute estimate is claimed.
+Task 3a is the corrective calibration. It spans five seeds, two encoders, five budgets, four learning rates, and three epoch counts: 600 validation-only cells. Each cell uses the initial ten pair groups plus a deterministic random-reference acquisition at the specified budget. It chooses no candidate preference labels while building that reference set.
 
-## Task 2: summarize the initial-10-pair diagnostic
+The current repository has 150 completed cells for Account 1, 150 for Account 2, 150 for Account 3, and 133 for Account 4. The 17 remaining Account 4 cells must be recovered before aggregation. A recovery account should run the same queue with `--account-index 3 --account-count 4`; the queue skips JSONs already tracked under `results/budget_aware_validation_calibration_account_4/` and writes only missing completions to its own Drive directory.
 
-After all four Task 1 queues finish and their small result JSON files have been
-pushed to GitHub, run this once on any account after pulling `main`. It
-summarizes LR/epoch sensitivity at the initial ten labelled pair groups. It
-does **not** lock a single LR/epoch protocol for every acquisition budget.
+### Task 3b: budget-aware protocol aggregation
 
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_pair_disjoint_segmented_calibration.py aggregate_initial_ten_pair_calibration_diagnostic --drive-output "$DRIVE_OUTPUT" --device cuda
-```
+After all 600 JSONs are present, the aggregation action selects a learning rate and epoch count for each `(encoder, budget)` from utility validation only. It writes `results/budget_aware_protocol/`. It refuses partial, duplicate, or malformed input because any of those conditions would make the selected schedule depend on account availability rather than the intended grid.
 
-The four accounts keep separate Drive backups. After Task 1, copy only each
-account's small `calibration_results/*.json` files into the repository and
-push them to GitHub one account at a time. This diagnostic reads those
-Git-tracked raw results; do not share Drive folders or push checkpoints.
+### Task 3c: final paired budget curves
 
-## Task 3a: budget-aware validation calibration
+Task 3c uses the Task 3b protocol table to compare the approved strategies at budgets 10, 25, 50, 75, and 100. Every cell starts a fresh acquisition model and fresh final model. The standard control trains for its selected epoch count; the fixed-update control limits both acquisition and final-model training to the same optimizer-update total. The two controls separate “selected better labels” from “ran more updates because the acquired set was larger.”
 
-This replacement calibration has 600 cells: five seeds, two encoders, five
-acquisition budgets, four learning rates, and three epoch counts. For each
-budget it trains on the initial ten pair groups plus a deterministic random
-reference acquisition of that budget. It evaluates validation images only;
-it never evaluates outer test. Each account owns 150 cells. One invocation
-automatically runs all remaining account cells. Results are saved to Drive
-after every complete cell and checkpoints are saved after every epoch. Once a
-cell's result JSON is safely written, its now-unneeded checkpoint is removed
-automatically to prevent Drive quota exhaustion.
+## Persistence and result handling
 
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_validation_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0
-```
+Each queue writes an epoch checkpoint to its supplied Drive output and writes a compact final JSON when a cell completes. Completed JSON is the durable record; the cell checkpoint is deleted only after that JSON is written. A re-run of the identical queue command skips completed JSONs. Different Colab accounts should use different Drive folders and push their completed JSONs into their matching account folder one at a time after pulling `main`.
 
-Use account indices 1, 2, and 3 on the other accounts. Every epoch checkpoint
-and every complete result is saved directly under `$DRIVE_OUTPUT`. After each
-account finishes, copy only `budget_aware_validation_calibration/*.json` to
-`results/budget_aware_validation_calibration_account_N/` and push it to GitHub.
-Do not copy Drive checkpoints.
-
-### Moving unfinished work to a new Colab account
-
-If a source account loses GPU access, first commit and push its existing
-`budget_aware_validation_calibration/*.json` files. A new GPU account can use
-the same `--account-index` with a new Drive output directory after pulling
-`main`. The runner treats both its Drive JSON and Git-tracked JSON under
-`results/budget_aware_validation_calibration_account_N/` as complete, so it
-executes only the missing cells. Do not transfer large `.pth` checkpoints;
-one interrupted cell is cheaper to rerun than to store or move.
-
-## Task 3b: aggregate the budget-aware protocol
-
-After all 600 JSON files are pushed and every account has pulled `main`, run
-this once. It writes Git-trackable validation summaries and one selected
-LR/epoch setting for each `(encoder, acquisition budget)`. It refuses to run
-if any expected cell is missing or duplicated.
-
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py aggregate_budget_aware_validation_calibration
-```
-
-Commit and push `results/budget_aware_protocol/`, then pull `main` on all four
-accounts.
-
-## Task 3c: final five-strategy budget curves
-
-The final experiment has 500 cells: five seeds, two encoders, five approved
-strategies, five budgets, and two training controls. At each budget, all
-strategies share that budget's validation-selected LR/epoch setting. The
-second control fixes both the acquisition and final-model training at 30
-optimizer updates, preventing larger training sets from receiving more updates
-merely because they have more batches per epoch. Each final cell trains a fresh
-acquisition model and a fresh final model and then evaluates outer test.
-
-```python
-!python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_final_strategy_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0 --maximum-cells 5
-```
-
-Use account indices 1, 2, and 3 on the other accounts. One invocation runs all
-remaining assigned cells automatically. Results save under
-`$DRIVE_OUTPUT/budget_aware_final_strategy_cells/`; copy only those JSON files
-to a corresponding `results/` directory before committing them.
+Only compact JSON/CSV/figure outputs belong in this repository. Do not commit Drive checkpoints, extracted image data, Colab clones, or raw laboratory data. The aggregate scripts read Git-tracked result JSONs so a later recovery runtime can continue without sharing a Drive mount.
