@@ -68,6 +68,7 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
                 return None, {"completed_epochs": epoch, "partial_epoch": True}, True
         if checkpoint_enabled:
             atomic_torch_save({"phase": phase, "pair_ids": list(pair_ids), "completed_epochs": epoch + 1, "model": model.state_dict(), "optimizer": optimizer.state_dict(), "losses": losses, "torch_rng_state": torch.get_rng_state(), "config": exp.cfg.__dict__}, checkpoint_path)
+        print(f"epoch progress phase={phase} epoch={epoch + 1}/{exp.cfg.epochs} saved_checkpoint={checkpoint_path}", flush=True)
         now = time.monotonic()
         if now - last_heartbeat >= heartbeat_seconds:
             suffix = f" checkpoint={checkpoint_path}" if checkpoint_enabled else " checkpointing=disabled"
