@@ -87,6 +87,16 @@ account finishes, copy only `budget_aware_validation_calibration/*.json` to
 `results/budget_aware_validation_calibration_account_N/` and push it to GitHub.
 Do not copy Drive checkpoints.
 
+### Moving unfinished work to a new Colab account
+
+If a source account loses GPU access, first commit and push its existing
+`budget_aware_validation_calibration/*.json` files. A new GPU account can use
+the same `--account-index` with a new Drive output directory after pulling
+`main`. The runner treats both its Drive JSON and Git-tracked JSON under
+`results/budget_aware_validation_calibration_account_N/` as complete, so it
+executes only the missing cells. Do not transfer large `.pth` checkpoints;
+one interrupted cell is cheaper to rerun than to store or move.
+
 ## Task 3b: aggregate the budget-aware protocol
 
 After all 600 JSON files are pushed and every account has pulled `main`, run

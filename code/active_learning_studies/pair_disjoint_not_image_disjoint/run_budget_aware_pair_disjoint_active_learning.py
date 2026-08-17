@@ -83,10 +83,18 @@ def deterministic_random_reference_ids(candidates: list[str], seed: int, budget:
     return random.Random(seed * 1_000_003 + budget).sample(candidates, min(budget, len(candidates)))
 
 
+def completed_in_drive_or_git(output: Path, drive_directory: str, git_directory_prefix: str, identifier: str) -> bool:
+    """Treat pushed result JSON as completed when a queue migrates to a new account."""
+    filename = f"{identifier}.json"
+    if (output / drive_directory / filename).exists():
+        return True
+    return any((HERE / "results").glob(f"{git_directory_prefix}_account_*/{filename}"))
+
+
 def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task: dict[str, Any], device: str) -> None:
     identifier = task_id(task)
     result = output / "budget_aware_validation_calibration" / f"{identifier}.json"
-    if result.exists():
+    if completed_in_drive_or_git(output, "budget_aware_validation_calibration", "budget_aware_validation_calibration", identifier):
         print(f"completed budget-aware calibration cell: {result.name}", flush=True)
         return
     run_output = output / "budget_aware_validation_runs" / identifier
@@ -118,7 +126,7 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
 
 def run_bounded_validation_calibration_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int, maximum_cells: int, device: str) -> None:
     assigned = [task for index, task in enumerate(validation_calibration_tasks(protocol)) if index % account_count == account_index]
-    pending = [task for task in assigned if not (output / "budget_aware_validation_calibration" / f"{task_id(task)}.json").exists()]
+    pending = [task for task in assigned if not completed_in_drive_or_git(output, "budget_aware_validation_calibration", "budget_aware_validation_calibration", task_id(task))]
     scheduled = pending if maximum_cells == 0 else pending[:maximum_cells]
     scope = "until complete" if maximum_cells == 0 else f"at most {maximum_cells} cells"
     print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} calibration cells complete; running {scope}", flush=True)
@@ -183,7 +191,7 @@ def final_tasks(protocol: dict[str, Any]) -> list[dict[str, Any]]:
 def run_final_strategy_cell(protocol: dict[str, Any], output: Path, task: dict[str, Any], device: str) -> None:
     identifier = task_id(task)
     result = output / "budget_aware_final_strategy_cells" / f"{identifier}.json"
-    if result.exists():
+    if completed_in_drive_or_git(output, "budget_aware_final_strategy_cells", "budget_aware_final_strategy_cells", identifier):
         print(f"completed final strategy cell: {result.name}", flush=True)
         return
     run_output = output / "budget_aware_final_strategy_runs" / identifier
@@ -223,7 +231,7 @@ def run_final_strategy_cell(protocol: dict[str, Any], output: Path, task: dict[s
 def run_bounded_final_strategy_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int, maximum_cells: int, device: str) -> None:
     tasks = final_tasks(protocol)
     assigned = [task for index, task in enumerate(tasks) if index % account_count == account_index]
-    pending = [task for task in assigned if not (output / "budget_aware_final_strategy_cells" / f"{task_id(task)}.json").exists()]
+    pending = [task for task in assigned if not completed_in_drive_or_git(output, "budget_aware_final_strategy_cells", "budget_aware_final_strategy_cells", task_id(task))]
     scheduled = pending if maximum_cells == 0 else pending[:maximum_cells]
     scope = "until complete" if maximum_cells == 0 else f"at most {maximum_cells} cells"
     print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} final cells complete; running {scope}", flush=True)
