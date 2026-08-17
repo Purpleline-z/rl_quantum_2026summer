@@ -1,0 +1,37 @@
+{
+  "status": "physics-informed soft-decoding sensitivity analysis; not used for model training, metadata embedding, active selection, or accuracy claims",
+  "state_order": ["(1 x 1)", "Bad", "Twinned(2 x 1)", "c(6 x 2)", "(√13 x √13)", "HTR"],
+  "rules": [
+    {
+      "name": "initial_state_not_1x1",
+      "scientific_statement": "The observed trajectory is expected to start at (1 x 1).",
+      "implementation": "A non-(1 x 1) first decoded state receives a soft log-score penalty."
+    },
+    {
+      "name": "skip_bad_before_other_reconstruction",
+      "scientific_statement": "A trajectory beginning in (1 x 1) is expected to pass through Bad before a different reconstruction type.",
+      "implementation": "Before Bad has occurred, decoding any non-(1 x 1), non-Bad state receives a soft log-score penalty."
+    },
+    {
+      "name": "leave_htr",
+      "scientific_statement": "HTR is expected to be the final reconstruction; another reconstruction should not follow HTR.",
+      "implementation": "A transition from HTR to any non-HTR state receives a soft log-score penalty."
+    }
+  ],
+  "penalty_rules": {
+    "initial_state_not_1x1": {"base_log_penalty": 1.0},
+    "leave_htr": {"base_log_penalty": 1.0},
+    "skip_bad_before_other_reconstruction": {"base_log_penalty": 1.0}
+  },
+  "sensitivity_levels": {
+    "weak": {"multiplier": 0.223143551, "equivalent_evidence_factor": 1.25},
+    "moderate": {"multiplier": 0.693147181, "equivalent_evidence_factor": 2.0},
+    "strong": {"multiplier": 1.609437912, "equivalent_evidence_factor": 5.0}
+  },
+  "safeguards": [
+    "The decoder requires an externally produced, calibrated six-state probability table and will not silently rescale it.",
+    "No rule is hard: a sufficiently strong framewise model score can override any physics preference.",
+    "The output always retains the raw framewise argmax, all three decoded paths, and change flags.",
+    "This is a trajectory-level decoding prior, not a metadata feature and not a training loss."
+  ]
+}
