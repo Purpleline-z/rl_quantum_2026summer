@@ -1,0 +1,48 @@
+{
+  "budget": 10,
+  "checkpoint": "/content/drive/MyDrive/rheed_pair_disjoint/account_2/resumable_checkpoints/budget_aware_validation_calibration/e47d34b49bf6ed7a.pth",
+  "encoder": "simclr",
+  "epochs": 3,
+  "initial_pair_groups": 10,
+  "learning_rate": 0.0003,
+  "optimizer_updates": null,
+  "outer_test_not_evaluated": true,
+  "reference_selected_pair_ids": [
+    "Trajectories/2022-02-04/334_RR220204A_939C_2101.bmp || Trajectories/2022-04-11/386_RR220411A_580C_1943.bmp",
+    "Trajectories/2022-02-06/058_RR220206A_249C_1745.bmp || Trajectories/2022-04-11/178_RR220411A_774C_1649.bmp",
+    "Trajectories/2022-02-06/273_RR220206A_423C_2243.bmp || Trajectories/2022-04-11/093_RR220411A_482C_1531.bmp",
+    "Trajectories/2022-02-04/128_RR220204A_459C_1753.bmp || Trajectories/2022-02-04/380_RR220204A_937C_2323.bmp",
+    "Trajectories/2022-02-06/203_RR220206A_876C_2110-01.bmp || Trajectories/2022-04-11/394_RR220411A_546C_1946.bmp",
+    "Trajectories/2022-04-11/238_RR220411A_905C_1736.bmp || Trajectories/2022-04-11/319_RR220411A_828C_1900.bmp",
+    "Trajectories/2022-02-04/263_RR220204A_793C_1934.bmp || Trajectories/2022-04-11/042_RR220411A_331C_1448.bmp",
+    "Trajectories/2022-02-04/300_RR220204A_881C_2018.bmp || Trajectories/2022-02-06/195_RR220206A_944C_2101.bmp",
+    "Trajectories/2022-02-04/160_RR220204A_501C_1809-02.bmp || Trajectories/2022-02-04/161_RR220204A_504C_1810.bmp",
+    "Trajectories/2022-02-04/333_RR220204A_939C_2059.bmp || Trajectories/2022-02-04/342_RR220204A_941C_2115.bmp"
+  ],
+  "seed": 79,
+  "training_pairwise_accuracy": 0.75,
+  "utility_validation_accuracy": 0.23333333333333334,
+  "utility_validation_by_class": {
+    "(1 x 1)": {
+      "accuracy": 0.125,
+      "correct": 1,
+      "total": 8
+    },
+    "(\u221a13 x \u221a13)": {
+      "accuracy": 0.125,
+      "correct": 1,
+      "total": 8
+    },
+    "HTR": {
+      "accuracy": 0.0,
+      "correct": 0,
+      "total": 6
+    },
+    "c(6 x 2)": {
+      "accuracy": 0.625,
+      "correct": 5,
+      "total": 8
+    }
+  },
+  "weight_decay": 0.0001
+}

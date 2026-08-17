@@ -1,0 +1,48 @@
+{
+  "budget": 10,
+  "checkpoint": "/content/drive/MyDrive/rheed_pair_disjoint/account_2/resumable_checkpoints/budget_aware_validation_calibration/caa3add3def9940c.pth",
+  "encoder": "simclr",
+  "epochs": 10,
+  "initial_pair_groups": 10,
+  "learning_rate": 1e-05,
+  "optimizer_updates": null,
+  "outer_test_not_evaluated": true,
+  "reference_selected_pair_ids": [
+    "Trajectories/2022-02-06/102_RR220206A_698C_1845.bmp || Trajectories/2022-04-11/183_RR220411A_794C_1655.bmp",
+    "Trajectories/2022-02-06/213_RR220206A_849C_2121.bmp || Trajectories/2022-04-11/104_RR220411A_501C_1540.bmp",
+    "Trajectories/2022-02-06/194_RR220206A_962C_2059.bmp || Trajectories/2022-04-11/293_RR220411A_882C_1842.bmp",
+    "Trajectories/2022-02-04/139_RR220204A_470C_1758.bmp || Trajectories/2022-04-11/094_RR220411A_484C_1532.bmp",
+    "Trajectories/2022-04-11/053_RR220411A_374C_1502.bmp || Trajectories/2022-04-11/156_RR220411A_699C_1628.bmp",
+    "Trajectories/2022-02-04/003_RR220204A_932C_0017.bmp || Trajectories/2022-04-11/439_RR220411A_330C_2005.bmp",
+    "Trajectories/2022-02-04/001_RR220204A_933C_0006.bmp || Trajectories/2022-02-06/230_RR220206A_767C_2143.bmp",
+    "Trajectories/2022-02-04/379_RR220204A_937C_2315.bmp || Trajectories/2022-02-06/257_RR220206A_581C_2222.bmp",
+    "Trajectories/2022-02-04/181_RR220204A_572C_1825.bmp || Trajectories/2022-04-11/437_RR220411A_345C_2004.bmp",
+    "Trajectories/2022-02-04/241_RR220204A_736C_1911.bmp || Trajectories/2022-04-11/064_RR220411A_413C_1511.bmp"
+  ],
+  "seed": 202,
+  "training_pairwise_accuracy": 0.926829268292683,
+  "utility_validation_accuracy": 0.43333333333333335,
+  "utility_validation_by_class": {
+    "(1 x 1)": {
+      "accuracy": 0.0,
+      "correct": 0,
+      "total": 8
+    },
+    "(\u221a13 x \u221a13)": {
+      "accuracy": 0.125,
+      "correct": 1,
+      "total": 8
+    },
+    "HTR": {
+      "accuracy": 0.6666666666666666,
+      "correct": 4,
+      "total": 6
+    },
+    "c(6 x 2)": {
+      "accuracy": 1.0,
+      "correct": 8,
+      "total": 8
+    }
+  },
+  "weight_decay": 0.0001
+}
