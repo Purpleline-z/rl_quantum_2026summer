@@ -91,10 +91,12 @@ def completed_in_drive_or_git(output: Path, drive_directory: str, git_directory_
     return any((HERE / "results").glob(f"{git_directory_prefix}_account_*/{filename}"))
 
 
-def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task: dict[str, Any], device: str) -> None:
+def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task: dict[str, Any], device: str,
+                                    completed_results_directory: Path | None = None) -> None:
     identifier = task_id(task)
-    result = output / "budget_aware_validation_calibration" / f"{identifier}.json"
-    if completed_in_drive_or_git(output, "budget_aware_validation_calibration", "budget_aware_validation_calibration", identifier):
+    result_root = completed_results_directory or output / "budget_aware_validation_calibration"
+    result = result_root / f"{identifier}.json"
+    if result.exists() or completed_in_drive_or_git(output, "budget_aware_validation_calibration", "budget_aware_validation_calibration", identifier):
         print(f"completed budget-aware calibration cell: {result.name}", flush=True)
         return
     run_output = output / "budget_aware_validation_runs" / identifier
@@ -124,14 +126,16 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
     print(f"saved validation-only calibration cell: {result}", flush=True)
 
 
-def run_bounded_validation_calibration_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int, maximum_cells: int, device: str) -> None:
+def run_bounded_validation_calibration_queue(protocol: dict[str, Any], output: Path, account_index: int, account_count: int,
+                                             maximum_cells: int, device: str,
+                                             completed_results_directory: Path | None = None) -> None:
     assigned = [task for index, task in enumerate(validation_calibration_tasks(protocol)) if index % account_count == account_index]
     pending = [task for task in assigned if not completed_in_drive_or_git(output, "budget_aware_validation_calibration", "budget_aware_validation_calibration", task_id(task))]
     scheduled = pending if maximum_cells == 0 else pending[:maximum_cells]
     scope = "until complete" if maximum_cells == 0 else f"at most {maximum_cells} cells"
     print(f"account {account_index + 1}/{account_count}: {len(assigned) - len(pending)}/{len(assigned)} calibration cells complete; running {scope}", flush=True)
     for number, task in enumerate(scheduled, start=1):
-        run_validation_calibration_cell(protocol, output, task, device)
+        run_validation_calibration_cell(protocol, output, task, device, completed_results_directory)
         print(f"calibration progress {number}/{len(scheduled)}; account remaining={len(pending) - number}", flush=True)
 
 
@@ -250,6 +254,8 @@ def main() -> None:
     parser.add_argument("--account-count", type=int, default=4)
     parser.add_argument("--maximum-cells", type=int, default=0,
                         help="0 runs all remaining assigned cells automatically; a positive value is a debugging limit.")
+    parser.add_argument("--completed-results-directory", type=Path,
+                        help="Optional tracked directory for completed validation JSONs; useful when checkpoints are local rather than on Drive.")
     args = parser.parse_args(); protocol = read_json(args.config)
     if args.action == "aggregate_budget_aware_validation_calibration":
         aggregate_budget_aware_validation_calibration(protocol); return
@@ -259,7 +265,12 @@ def main() -> None:
     if args.maximum_cells < 0: parser.error("--maximum-cells must be non-negative")
     output = args.drive_output.expanduser().resolve(); output.mkdir(parents=True, exist_ok=True)
     if args.action == "run_bounded_validation_calibration_queue":
-        run_bounded_validation_calibration_queue(protocol, output, args.account_index, args.account_count, args.maximum_cells, args.device)
+        completed_directory = (args.completed_results_directory.expanduser().resolve()
+                               if args.completed_results_directory else None)
+        if completed_directory:
+            completed_directory.mkdir(parents=True, exist_ok=True)
+        run_bounded_validation_calibration_queue(protocol, output, args.account_index, args.account_count,
+                                                 args.maximum_cells, args.device, completed_directory)
     else:
         run_bounded_final_strategy_queue(protocol, output, args.account_index, args.account_count, args.maximum_cells, args.device)
 
