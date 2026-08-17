@@ -59,9 +59,10 @@ Nothing in this repository pushes results automatically.
 
 Expected time: **under 10 minutes on CPU**. Saved to:
 `$DRIVE_OUTPUT/audit/four_way_capacity_summary.csv` and one JSON audit per
-seed. It must show zero overlap and capacity for 10 initial plus 100 acquired
-pair groups for every seed. If it fails, stop: do not use a GPU and do not
-weaken image-disjointness.
+seed. The audited common capacity fixes this study at 3 initial groups and up
+to 69 acquired groups for every seed. The shared acquisition budgets are 10,
+25, 50, and 69. If the audit fails, stop: do not use a GPU and do not weaken
+image-disjointness.
 
 ## Task 1: write validation tasks (one account only)
 

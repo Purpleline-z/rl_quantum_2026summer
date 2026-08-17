@@ -6,7 +6,7 @@ This study is a proposed reproduction tool. It tests whether active-learning con
 
 ## Split policy
 
-Each pair is eligible for initial training or acquisition only when both images belong to the training image partition. Validation and outer-test partitions use separately assigned images. The runner writes leakage audits for every seed and fails when the declared split contract is violated.
+Images are assigned before pairs are constructed to four mutually exclusive partitions: initial labelled training, candidate acquisition, validation, and outer test. A pair is eligible only when both images belong to its assigned partition. The runner writes leakage audits for every seed and fails when the declared split contract is violated.
 
 ## Data and model
 
@@ -18,4 +18,4 @@ This study is not part of the current technical-report evidence unless a complet
 
 ## Comparability limits
 
-Strict image partitioning reduces the number of eligible pairs. Requested budgets may therefore be unavailable, and the actual acquired budget must be reported.
+Strict image partitioning reduces the number of eligible pairs. The completed capacity audit found common capacity for 3 initial labelled groups and 69 candidate groups across the five declared seeds; the fixed shared acquisition budgets are therefore 10, 25, 50, and 69. No seed-specific budget substitution is allowed.

@@ -1,9 +1,9 @@
 {
   "dataset_version": "v1.8",
   "seeds": [42, 79, 123, 202, 303],
-  "initial_pair_groups": 10,
-  "maximum_acquired_pair_groups": 100,
-  "budgets": [10, 25, 50, 75, 100],
+  "initial_pair_groups": 3,
+  "maximum_acquired_pair_groups": 69,
+  "budgets": [10, 25, 50, 69],
   "approved_selectors": ["random", "predictive_entropy", "core_set_k_center", "mc_dropout_mutual_information", "mc_dropout_probability_variance"],
   "encoder_initializations": ["simclr", "imagenet"],
   "learning_rates": [0.00001, 0.00003, 0.0001, 0.0003],
