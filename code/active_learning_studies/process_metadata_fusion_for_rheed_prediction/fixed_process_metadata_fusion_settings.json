@@ -1,0 +1,12 @@
+{
+  "status": "registered architecture and data-interface scaffold; no performance experiment has run",
+  "encoder_initialization": "shipped_simclr_only",
+  "metadata_features_in_order": [
+    "elapsed_s", "pyrometer_temp_C", "mistral_v_actual_V", "mistral_i_actual_A", "chamber_pressure_mbar", "pyrometer_temp_rate_C_per_s", "mistral_voltage_rate_V_per_s", "mistral_current_rate_A_per_s"
+  ],
+  "metadata_input_dimension_after_missingness_indicators": 16,
+  "causal_alignment": "latest sensor row at or before heartbeat frame timestamp",
+  "split_policy": "run_disjoint_and_image_disjoint",
+  "excluded_inputs": ["commit_log reconstruction/classifier fields", "live_labels", "growth_log notes", "manual events", "auto-capture outcomes", "set-change events"],
+  "registered_arms": ["image_only", "metadata_only", "image_plus_process_metadata_late_fusion"]
+}

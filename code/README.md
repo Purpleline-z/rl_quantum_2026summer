@@ -9,6 +9,7 @@ This repository studies how labelled RHEED image-pair comparisons can train and 
 - `active_learning_studies/strict_image_disjoint/`: a separate strict image-level direction - not yet implemented.
 - `active_learning_studies/image_representation_analysis/`: PCA, t-SNE, and nearest-neighbor representation analysis.
 - `active_learning_studies/rheed_trajectory_ordering_analysis/`: filename-order audit plus a prepared, soft higher-order trajectory decoder; it is separate from metadata embedding and inactive until an externally calibrated downstream classifier score table is available.
+- `active_learning_studies/process_metadata_fusion_for_rheed_prediction/`: a registered, causal process-metadata fusion architecture and session-bundle audit. It is not a completed performance study and requires multiple image-resolved growth sessions before training is permitted.
 - `classifier2/`: the reference Classifier2 code, report, checkpoint, and source notes.
 - `TECHNICAL_REPORT.md`: the main interpretation of the evidence.
 
