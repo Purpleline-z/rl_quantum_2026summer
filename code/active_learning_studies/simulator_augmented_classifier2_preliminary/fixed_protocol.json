@@ -1,0 +1,17 @@
+{
+  "study_name": "p656_aligned_peak_simulated_to_real_classifier2_preliminary",
+  "synthetic_archive_member_root": "p656_aligned_peak",
+  "synthetic_supported_labels": ["twinned_2x1", "c_6x2", "rt13"],
+  "real_evaluation_types": ["Twinned(2 x 1)", "c(6 x 2)", "(√13 x √13)"],
+  "real_partition_seed": 20260817,
+  "paired_training_seeds": [42, 79, 123, 202, 303],
+  "encoder_initialization": "shipped_simclr",
+  "real_training": {"epochs": 30, "samples_per_epoch": 500, "batch_size": 16, "learning_rate": 0.0001, "weight_decay": 0.0001},
+  "synthetic_pretraining": {"epochs": 10, "batch_size": 32, "learning_rate": 0.0001, "weight_decay": 0.0001, "synthetic_validation_fraction": 0.15},
+  "safeguards": [
+    "Synthetic images are training-only and never enter real validation or outer-test metrics.",
+    "All views from a same_surface_group remain in one synthetic partition.",
+    "Real train, validation, and outer-test image IDs are mutually exclusive.",
+    "The five-class historical Classifier2 result is not pooled with this three-class study."
+  ]
+}
