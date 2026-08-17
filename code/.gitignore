@@ -3,6 +3,9 @@
 active_learning_studies/**/results/**/job_state.json
 active_learning_studies/**/results/**/utility_cache*/
 active_learning_studies/**/results/**/checkpoints/
+# Per-job copies duplicate audited aggregate tables and figures; retain them on
+# Drive, not in Git. Small per-seed summary CSV/JSON files remain tracked.
+active_learning_studies/**/results/**/jobs/
 active_learning_studies/**/temporary_smoke_output_not_evidence/
 # Rebuildable representation arrays; keep the derived tables and figures.
 active_learning_studies/image_representation_analysis/results/**/cache/*.npy

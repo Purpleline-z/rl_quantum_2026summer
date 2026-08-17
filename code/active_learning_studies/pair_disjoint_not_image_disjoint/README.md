@@ -13,7 +13,7 @@ disposable; results and every epoch checkpoint are written directly to Drive.
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
-!git clone https://github.com/Purpleline-z/rl_quantum_2026summer.git
+!git -c http.version=HTTP/1.1 clone --depth 1 https://github.com/Purpleline-z/rl_quantum_2026summer.git
 %cd /content/rl_quantum_2026summer/code
 ACCOUNT_NAME = 'account_1'  # Change for each account.
 DRIVE_OUTPUT = f'/content/drive/MyDrive/rheed_pair_disjoint/{ACCOUNT_NAME}'
