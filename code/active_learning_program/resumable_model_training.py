@@ -28,11 +28,16 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
     model = exp.make_model(); optimizer = torch.optim.AdamW(model.parameters(), lr=exp.cfg.lr, weight_decay=exp.cfg.weight_decay)
     start_epoch, losses = 0, []
     if checkpoint_enabled and checkpoint_path.exists():
-        state = torch.load(checkpoint_path, map_location=exp.device)
+        # Keep checkpoint metadata on CPU.  In particular, ``torch_rng_state``
+        # belongs to the CPU generator; mapping the whole checkpoint to CUDA
+        # turns it into a CUDA ByteTensor and ``torch.set_rng_state`` rejects it.
+        # Model/optimizer loading moves parameter state to the model devices.
+        state = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
         if state.get("phase") == phase and state.get("pair_ids") == list(pair_ids) and not state.get("partial_epoch", False):
             model.load_state_dict(state["model"]); optimizer.load_state_dict(state["optimizer"])
             start_epoch, losses = int(state["completed_epochs"]), list(state.get("losses", []))
-            if "torch_rng_state" in state: torch.set_rng_state(state["torch_rng_state"])
+            if "torch_rng_state" in state:
+                torch.set_rng_state(torch.as_tensor(state["torch_rng_state"], dtype=torch.uint8, device="cpu"))
     from pairwise_active_learning_pipeline import PairRows, TYPE_TO_INDEX, transform  # avoid a circular module import at file load time
     loader = DataLoader(PairRows(rows), batch_size=exp.cfg.train_batch_size, shuffle=True, num_workers=0)
     last_heartbeat = time.monotonic()
