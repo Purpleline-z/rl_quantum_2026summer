@@ -73,7 +73,9 @@ budget it trains on the initial ten pair groups plus a deterministic random
 reference acquisition of that budget. It evaluates validation images only;
 it never evaluates outer test. Each account owns 150 cells. One invocation
 automatically runs all remaining account cells. Results are saved to Drive
-after every complete cell and checkpoints are saved after every epoch.
+after every complete cell and checkpoints are saved after every epoch. Once a
+cell's result JSON is safely written, its now-unneeded checkpoint is removed
+automatically to prevent Drive quota exhaustion.
 
 ```python
 !python active_learning_studies/pair_disjoint_not_image_disjoint/run_budget_aware_pair_disjoint_active_learning.py run_bounded_validation_calibration_queue --drive-output "$DRIVE_OUTPUT" --device cuda --account-index 0

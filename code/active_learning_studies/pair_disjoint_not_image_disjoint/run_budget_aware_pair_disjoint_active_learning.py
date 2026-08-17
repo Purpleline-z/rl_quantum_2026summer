@@ -109,6 +109,10 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
                 "utility_validation_accuracy": validation["test_accuracy"],
                 "utility_validation_by_class": validation["by_class"],
                 "outer_test_not_evaluated": True, "checkpoint": str(checkpoint)}, result)
+    # A completed JSON is the durable research record.  The checkpoint is only
+    # needed for an interrupted cell and would otherwise grow Drive without
+    # bound across the 600-cell grid.
+    checkpoint.unlink(missing_ok=True)
     print(f"saved validation-only calibration cell: {result}", flush=True)
 
 
@@ -209,6 +213,10 @@ def run_final_strategy_cell(protocol: dict[str, Any], output: Path, task: dict[s
                 "baseline_optimizer_updates": baseline_metrics["optimizer_updates"],
                 "baseline_checkpoint": str(baseline_checkpoint) if baseline_checkpoint else None,
                 "final_checkpoint": str(final_checkpoint) if final_checkpoint else None}, result)
+    # Keep resumable state only while a cell is incomplete.  Its compact result
+    # JSON has already been atomically written before these checkpoint removals.
+    if baseline_checkpoint: baseline_checkpoint.unlink(missing_ok=True)
+    if final_checkpoint: final_checkpoint.unlink(missing_ok=True)
     print(f"saved final strategy cell: {result}", flush=True)
 
 
