@@ -1,0 +1,48 @@
+{
+  "budget": 10,
+  "checkpoint": "/content/drive/MyDrive/rheed_pair_disjoint/account_4/resumable_checkpoints/budget_aware_validation_calibration/b83cb8fbb24bc8cb.pth",
+  "encoder": "simclr",
+  "epochs": 10,
+  "initial_pair_groups": 10,
+  "learning_rate": 0.0001,
+  "optimizer_updates": null,
+  "outer_test_not_evaluated": true,
+  "reference_selected_pair_ids": [
+    "Trajectories/2022-02-06/097_RR220206A_654C_1837.bmp || Trajectories/2022-04-11/067_RR220411A_416C_1513-02.bmp",
+    "Trajectories/2022-04-11/238_RR220411A_905C_1736.bmp || Trajectories/2022-04-11/319_RR220411A_828C_1900.bmp",
+    "Trajectories/2022-02-06/163_RR220206A_1105C_2015.bmp || Trajectories/2022-02-06/249_RR220206A_638C_2210.bmp",
+    "Trajectories/2022-04-11/267_RR220411A_953C_1800.bmp || Trajectories/2022-04-11/271_RR220411A_951C_1811.bmp",
+    "Trajectories/2022-02-04/020_RR220204A_981C_0126-02.bmp || Trajectories/2022-04-11/088_RR220411A_459C_1527.bmp",
+    "Trajectories/2022-02-04/230_RR220204A_695C_1902.bmp || Trajectories/2022-02-06/074_RR220206A_430C_1809.bmp",
+    "Trajectories/2022-04-11/036_RR220411A_313C_1443.bmp || Trajectories/2022-04-11/072_RR220411A_429C_1516.bmp",
+    "Trajectories/2022-02-06/132_RR220206A_959C_1932.bmp || Trajectories/2022-04-11/417_RR220411A_427C_1956.bmp",
+    "Trajectories/2022-02-04/131_RR220204A_466C_1754.bmp || Trajectories/2022-04-11/204_RR220411A_851C_1712.bmp",
+    "Trajectories/2022-02-06/186_RR220206A_985C_2050.bmp || Trajectories/2022-02-06/251_RR220206A_619C_2214.bmp"
+  ],
+  "seed": 123,
+  "training_pairwise_accuracy": 0.7974683544303798,
+  "utility_validation_accuracy": 0.36666666666666664,
+  "utility_validation_by_class": {
+    "(1 x 1)": {
+      "accuracy": 1.0,
+      "correct": 8,
+      "total": 8
+    },
+    "(\u221a13 x \u221a13)": {
+      "accuracy": 0.375,
+      "correct": 3,
+      "total": 8
+    },
+    "HTR": {
+      "accuracy": 0.0,
+      "correct": 0,
+      "total": 6
+    },
+    "c(6 x 2)": {
+      "accuracy": 0.0,
+      "correct": 0,
+      "total": 8
+    }
+  },
+  "weight_decay": 0.0001
+}
