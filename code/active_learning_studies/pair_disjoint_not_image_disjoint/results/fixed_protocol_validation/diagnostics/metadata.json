@@ -1,0 +1,4 @@
+{
+  "warning": "The fixed ideal test set is small; accuracy changes are coarse and noisy. Missing individual utilities are reported as unavailable, never estimated.",
+  "source_stage": "final_comparison"
+}

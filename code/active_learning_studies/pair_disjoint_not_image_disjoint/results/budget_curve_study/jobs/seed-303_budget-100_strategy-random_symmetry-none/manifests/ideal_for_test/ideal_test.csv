@@ -1,0 +1,151 @@
+class,path,split
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_49.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_19.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_41.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_40.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_23.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_39.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_34.bmp,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_32.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_7.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_18.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_2.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_9.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_24.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_14.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_20.bmp,test
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_40.bmp,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_30.bmp,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_33.bmp,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_20.png,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_34.bmp,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_6.png,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_24.bmp,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_21.png,test
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_25.bmp,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_8.png,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_22.png,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_12.png,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_33.bmp,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_2.png,test
+HTR,/content/data/original data/STO_ideal_HTR/HTR_3.png,test
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_25.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_35.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_18.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_44.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_36.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_1.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_26.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_21.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_42.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_16.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_50.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_15.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_31.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_13.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_33.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_29.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_47.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_20.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_52.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_43.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_30.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_46.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_51.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_38.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_22.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_37.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_45.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_28.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/ideal_1x1_48.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_17.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_24.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_27.bmp,reference
+(1 x 1),/content/data/original data/STO_ideal_1x1/1x1_14.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_34.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_8.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_30.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_17.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_16.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_37.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/Twinned2x1_5_(!).bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_19.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_3.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_29.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_26.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_25.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_28.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_5.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_10.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_11.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_36.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_31.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_12.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_35.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_27.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_4.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_1.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_6.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_15.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_33.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_23.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/Twinned2x1_6(!).bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_39.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_38.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_22.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/ideal_c6x2_32.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_21.bmp,reference
+c(6 x 2),/content/data/original data/STO_ideal_c6x2/c6x2_13.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_22.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_3.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_18.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_40.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_14.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_35.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_39.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_37.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_28.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_11.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_36.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_29.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_41.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_38.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_26.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_7.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_9.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_31.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_16.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_32.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_5.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_17.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_19.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_15.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_8.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_27.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_1.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_42.bmp,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_10.png,reference
+(√13 x √13),/content/data/original data/STO_ideal_RT13/RT13_23.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_30.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_28.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_4.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_31.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_32.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_13.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_10.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_29.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_20.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_26.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_21.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_14.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_7.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_25.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_19.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_11.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_9.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_23.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_20.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_6.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_27.bmp,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_1.png,reference
+HTR,/content/data/original data/STO_ideal_HTR/HTR_24.bmp,reference

@@ -1,0 +1,140 @@
+{
+  "stage": "final_comparison",
+  "jobs": [
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "000_stage-final_comparison_epoch-3_seed-42_strategy-random_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "001_stage-final_comparison_epoch-3_seed-42_strategy-uncertainty_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "002_stage-final_comparison_epoch-3_seed-42_strategy-cluster_diverse_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "003_stage-final_comparison_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 42,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "004_stage-final_comparison_epoch-3_seed-42_strategy-core_set_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "005_stage-final_comparison_epoch-3_seed-79_strategy-random_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "006_stage-final_comparison_epoch-3_seed-79_strategy-uncertainty_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "007_stage-final_comparison_epoch-3_seed-79_strategy-cluster_diverse_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "008_stage-final_comparison_epoch-3_seed-79_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 79,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "009_stage-final_comparison_epoch-3_seed-79_strategy-core_set_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "010_stage-final_comparison_epoch-3_seed-123_strategy-random_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "011_stage-final_comparison_epoch-3_seed-123_strategy-uncertainty_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "012_stage-final_comparison_epoch-3_seed-123_strategy-cluster_diverse_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "013_stage-final_comparison_epoch-3_seed-123_strategy-uncertainty_diversity_lambda-0p5_budget-100"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 123,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "014_stage-final_comparison_epoch-3_seed-123_strategy-core_set_lambda-0p5_budget-100"
+    }
+  ]
+}

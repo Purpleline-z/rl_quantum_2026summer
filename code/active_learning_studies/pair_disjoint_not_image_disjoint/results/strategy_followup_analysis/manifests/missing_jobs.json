@@ -1,0 +1,107 @@
+{
+  "source_result_roots": [
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\result\\professor_validation"
+  ],
+  "fixed_epoch": 3,
+  "fixed_lambda": 0.5,
+  "budget": 100,
+  "required_seeds": [
+    42,
+    79,
+    123,
+    202,
+    303
+  ],
+  "jobs": [
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-core_set"
+    }
+  ]
+}

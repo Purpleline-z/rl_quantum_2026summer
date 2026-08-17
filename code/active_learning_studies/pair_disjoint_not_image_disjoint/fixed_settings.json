@@ -1,0 +1,11 @@
+{
+  "dataset_version": "v1.8",
+  "split_policy": "pair_disjoint_not_image_disjoint",
+  "initial_pair_groups": 50,
+  "candidate_pair_groups": 120,
+  "controlled_budgets": [10, 25, 50, 75, 100],
+  "controlled_learning_rate": 0.0001,
+  "controlled_epochs": 3,
+  "training_mode": "full_model_fine_tuning",
+  "primary_evaluation": "ideal_image_outer_test"
+}

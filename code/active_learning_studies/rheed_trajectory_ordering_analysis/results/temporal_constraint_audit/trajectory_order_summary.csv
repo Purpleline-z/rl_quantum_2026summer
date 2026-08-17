@@ -1,0 +1,4 @@
+trajectory_id,frame_count,parsed_frame_count,unparsed_frame_count,duplicate_frame_index_count,missing_index_count,first_relative_image_path,last_relative_image_path,order_ambiguous
+2022-02-04/RR220204A,388,388,0,0,0,2022-02-04/001_RR220204A_933C_0006.bmp,2022-02-04/388_RR220204A_934C_2355.bmp,False
+2022-02-06/RR220206A,287,287,0,0,0,2022-02-06/001_RR220206A_165C_1659.bmp,2022-02-06/287_RR220206A_165C_2303.bmp,False
+2022-04-11/RR220411A,449,449,0,0,0,2022-04-11/001_RR220411A_180C_1417-01.bmp,2022-04-11/449_RR220411A_278C_2010.bmp,False

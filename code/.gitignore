@@ -1,9 +1,16 @@
-results/local_runs/
+# Generated training state remains local. Study evidence itself stays visible to
+# Git so a future reviewed commit cannot accidentally delete it during a move.
+active_learning_studies/**/results/**/job_state.json
+active_learning_studies/**/results/**/utility_cache*/
+active_learning_studies/**/results/**/checkpoints/
+active_learning_studies/**/temporary_smoke_output_not_evidence/
+# Rebuildable representation arrays; keep the derived tables and figures.
+active_learning_studies/image_representation_analysis/results/**/cache/*.npy
 **/job_state.json
 **/utility_cache*/
 **/checkpoints/
 *.pth
-!classifier2/simclr_resnet18_encoder.pth
+!classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth
 *.pt
 *.ckpt
 __pycache__/

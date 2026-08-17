@@ -1,0 +1,35 @@
+{
+  "input_data_root": "data (resolved at runtime; reusable paths below are relative)",
+  "trajectory_root_relative": "original data/Trajectories",
+  "temporal_constraints_relative": "temporal_constraints.json",
+  "temporal_constraints_sha256": "61975bfbde0d883989385f297ac2d4906eb3915fcfbe5ba578be901e835acc28",
+  "frame_count": 1124,
+  "trajectory_count": 3,
+  "tentative_rules": {
+    "status": "tentative - requires physics-team confirmation before use in inference or acquisition",
+    "constraints": [
+      {
+        "rule": "HTR comes last",
+        "kind": "ordering",
+        "enabled": false
+      },
+      {
+        "rule": "trajectory starts at 1x1",
+        "kind": "ordering",
+        "enabled": false
+      },
+      {
+        "rule": "1x1 may pass through bad before another type",
+        "kind": "transition",
+        "enabled": false
+      }
+    ],
+    "stream_pairing_policy": {
+      "enabled": false,
+      "description": "Future stream mode forms candidate pairs only from temporally adjacent frames in the same trajectory."
+    }
+  },
+  "prediction_scoring_completed": false,
+  "prediction_scoring_reason": "No saved validated downstream classifier checkpoint is available. Default short jobs do not save model checkpoints.",
+  "rule_application": "No tentative rule was applied to training, selection, or decoding."
+}

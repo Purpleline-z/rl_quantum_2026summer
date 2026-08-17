@@ -1,0 +1,55 @@
+{
+  "seed": 42,
+  "device": "cuda",
+  "n_images": 1278,
+  "n_ideal": 154,
+  "n_trajectory": 1124,
+  "ideal_folders": {
+    "(1 x 1)": "STO_ideal_1x1",
+    "Twinned(2 x 1)": "STO_ideal_Twinned2x1",
+    "c(6 x 2)": "STO_ideal_c6x2",
+    "RT13": "STO_ideal_RT13",
+    "HTR": "STO_ideal_HTR"
+  },
+  "representations": [
+    {
+      "representation": "raw_pixels",
+      "feature_dimension": 50176,
+      "transform": "grayscale resize 224; flatten; divide by 255",
+      "cache": "/content/quantum rheed codex/result/pca_tsne_dataset_exploration/cache/raw_pixels.npy",
+      "reused": false,
+      "shape": [
+        1278,
+        50176
+      ]
+    },
+    {
+      "name": "imagenet_resnet18",
+      "transform": "grayscale -> RGB repeat; official ResNet18_Weights.IMAGENET1K_V1 transforms",
+      "checkpoint": "torchvision::ResNet18_Weights.IMAGENET1K_V1",
+      "checkpoint_keys": null,
+      "loaded_tensors": null,
+      "expected_tensors": null,
+      "cache": "/content/quantum rheed codex/result/pca_tsne_dataset_exploration/cache/imagenet_resnet18.npy",
+      "reused": false,
+      "shape": [
+        1278,
+        512
+      ]
+    },
+    {
+      "name": "rheed_simclr_resnet18",
+      "transform": "grayscale -> RGB repeat; resize 224; Normalize(mean=.5, std=.25)",
+      "checkpoint": "/content/quantum rheed codex/classifier 2 context/simclr_resnet18_encoder.pth",
+      "checkpoint_keys": "encoder. prefix removed; projector. keys excluded",
+      "loaded_tensors": 120,
+      "expected_tensors": 120,
+      "cache": "/content/quantum rheed codex/result/pca_tsne_dataset_exploration/cache/rheed_simclr_resnet18.npy",
+      "reused": false,
+      "shape": [
+        1278,
+        512
+      ]
+    }
+  ]
+}

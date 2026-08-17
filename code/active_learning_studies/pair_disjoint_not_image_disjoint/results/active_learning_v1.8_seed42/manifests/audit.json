@@ -1,0 +1,33 @@
+{
+  "dataset_version": "v1.8",
+  "input_hashes": {
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\Quantum Label Data - Pairwise_Comparisonv1.8.csv": "1a248cf3ef4a481c3264926e0bc9b472dfd56e428a8805b6b90d0c607acfabbf",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\Quantum Label Data - Absolute_Scoringv1.8 (1).csv": "7b95b95561220dddfd1c1778b3f509264a7f0401a79b0973cb738c0524a3364f",
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\code\\classifier2\\simclr_encoder_checkpoint\\simclr_resnet18_encoder.pth": "076f620d30efc3abb702e16e3590f0776d571ec42ce94309714a123cf80ac25b"
+  },
+  "ideal_image_hashes": {
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_RT13\\3_0.png": "bd32c7c32ab96226307a57ff5aa127f3d226c2c04651dc9a59dcfc05aa0d8cbc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_HTR\\2_1.png": "e200183d53d7872cb1b180fa4d61ed09b9bf0cd0dc300c545542bbd8b7c9f025",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_c6x2\\1_1.png": "e200183d53d7872cb1b180fa4d61ed09b9bf0cd0dc300c545542bbd8b7c9f025",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_RT13\\3_1.png": "e200183d53d7872cb1b180fa4d61ed09b9bf0cd0dc300c545542bbd8b7c9f025",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_HTR\\2_2.png": "80dda78098d551343f7b3c1f35d1b4d6a1d8caf2a597ec0bbee9047acf0d4ebc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_1x1\\0_2.png": "80dda78098d551343f7b3c1f35d1b4d6a1d8caf2a597ec0bbee9047acf0d4ebc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_c6x2\\1_0.png": "bd32c7c32ab96226307a57ff5aa127f3d226c2c04651dc9a59dcfc05aa0d8cbc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_HTR\\2_0.png": "bd32c7c32ab96226307a57ff5aa127f3d226c2c04651dc9a59dcfc05aa0d8cbc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_1x1\\0_0.png": "bd32c7c32ab96226307a57ff5aa127f3d226c2c04651dc9a59dcfc05aa0d8cbc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_c6x2\\1_2.png": "80dda78098d551343f7b3c1f35d1b4d6a1d8caf2a597ec0bbee9047acf0d4ebc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_RT13\\3_2.png": "80dda78098d551343f7b3c1f35d1b4d6a1d8caf2a597ec0bbee9047acf0d4ebc",
+    "C:\\Users\\purpl\\AppData\\Local\\Temp\\tmp6bq5iu8w\\original data\\STO_ideal_1x1\\0_1.png": "e200183d53d7872cb1b180fa4d61ed09b9bf0cd0dc300c545542bbd8b7c9f025"
+  },
+  "initial_pair_count": 4,
+  "candidate_pair_count": 4,
+  "exact_pair_overlap": 0,
+  "image_overlap_initial_candidate": 4,
+  "reference_test_overlap": 0,
+  "utility_test_overlap": 0,
+  "reference_utility_overlap": 0,
+  "pairwise_image_overlap_outer_test": 0,
+  "bad_reference_count": 0,
+  "candidate_labels_hidden_from_selector": true,
+  "candidate_oracle_is_pair_level": true
+}

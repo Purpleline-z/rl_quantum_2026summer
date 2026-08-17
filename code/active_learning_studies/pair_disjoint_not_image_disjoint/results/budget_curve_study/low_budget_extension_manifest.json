@@ -1,0 +1,267 @@
+{
+  "study": {
+    "budgets": [
+      10
+    ],
+    "seeds": [
+      404,
+      505,
+      606,
+      707,
+      808,
+      909,
+      1010,
+      1111,
+      1212,
+      1313
+    ],
+    "strategies": [
+      "random",
+      "uncertainty"
+    ],
+    "symmetry": false,
+    "purpose": "manifest only; results are evidence only after completed jobs are aggregated"
+  },
+  "jobs": [
+    {
+      "seed": 404,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-404_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 404,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-404_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 505,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-505_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 505,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-505_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 606,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-606_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 606,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-606_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 707,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-707_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 707,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-707_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 808,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-808_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 808,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-808_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 909,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-909_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 909,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-909_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 1010,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1010_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 1010,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1010_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 1111,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1111_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 1111,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1111_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 1212,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1212_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 1212,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1212_budget-10_strategy-uncertainty_symmetry-none"
+    },
+    {
+      "seed": 1313,
+      "budget": 10,
+      "strategy": "random",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1313_budget-10_strategy-random_symmetry-none"
+    },
+    {
+      "seed": 1313,
+      "budget": 10,
+      "strategy": "uncertainty",
+      "symmetry_mode": "none",
+      "epoch": 3,
+      "lr": 0.0001,
+      "initial_pairs": 50,
+      "candidate_pairs": 120,
+      "acquisition_mode": "single-shot",
+      "job_id": "seed-1313_budget-10_strategy-uncertainty_symmetry-none"
+    }
+  ]
+}

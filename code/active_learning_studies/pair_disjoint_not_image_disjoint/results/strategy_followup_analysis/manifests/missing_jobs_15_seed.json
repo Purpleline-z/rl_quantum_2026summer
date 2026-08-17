@@ -1,0 +1,567 @@
+{
+  "source_result_roots": [
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\result\\professor_validation"
+  ],
+  "fixed_epoch": 3,
+  "fixed_lambda": 0.5,
+  "budget": 100,
+  "required_seeds": [
+    42,
+    79,
+    123,
+    202,
+    303,
+    404,
+    505,
+    606,
+    707,
+    808,
+    909,
+    1010,
+    1111,
+    1212,
+    1313
+  ],
+  "jobs": [
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 202,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-202_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 303,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-303_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 404,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-404_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 404,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-404_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 404,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-404_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 404,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-404_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 404,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-404_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 505,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-505_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 505,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-505_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 505,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-505_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 505,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-505_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 505,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-505_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 606,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-606_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 606,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-606_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 606,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-606_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 606,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-606_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 606,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-606_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 707,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-707_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 707,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-707_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 707,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-707_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 707,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-707_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 707,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-707_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 808,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-808_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 808,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-808_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 808,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-808_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 808,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-808_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 808,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-808_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 909,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-909_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 909,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-909_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 909,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-909_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 909,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-909_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 909,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-909_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1010,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1010_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1010,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1010_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1010,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1010_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1010,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1010_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1010,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1010_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1111,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1111_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1111,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1111_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1111,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1111_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1111,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1111_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1111,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1111_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1212,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1212_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1212,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1212_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1212,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1212_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1212,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1212_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1212,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1212_strategy-core_set"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1313,
+      "strategy": "random",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1313_strategy-random"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1313,
+      "strategy": "uncertainty",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1313_strategy-uncertainty"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1313,
+      "strategy": "cluster_diverse",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1313_strategy-cluster_diverse"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1313,
+      "strategy": "uncertainty_diversity",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1313_strategy-uncertainty_diversity"
+    },
+    {
+      "stage": "final_comparison",
+      "epoch": 3,
+      "seed": 1313,
+      "strategy": "core_set",
+      "lambda": 0.5,
+      "budget": 100,
+      "job_id": "followup_seed-1313_strategy-core_set"
+    }
+  ]
+}

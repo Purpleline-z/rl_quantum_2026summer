@@ -1,0 +1,399 @@
+{
+  "5fc4ad2dabc3108ab4aa7d41a29db11dd6abc78dde772b161ec25a01b9ee08ac": {
+    "candidate_pair_id": "Trajectories/2022-02-04/063_RR220204A_165C_0215-03.bmp || Trajectories/2022-04-11/376_RR220411A_620C_1938.bmp",
+    "baseline_accuracy": 0.36666666666666664,
+    "augmented_accuracy": 0.36666666666666664,
+    "delta_accuracy": 0.0,
+    "cache_hit": false
+  },
+  "6a0e53acebeb36b06a5e7c45d5fc5e5a819e7671f529338061d5571d78dc4d8f": {
+    "candidate_pair_id": "Trajectories/2022-02-04/230_RR220204A_695C_1902.bmp || Trajectories/2022-02-06/074_RR220206A_430C_1809.bmp",
+    "baseline_accuracy": 0.36666666666666664,
+    "augmented_accuracy": 0.36666666666666664,
+    "delta_accuracy": 0.0,
+    "by_class_delta": {
+      "(1 x 1)": -1.0,
+      "c(6 x 2)": 0.875,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": 0.16666666666666663
+    },
+    "cache_hit": false
+  },
+  "4bf84d9711056b65ca4f72ebed62b3b7d339f698a7fa8a5acf3ecee91ff8e853": {
+    "candidate_pair_id": "Trajectories/2022-02-04/230_RR220204A_695C_1902.bmp || Trajectories/2022-02-06/074_RR220206A_430C_1809.bmp",
+    "baseline_accuracy": 0.4,
+    "augmented_accuracy": 0.4,
+    "delta_accuracy": 0.0,
+    "by_class_delta": {
+      "(1 x 1)": 0.375,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "95e3fc3baefde42a67249b6ac18aa44ac34e0edc7116cccfab9ed9138703e8b9": {
+    "candidate_pair_id": "Trajectories/2022-02-06/104_RR220206A_734C_1847.bmp || Trajectories/2022-02-06/207_RR220206A_875C_2114.bmp",
+    "baseline_accuracy": 0.4,
+    "augmented_accuracy": 0.3,
+    "delta_accuracy": -0.10000000000000003,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "8341b540f113f0576d791468e548137a2095a19d0ce5f7225733f7d20f549c60": {
+    "candidate_pair_id": "Trajectories/2022-02-06/090_RR220206A_568C_1828.bmp || Trajectories/2022-04-11/149_RR220411A_676C_1619.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.6333333333333333,
+    "delta_accuracy": 0.19999999999999996,
+    "by_class_delta": {
+      "(1 x 1)": 0.75,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "e2c4904c1e75943304beb8ca09b51225583251a68bbc625756d556c4116c0c6b": {
+    "candidate_pair_id": "Trajectories/2022-04-11/111_RR220411A_536C_1546.bmp || Trajectories/2022-04-11/175_RR220411A_765C_1645.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.43333333333333335,
+    "delta_accuracy": 0.0,
+    "by_class_delta": {
+      "(1 x 1)": 0.125,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": 0.33333333333333337
+    },
+    "cache_hit": false
+  },
+  "ae06cce68f3b5c6f02dcb85a909d9794de1ee1a73b7d0d4bc17f98e15c03640c": {
+    "candidate_pair_id": "Trajectories/2022-02-06/049_RR220206A_205C_1737.bmp || Trajectories/2022-04-11/356_RR220411A_685C_1925.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.8,
+    "delta_accuracy": 0.3666666666666667,
+    "by_class_delta": {
+      "(1 x 1)": 0.5,
+      "c(6 x 2)": 0.875,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "66a384dab4eac00068e489814817cc8824c86234f34cb03e7b4b7dbb678d5157": {
+    "candidate_pair_id": "Trajectories/2022-02-04/139_RR220204A_470C_1758.bmp || Trajectories/2022-04-11/372_RR220411A_636C_1935.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.6666666666666666,
+    "delta_accuracy": 0.23333333333333328,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.875,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "2ada6855a95cc7ac4f9e0204106b5f716fbdc9407a8429542f2c69c9b74fadf2": {
+    "candidate_pair_id": "Trajectories/2022-02-04/170_RR220204A_536C_1818.bmp || Trajectories/2022-02-06/230_RR220206A_767C_2143.bmp",
+    "baseline_accuracy": 0.3333333333333333,
+    "augmented_accuracy": 0.3333333333333333,
+    "delta_accuracy": 0.0,
+    "by_class_delta": {
+      "(1 x 1)": -0.125,
+      "c(6 x 2)": 0.25,
+      "(\u221a13 x \u221a13)": 0.25,
+      "HTR": -0.5
+    },
+    "cache_hit": false
+  },
+  "c692446befc1ddb6e635dd1f6fcff50ac8a47cdad97c305a889bdfb49e0e2971": {
+    "candidate_pair_id": "Trajectories/2022-04-11/343_RR220411A_722C_1918.bmp || Trajectories/2022-04-11/374_RR220411A_625C_1937.bmp",
+    "baseline_accuracy": 0.3333333333333333,
+    "augmented_accuracy": 0.36666666666666664,
+    "delta_accuracy": 0.033333333333333326,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.75,
+      "(\u221a13 x \u221a13)": -0.25,
+      "HTR": -0.5
+    },
+    "cache_hit": false
+  },
+  "fa75b3a277a591b2ae2ff0ef219e0fa6ac735d7447c1cf351616be60644409dd": {
+    "candidate_pair_id": "Trajectories/2022-04-11/323_RR220411A_816C_1903.bmp || Trajectories/2022-04-11/366_RR220411A_654C_1930.bmp",
+    "baseline_accuracy": 0.5666666666666667,
+    "augmented_accuracy": 0.4666666666666667,
+    "delta_accuracy": -0.09999999999999998,
+    "by_class_delta": {
+      "(1 x 1)": -0.5,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "8a7e7f6b211f85d16a095d55ed11aad0e30ebaebdc352da71d30585ad2eb07a2": {
+    "candidate_pair_id": "Trajectories/2022-02-06/273_RR220206A_423C_2243.bmp || Trajectories/2022-04-11/093_RR220411A_482C_1531.bmp",
+    "baseline_accuracy": 0.5666666666666667,
+    "augmented_accuracy": 0.4666666666666667,
+    "delta_accuracy": -0.09999999999999998,
+    "by_class_delta": {
+      "(1 x 1)": -0.5,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "91e650d71d1e095b2eee771fc5b4dc200cc3d896da87b2ad440ea1f63397b4a9": {
+    "candidate_pair_id": "Trajectories/2022-02-04/076_RR220204A_299C_1713.bmp || Trajectories/2022-02-04/080_RR220204A_301C_1718.bmp",
+    "baseline_accuracy": 0.4,
+    "augmented_accuracy": 0.43333333333333335,
+    "delta_accuracy": 0.033333333333333326,
+    "by_class_delta": {
+      "(1 x 1)": 0.25,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": -0.16666666666666663
+    },
+    "cache_hit": false
+  },
+  "9d794701602eaaf696e179b99f4126205963b6edf51d6223772852aa0b84ce9b": {
+    "candidate_pair_id": "Trajectories/2022-02-04/160_RR220204A_501C_1809-02.bmp || Trajectories/2022-02-04/161_RR220204A_504C_1810.bmp",
+    "baseline_accuracy": 0.4,
+    "augmented_accuracy": 0.43333333333333335,
+    "delta_accuracy": 0.033333333333333326,
+    "by_class_delta": {
+      "(1 x 1)": 0.25,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": -0.16666666666666663
+    },
+    "cache_hit": false
+  },
+  "be1031df7582d03b3b0e8f1394524ed7e87301f06949aa012ead5e26b22a7888": {
+    "candidate_pair_id": "Trajectories/2022-02-04/085_RR220204A_378C_1720.bmp || Trajectories/2022-02-04/134_RR220204A_467C_1754-02.bmp",
+    "baseline_accuracy": 0.3333333333333333,
+    "augmented_accuracy": 0.4,
+    "delta_accuracy": 0.06666666666666671,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.25,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "07ccba4a90196e3b0720be9d1f9b35b7a7447c6cccd479b2531cde30c16d6655": {
+    "candidate_pair_id": "Trajectories/2022-04-11/246_RR220411A_915C_1741.bmp || Trajectories/2022-04-11/258_RR220411A_932C_1751.bmp",
+    "baseline_accuracy": 0.3333333333333333,
+    "augmented_accuracy": 0.4666666666666667,
+    "delta_accuracy": 0.13333333333333336,
+    "by_class_delta": {
+      "(1 x 1)": 0.125,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.375,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "2a11f531b201f390634bc0707b5065825ba47c4eea17c1f331407a351d9257e2": {
+    "candidate_pair_id": "Trajectories/2022-04-11/343_RR220411A_722C_1918.bmp || Trajectories/2022-04-11/374_RR220411A_625C_1937.bmp",
+    "baseline_accuracy": 0.36666666666666664,
+    "augmented_accuracy": 0.5666666666666667,
+    "delta_accuracy": 0.2,
+    "by_class_delta": {
+      "(1 x 1)": 0.75,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "7618b4f8402702aca7af32c7adf41d034de310c07ae8a9e82a6feb4acb604ac2": {
+    "candidate_pair_id": "Trajectories/2022-02-04/079_RR220204A_301C_1717.bmp || Trajectories/2022-02-04/329_RR220204A_946C_2054.bmp",
+    "baseline_accuracy": 0.36666666666666664,
+    "augmented_accuracy": 0.43333333333333335,
+    "delta_accuracy": 0.06666666666666671,
+    "by_class_delta": {
+      "(1 x 1)": 0.375,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": -0.3333333333333333
+    },
+    "cache_hit": false
+  },
+  "44812538085150c94709674ff4296967f3047ebc332168cd70f5c72ed207ce53": {
+    "candidate_pair_id": "Trajectories/2022-02-04/221_RR220204A_666C_1854.bmp || Trajectories/2022-02-04/339_RR220204A_938C_2110.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.26666666666666666,
+    "delta_accuracy": -0.16666666666666669,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.125,
+      "HTR": -0.6666666666666666
+    },
+    "cache_hit": false
+  },
+  "e0e668e22b0952d3d6b26c675ebec2c53963b0880407e5503807743661c14f36": {
+    "candidate_pair_id": "Trajectories/2022-02-04/205_RR220204A_642C_1839-02.bmp || Trajectories/2022-02-04/337_RR220204A_938C_2106.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.2,
+    "delta_accuracy": -0.23333333333333334,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": -0.6666666666666666
+    },
+    "cache_hit": false
+  },
+  "9363bad02f14121d0480810226428a3ce06114419545d60372ee4b355a1f6fe2": {
+    "candidate_pair_id": "Trajectories/2022-04-11/138_RR220411A_635C_1610.bmp || Trajectories/2022-04-11/186_RR220411A_805C_1658.bmp",
+    "baseline_accuracy": 0.6333333333333333,
+    "augmented_accuracy": 0.4,
+    "delta_accuracy": -0.23333333333333328,
+    "by_class_delta": {
+      "(1 x 1)": -0.125,
+      "c(6 x 2)": -0.75,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": -0.16666666666666663
+    },
+    "cache_hit": false
+  },
+  "8375ac60f6cae3cbea8f0064c4134815ff0629f717a56a1e7ddfb7398b82d40d": {
+    "candidate_pair_id": "Trajectories/2022-04-11/036_RR220411A_313C_1443.bmp || Trajectories/2022-04-11/072_RR220411A_429C_1516.bmp",
+    "baseline_accuracy": 0.6333333333333333,
+    "augmented_accuracy": 0.5,
+    "delta_accuracy": -0.1333333333333333,
+    "by_class_delta": {
+      "(1 x 1)": -0.125,
+      "c(6 x 2)": -0.625,
+      "(\u221a13 x \u221a13)": 0.25,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "e9df11821d3bbc178afa88beb7e72706edeb0e8d0161bd4f06df92766d1d3f7b": {
+    "candidate_pair_id": "Trajectories/2022-02-04/320_RR220204A_915C_2039.bmp || Trajectories/2022-02-06/282_RR220206A_184C_2256.bmp",
+    "baseline_accuracy": 0.4,
+    "augmented_accuracy": 0.3333333333333333,
+    "delta_accuracy": -0.06666666666666671,
+    "by_class_delta": {
+      "(1 x 1)": 0.125,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "987849a076c8794095e9027b5b548c19245db3752a19656ab4c7b889cb610a02": {
+    "candidate_pair_id": "Trajectories/2022-02-04/235_RR220204A_725C_1905.bmp || Trajectories/2022-02-06/068_RR220206A_362C_1759.bmp",
+    "baseline_accuracy": 0.5,
+    "augmented_accuracy": 0.3333333333333333,
+    "delta_accuracy": -0.16666666666666669,
+    "by_class_delta": {
+      "(1 x 1)": -0.25,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": -0.6666666666666666
+    },
+    "cache_hit": false
+  },
+  "651daa31ce72e7bf499409aaef8d04a5626d626d772b84e9ff8ff6d66f7a3caf": {
+    "candidate_pair_id": "Trajectories/2022-02-04/160_RR220204A_501C_1809-02.bmp || Trajectories/2022-02-04/161_RR220204A_504C_1810.bmp",
+    "baseline_accuracy": 0.5,
+    "augmented_accuracy": 0.4666666666666667,
+    "delta_accuracy": -0.033333333333333326,
+    "by_class_delta": {
+      "(1 x 1)": -0.25,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "85d49a815b736c5ee5ebd5f784723b6397383d7889b3abb62ed649a9f7fc9411": {
+    "candidate_pair_id": "Trajectories/2022-04-11/183_RR220411A_794C_1655.bmp || Trajectories/2022-04-11/226_RR220411A_873C_1725.bmp",
+    "baseline_accuracy": 0.3,
+    "augmented_accuracy": 0.5666666666666667,
+    "delta_accuracy": 0.26666666666666666,
+    "by_class_delta": {
+      "(1 x 1)": -0.125,
+      "c(6 x 2)": 0.75,
+      "(\u221a13 x \u221a13)": -0.25,
+      "HTR": 0.8333333333333334
+    },
+    "cache_hit": false
+  },
+  "c180b1f8792ff2a7b4db5a59bbcf78db415dbf602f71ae3b4d079bbee32c3d6c": {
+    "candidate_pair_id": "Trajectories/2022-04-11/238_RR220411A_905C_1736.bmp || Trajectories/2022-04-11/319_RR220411A_828C_1900.bmp",
+    "baseline_accuracy": 0.3,
+    "augmented_accuracy": 0.5,
+    "delta_accuracy": 0.2,
+    "by_class_delta": {
+      "(1 x 1)": -0.25,
+      "c(6 x 2)": 0.875,
+      "(\u221a13 x \u221a13)": -0.375,
+      "HTR": 0.6666666666666666
+    },
+    "cache_hit": false
+  },
+  "77184cc36ba7ea6fb445b69a9ee94743f5eec8f27c5fb4a54ec3a18221100907": {
+    "candidate_pair_id": "Trajectories/2022-02-04/048_RR220204A_245C_0201.bmp || Trajectories/2022-04-11/183_RR220411A_794C_1655.bmp",
+    "baseline_accuracy": 0.6,
+    "augmented_accuracy": 0.6666666666666666,
+    "delta_accuracy": 0.06666666666666665,
+    "by_class_delta": {
+      "(1 x 1)": 0.125,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "77512dc9e5a0daca0a1dba641bc137981097c469f3cf5ed374fa53287b4c72d0": {
+    "candidate_pair_id": "Trajectories/2022-02-04/085_RR220204A_378C_1720.bmp || Trajectories/2022-02-04/134_RR220204A_467C_1754-02.bmp",
+    "baseline_accuracy": 0.6,
+    "augmented_accuracy": 0.4,
+    "delta_accuracy": -0.19999999999999996,
+    "by_class_delta": {
+      "(1 x 1)": 0.125,
+      "c(6 x 2)": -0.75,
+      "(\u221a13 x \u221a13)": 0.0,
+      "HTR": -0.16666666666666663
+    },
+    "cache_hit": false
+  },
+  "852ba8ad73477caf8c94a356f8aa5eefec60650392b0fcd19ac16d4e765e054d": {
+    "candidate_pair_id": "Trajectories/2022-02-06/273_RR220206A_423C_2243.bmp || Trajectories/2022-04-11/379_RR220411A_614C_1940.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.5,
+    "delta_accuracy": 0.06666666666666665,
+    "by_class_delta": {
+      "(1 x 1)": 0.0,
+      "c(6 x 2)": 0.125,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  },
+  "0f3962a99ce56e94f6042bb163a39da32366d5787378ecb24a9c8b2e7b75e66c": {
+    "candidate_pair_id": "Trajectories/2022-02-04/300_RR220204A_881C_2018.bmp || Trajectories/2022-02-06/195_RR220206A_944C_2101.bmp",
+    "baseline_accuracy": 0.43333333333333335,
+    "augmented_accuracy": 0.43333333333333335,
+    "delta_accuracy": 0.0,
+    "by_class_delta": {
+      "(1 x 1)": -0.125,
+      "c(6 x 2)": 0.0,
+      "(\u221a13 x \u221a13)": 0.125,
+      "HTR": 0.0
+    },
+    "cache_hit": false
+  }
+}

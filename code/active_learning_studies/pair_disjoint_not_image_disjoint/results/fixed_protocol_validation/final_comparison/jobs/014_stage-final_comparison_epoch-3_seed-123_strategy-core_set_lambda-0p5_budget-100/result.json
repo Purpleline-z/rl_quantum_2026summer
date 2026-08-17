@@ -1,0 +1,27 @@
+{
+  "stage": "final_comparison",
+  "epoch": 3,
+  "seed": 123,
+  "strategy": "core_set",
+  "lambda": 0.5,
+  "budget": 100,
+  "job_id": "014_stage-final_comparison_epoch-3_seed-123_strategy-core_set_lambda-0p5_budget-100",
+  "pre_test_accuracy": 0.36666666666666664,
+  "post_test_accuracy": 0.6333333333333333,
+  "batch_utility": 0.26666666666666666,
+  "pre_pairwise_accuracy": 0.8651685393258427,
+  "post_pairwise_accuracy": 0.9302325581395349,
+  "selected_pairs": 100,
+  "selected_rows": 381,
+  "cluster_coverage": 20,
+  "cluster_entropy": 2.871136039501966,
+  "image_reuse_rate": 0.06000000000000005,
+  "mean_pair_cosine_similarity": 0.972491286549468,
+  "per_class_delta": {
+    "(1 x 1)": 0.25,
+    "c(6 x 2)": 0.0,
+    "(\u221a13 x \u221a13)": 0.625,
+    "HTR": 0.16666666666666663
+  },
+  "individual_utilities": null
+}

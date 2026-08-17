@@ -1,0 +1,27 @@
+{
+  "stage": "final_comparison",
+  "epoch": 3,
+  "seed": 42,
+  "strategy": "uncertainty_diversity",
+  "lambda": 0.5,
+  "budget": 100,
+  "job_id": "003_stage-final_comparison_epoch-3_seed-42_strategy-uncertainty_diversity_lambda-0p5_budget-100",
+  "pre_test_accuracy": 0.36666666666666664,
+  "post_test_accuracy": 0.4666666666666667,
+  "batch_utility": 0.10000000000000003,
+  "pre_pairwise_accuracy": 0.8393782383419689,
+  "post_pairwise_accuracy": 0.8797127468581688,
+  "selected_pairs": 100,
+  "selected_rows": 364,
+  "cluster_coverage": 17,
+  "cluster_entropy": 2.6899857029797136,
+  "image_reuse_rate": 0.06499999999999995,
+  "mean_pair_cosine_similarity": 0.9220007566138982,
+  "per_class_delta": {
+    "(1 x 1)": 0.125,
+    "c(6 x 2)": 0.0,
+    "(\u221a13 x \u221a13)": 0.25,
+    "HTR": 0.0
+  },
+  "individual_utilities": null
+}

@@ -1,0 +1,13 @@
+class,path,split
+(1 x 1),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_1x1\0_1.png,test
+c(6 x 2),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_c6x2\1_2.png,test
+(√13 x √13),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_RT13\3_1.png,test
+HTR,C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_HTR\2_1.png,test
+(1 x 1),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_1x1\0_0.png,utility_validation
+c(6 x 2),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_c6x2\1_1.png,utility_validation
+(√13 x √13),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_RT13\3_2.png,utility_validation
+HTR,C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_HTR\2_2.png,utility_validation
+(1 x 1),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_1x1\0_2.png,reference
+c(6 x 2),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_c6x2\1_0.png,reference
+(√13 x √13),C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_RT13\3_0.png,reference
+HTR,C:\Users\purpl\AppData\Local\Temp\tmp6bq5iu8w\original data\STO_ideal_HTR\2_0.png,reference

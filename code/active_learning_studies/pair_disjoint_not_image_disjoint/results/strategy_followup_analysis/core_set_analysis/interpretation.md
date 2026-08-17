@@ -1,0 +1,1 @@
+PCA is a global two-dimensional projection; core-set optimizes local Euclidean coverage in the full pair-embedding space. These are not contradictory without quantitative evidence that core-set distance correlates with reconstruction relevance or controlled utility.
