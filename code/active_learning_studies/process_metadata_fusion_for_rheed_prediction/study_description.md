@@ -1,28 +1,97 @@
 # Process-Metadata Fusion for RHEED Prediction
 
-## Question
+## Purpose and scope
 
-Can causally available, numerical growth-monitor metadata add predictive value to a SimCLR-based RHEED image model without leaking labels, run identity, future measurements, or test information?
+This study asks a narrow question: **do routine process-monitor measurements, available no later than a RHEED frame, improve a RHEED prediction model beyond the image alone?** The first endpoint is the downstream reconstruction classifier/reward model, not active selection. A second, separate phase will test whether a verified classifier benefit improves active-learning acquisition. A better classifier is not automatically a better selector.
 
-## Observed session-bundle interface
+The image branch is the shipped SimCLR ResNet-18 and the existing five-output Bradley--Terry reward head for `(1 x 1)`, `Twinned(2 x 1)`, `c(6 x 2)`, `(sqrt(13) x sqrt(13))`, and `HTR`. The process branch supplies context that growers already use in practice: elapsed time, temperature, voltage, current, chamber pressure, and selected rates. The principal risk is shortcut learning: the model could learn an experiment/run identity, a future intervention, or a label embedded in a log instead of learning an image-plus-physics relationship. The implementation therefore prioritizes causal alignment, strict session splits, and explicit negative controls.
 
-The reference bundle `AI_AJ002_STO_20260805_165051.zip` is a small, metadata-only record of one growth session. `sensor_log.csv` records a timestamp, elapsed time, pyrometer temperature, actual Mistral voltage/current, and chamber pressure. `heartbeat_log.csv` records timestamped laboratory `frame_path` references. It contains no RHEED image bytes. The path references must be explicitly mapped to actual image files before an experiment is possible.
+This folder is registered infrastructure and data-interface documentation. It is **not** a completed performance study and contributes no metadata performance claim to the technical report.
 
-The registered feature order is elapsed time; pyrometer temperature; actual voltage; actual current; chamber pressure; and backward-looking temperature, voltage, and current rates. Missingness is explicit. At each image time the implementation uses only the latest sensor row at or before that timestamp; it does not interpolate from future measurements.
+## What the supplied ZIP establishes
 
-## Why this architecture
+`AI_AJ002_STO_20260805_165051.zip` is a 179 KB metadata bundle for one growth session. It contains no BMP, PNG, or JPEG images.
 
-The primary model has an image branch (shipped SimCLR ResNet-18, 512 dimensions) and a process branch (16 values after missingness indicators, encoded as `16 -> 64 -> 64`). The embeddings are concatenated and projected from 576 to 512 dimensions before the existing five-output Bradley--Terry reward head. This late-fusion design is deliberately the first architecture because it is the requested separate-branch/concatenation method, adds limited capacity, and makes image-only, metadata-only, and fused-model comparisons interpretable.
+| Member | Observed content | Permitted role |
+|---|---|---|
+| `session_metadata.json` | sample ID, grower, chamber, session start/end, row counts | Defines session/run provenance. |
+| `sensor_log.csv` | 198 timestamped monitor rows at roughly 10-second intervals | Primary numerical source. |
+| `heartbeat_log.csv` | 132 timestamped `frame_path` references | Associates a frame time with prior sensor data. |
+| `set_change_events.csv` | voltage/current changes | Audit-only in this study. |
+| `auto_capture_events.csv` | capture workflow and change events | Audit-only in this study. |
+| `commit_log.csv` | reconstruction values, classifier outputs/status, notes | Explicitly prohibited as input. |
+| `live_labels.csv` | live reconstruction labels | Explicitly prohibited as input. |
+| `growth_log.xlsx` | human-entered summaries and notes | Excluded from the first numerical study. |
 
-Recent tabular-image work identifies heterogeneous and missing tabular values as a central practical problem; it motivates explicit missingness representation and coverage audits rather than false physical zeros ([Du et al., 2024, TIP](https://arxiv.org/abs/2407.07582)). Concatenating a high-level image descriptor and a tabular representation is an established baseline for image-plus-tabular prediction. DAFT instead adds conditional affine modulation inside a CNN; it is a future sensitivity direction, not part of this small-data first study ([Wolf, Pölsterl, and Wachinger, 2022](https://doi.org/10.1016/j.neuroimage.2022.119505)). A 2024 review likewise emphasizes heterogeneous sources, preprocessing, and fusion validation in multimodal systems ([Salvi et al., 2024](https://doi.org/10.1016/j.inffus.2023.102134)).
+The observed primary monitor columns are `elapsed_s`, `pyrometer_temp_C`, `mistral_v_actual_V`, `mistral_i_actual_A`, and `chamber_pressure_mbar`. Frame references use laboratory Windows paths such as `E:\\ChMBE\\2026\\AI_AJ002_STO_20260805_165051\\frames\\heartbeat_001_165106.bmp`.
 
-## Data and leakage policy
+A path reference is not proof that an image exists in this repository. Before an experiment, the laboratory/project must supply an explicit mapping CSV with `source_frame_path,resolved_image_path`. The adapter normalizes slash and case spelling, requires each resolved file to exist, and never guesses a match from a basename or timestamp.
 
-Each session ZIP is one growth run. The primary eventual split is mutually run-disjoint and image-disjoint train, validation, and outer-test partitions. The code refuses to relax either rule. One session cannot form these partitions, so the supplied ZIP is valid only for interface/audit testing. A later experimental dataset needs at least three image-resolved session bundles and sufficient class/pair capacity in each partition.
+The supplied ZIP passed the schema and causal-alignment check: 198 sensor rows, 132 heartbeat references, zero future sensor matches, and 132 unresolved image references. The unresolved count is expected because neither image bytes nor a mapping are present.
 
-The first study excludes reconstruction columns, classifier outputs/status, corrected labels, live labels, notes in `growth_log.xlsx`, manual-event content, auto-capture decisions, and set-change outcomes. Those sources are not neutral process measurements and would compromise a clean measurement of metadata fusion.
+## Registered representation and causal alignment
 
-## Use in the technical report
+Each heartbeat frame at time `t` receives the most recent sensor row with timestamp `<= t`, using a backward `merge_asof` join. The derived manifest records frame timestamp, sensor timestamp, lag, session/run ID, archive SHA-256, normalized source path, resolved-image status, the feature values, and missingness. Future readings are never interpolated or backfilled.
 
-This study currently contributes only a registered data interface, architecture, and safety contract. It is not used in any accuracy, active-learning, or physics claim in the technical report. It becomes performance evidence only after multiple session bundles, verified image mappings, leakage audits, validation-only model selection, and untouched run-disjoint/image-disjoint outer-test evaluation.
+The fixed first-study feature order is:
 
+1. frame `elapsed_s`;
+2. `pyrometer_temp_C`;
+3. `mistral_v_actual_V`;
+4. `mistral_i_actual_A`;
+5. `chamber_pressure_mbar`;
+6. backward-looking `d(pyrometer_temp_C)/dt`;
+7. backward-looking `d(mistral_v_actual_V)/dt`;
+8. backward-looking `d(mistral_i_actual_A)/dt`.
+
+Rates use a sensor row and its immediately preceding sensor row; the first rate is missing. Every value has a missingness indicator, producing a 16-dimensional model input. Median imputation and standardization are fitted on training sessions only; validation and outer-test sessions cannot affect centers, scales, or imputation values.
+
+The study does not silently add every available sensor channel. The registered variables are the five quantities identified by the laboratory as most routinely used by growers, plus the three requested rates. A small predeclared set is more interpretable and less likely to become a disguised session identifier. Other temperatures, powers, setpoints, and event variables may be evaluated only in a later explicitly registered ablation.
+
+## Model architecture and rationale
+
+The primary late-fusion model is:
+
+```text
+RHEED image -> shipped SimCLR ResNet-18 -> 512-dimensional image embedding
+process metadata -> MLP 16 -> 64 -> 64 with ReLU
+concatenate 512 + 64 -> Linear(576, 512) + ReLU
+unchanged five-output Bradley--Terry reward head
+```
+
+It is compared to two essential controls:
+
+- **image-only:** the existing shipped SimCLR image model and five-output head;
+- **metadata-only:** the 16-value process vector passed through its own MLP and five-output head.
+
+The metadata-only arm is a shortcut diagnostic. Strong metadata-only performance may indicate a real process-state signal, but it may also indicate inadequate session separation. It is not acceptable to report fusion without these two controls.
+
+Late fusion is the initial choice because it is the requested separate-branch/concatenation design, adds limited capacity to a small labeled dataset, and makes modality contributions auditable. Recent tabular-image work identifies heterogeneous and missing tabular inputs as a central practical problem, supporting missingness indicators and data-quality audits ([Du et al., 2024, TIP](https://arxiv.org/abs/2407.07582)). Concatenated representations are an established baseline. DAFT is a more complex alternative that conditions late CNN features on tabular information; it is deferred until the simple architecture has been tested with adequate data ([Wolf, Pölsterl, and Wachinger, 2022](https://doi.org/10.1016/j.neuroimage.2022.119505)). A recent multimodal review likewise emphasizes preprocessing, heterogeneous data sources, and careful validation ([Salvi et al., 2024](https://doi.org/10.1016/j.inffus.2023.102134)).
+
+## Leakage policy and excluded information
+
+The initial scientific question is whether routine monitor measurements complement the image. The following sources are deliberately excluded because they are labels, model outputs, annotations, post-hoc actions, or free text:
+
+- `recon_*`, `classifier_recon_*`, `classifier_status`, and `grower_corrected` in `commit_log.csv`;
+- reconstruction content in `live_labels.csv`;
+- notes, operations, and free text in `growth_log.xlsx`, `commit_log.csv`, and `manual_events.csv`;
+- auto-capture decisions, `event_state`, `state_changed_at`, and image change scores;
+- set-change events and their outcomes.
+
+This does not mean those records are scientifically unhelpful. They may support a later decision-support, text, or intervention-modeling study. They are not admissible for the present question because they would make a metadata improvement impossible to interpret. The implementation rejects unregistered or label-like feature names and retains archive/join provenance for audit.
+
+## Split policy, data requirements, and later evaluation
+
+Each session ZIP is one `run_id`. The intended future split is complete-run-disjoint and image-disjoint train/validation/outer-test partitions. Pairwise training groups and active-learning candidates may only come from training runs. Validation selects hyperparameters. Outer test remains unseen until final evaluation.
+
+Run-disjointness is essential: frames within one growth share a correlated temperature, voltage, current, and pressure trajectory. Holding out only individual images could allow the metadata branch to identify the same experiment in train and test. The relevant question is generalization to a new growth session.
+
+One session is enough to validate the interface but cannot produce train, validation, and outer-test partitions. The code refuses to run without at least three image-resolved sessions. Three is a technical minimum, not a persuasive sample. The requested preliminary target is **at least 12 independent image-resolved growth sessions**, ideally with usable frames across relevant reconstruction classes in every split. More sessions are needed if one session dominates a class or multiple sessions follow nearly identical recipes.
+
+Once adequate data exist, the classifier phase will use paired seeds, validation-only protocol selection, raw per-seed results, per-class metrics, missingness and lag summaries, and paired confidence intervals. A metadata claim requires a stable fusion advantage on the untouched run-disjoint and image-disjoint outer test. Only after that will a separately reported active-learning phase compare image-only and fusion-enabled budget curves under approved selectors. Candidate preference labels remain hidden from the selector; visible metadata must be causally available at frame time.
+
+## Current status and comparability limits
+
+The current files implement archive validation, causal alignment, explicit image mapping, run/image-disjoint capacity checks, the three model arms, and behavior tests. They do not start a CPU or GPU experiment. No raw ZIP, laboratory image, mapping, checkpoint, or performance result is committed.
+
+This study must not be pooled with historical pair-disjoint active-learning curves, the Classifier2 report, simulator augmentation, or trajectory-ordering analyses. It has a different modality, requires stricter session-level separation, and has not yet received an image/session mapping. Any future comparison must state exactly which sessions, images, labels, initialization, training protocol, and endpoint are shared.
