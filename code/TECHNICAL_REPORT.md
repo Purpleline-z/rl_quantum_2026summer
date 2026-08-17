@@ -60,7 +60,7 @@ Representation analysis gives compatible context: five-nearest-neighbor accuracy
 
 Task 3a is a validation-only calibration grid: five seeds × two encoder initializations × five budgets × four learning rates × three epoch counts = 600 cells. Each cell trains on the initial ten pair groups plus a deterministic random reference acquisition for that budget, evaluates utility validation only, and never evaluates outer test. The resulting table will choose LR/epochs separately for each encoder and budget.
 
-The Git-tracked state is 583 complete cells: Account 1 = 150, Account 2 = 150, Account 3 = 150, Account 4 = 133. The remaining 17 Account 4 cells are all required because Task 3b refuses to aggregate a partial grid. Task 3b is CPU-only aggregation of the complete validation grid into a protocol table. Task 3c then uses that table to run paired final curves with five strategies, five budgets, five seeds, two encoder initializations, and both epoch-based and fixed-update controls. This sequence directly tests whether an apparent selection gain survives a protocol that lets training effort vary appropriately with the amount of labeled data.
+Task 3b aggregate validation grid into a protocol table. Task 3c then uses that table to run paired final curves with five strategies, five budgets, five seeds, two encoder initializations, and both epoch-based and fixed-update controls. This sequence directly tests whether an apparent selection gain survives a protocol that lets training effort vary appropriately with the amount of labeled data.
 
 ## 8. Related research directions
 
