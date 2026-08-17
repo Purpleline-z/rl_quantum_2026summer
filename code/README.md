@@ -6,9 +6,9 @@ This repository studies how labelled RHEED image-pair comparisons can train and 
 
 - `active_learning_program/`: the current reusable implementation, named study launchers, and automated code-behavior tests.
 - `active_learning_studies/pair_disjoint_not_image_disjoint/`: the current controlled pair-level active-learning evidence and its manifests.
-- `active_learning_studies/strict_image_disjoint/`: a separate strict image-level reproduction tool; do not pool its results with the pair-disjoint study.
+- `active_learning_studies/strict_image_disjoint/`: a separate strict image-level direction - not yet implemented.
 - `active_learning_studies/image_representation_analysis/`: PCA, t-SNE, and nearest-neighbor representation analysis.
-- `active_learning_studies/rheed_trajectory_ordering_analysis/`: descriptive trajectory-ordering analysis.
+- `active_learning_studies/rheed_trajectory_ordering_analysis/`: how to code rheed trajectory order into high-level constraints.
 - `classifier2/`: the reference Classifier2 code, report, checkpoint, and source notes.
 - `TECHNICAL_REPORT.md`: the main interpretation of the evidence.
 
