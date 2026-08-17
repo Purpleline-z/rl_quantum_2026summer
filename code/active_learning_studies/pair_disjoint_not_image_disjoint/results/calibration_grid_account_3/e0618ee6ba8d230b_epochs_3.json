@@ -1,0 +1,11 @@
+{
+  "checkpoint": "/content/drive/MyDrive/rheed_pair_disjoint/account_3/resumable_checkpoints/pair_disjoint_calibration/e0618ee6ba8d230b.pth",
+  "encoder": "simclr",
+  "learning_rate": 0.0001,
+  "outer_test_accuracy": 0.3,
+  "seed": 303,
+  "total_epochs": 3,
+  "training_pairwise_accuracy": 0.9142857142857143,
+  "utility_validation_accuracy": 0.23333333333333334,
+  "weight_decay": 0.0001
+}
