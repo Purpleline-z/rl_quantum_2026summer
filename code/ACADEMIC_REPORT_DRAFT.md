@@ -37,7 +37,7 @@ $$
 
 where $w_{ij}$ is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
 
-The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.7 replaces this fixed schedule with validation-selected settings.
+The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.8 replaces this fixed schedule with validation-selected settings.
 
 The two encoder initializations are different starting representations under this same downstream training procedure. The shipped SimCLR checkpoint is image-only self-supervised pretraining and has not seen pairwise preference labels. ImageNet initialization uses torchvision ResNet-18 weights trained with ImageNet-1K supervision. Pairwise labels enter only during reward-model fine-tuning.
 
@@ -442,7 +442,38 @@ $I(B\mid L)$ measures non-additive batch interaction. Evaluate whether it varies
 
 **Question.** Do process-monitor variables contain prediction information absent from the image? 
 
-### 5.7 Task 3b: budget-aware training protocol
+### 5.7 Physics-informed soft constraints for a complete trajectory
+
+**Question.** Can known ordering preferences improve the interpretation of a *sequence* of classifier outputs without changing the image model? The trajectory study takes calibrated probabilities for the six states $(1\ x\ 1)$, `Bad`, `Twinned(2 x 1)`, $c(6\ x\ 2)$, $(\sqrt{13}\ x\ \sqrt{13})$, and `HTR`, then chooses the highest-scoring complete path. Its [configuration](active_learning_studies/rheed_trajectory_ordering_analysis/higher_order_trajectory_constraint_configuration.json) specifies three soft preferences: the first state is `(1 x 1)`; before a `Bad` frame occurs, a path should not move from `(1 x 1)` directly to another reconstruction; and a path should not leave `HTR` once it has entered it.
+
+For an ordered trajectory of $T$ frames, with classifier probability $q_t(s)$ for state $s$ at frame $t$, the decoder selects
+
+$$
+\hat y_{1:T} = \underset{y_{1:T}\in S^T}{\arg\max}\ \left[\sum_{t=1}^{T}\log q_t(y_t)-\phi_{\mathrm{start}}(y_1)-\sum_{t=2}^{T}\phi_{\mathrm{transition}}(y_{t-1},y_t,h_{t-1})\right].
+$$
+
+Here $S$ is the six-state set, $y_{1:T}$ is one possible state sequence, and $h_{t-1}$ records whether `Bad` has occurred earlier in that path. $\phi_{\mathrm{start}}$ penalizes a first state other than `(1 x 1)`. $\phi_{\mathrm{transition}}$ penalizes a non-`Bad`, non-`(1 x 1)` state before `Bad`, and a transition from `HTR` to any other state. A penalty subtracts evidence but never forbids a path: sufficiently stronger image probabilities can still select an exception. The weak, moderate, and strong settings multiply every base log penalty by $0.223$, $0.693$, and $1.609$, respectively; these correspond to evidence factors of $1.25$, $2$, and $5$.
+
+```text
+Input: ordered frame probabilities q[1:T, state], penalty level
+For each possible first state s:
+    score[1, s, seen_bad=(s == Bad)] = log q[1, s] - start_penalty(s)
+For t = 2,...,T:
+    For each previous state and Bad-history flag:
+        For each current state:
+            candidate = previous_score + log q[t, current]
+            candidate -= penalty_if_leaving_HTR(previous, current)
+            candidate -= penalty_if_skipping_Bad(history, current)
+            retain the best candidate and its predecessor
+Backtrack the best final state to obtain the decoded path
+Write raw per-frame argmax, all decoded paths, changed-frame flags, and rule counts
+```
+
+The exact decoder is [decode_rheed_trajectory_with_higher_order_constraints.py](active_learning_program/decode_rheed_trajectory_with_higher_order_constraints.py); it uses dynamic programming with a one-bit `Bad has occurred` memory. This separation is deliberate in implementation terms: decoder outputs do not alter pairwise labels, model weights, metadata features, or acquisition scores.
+
+The completed evidence is a [filename/order audit](active_learning_studies/rheed_trajectory_ordering_analysis/results/temporal_constraint_audit/temporal_audit_report.md), which records frame-order parsing, missing indices, duplicate indices, and ambiguity. It does not establish the frequency of any physical transition. A decoded-trajectory experiment requires an externally validated six-state classifier, including a calibrated `Bad` probability, saved for ordered frames. The resulting report should compare raw and each penalty-level path, count every changed frame and applied rule per trajectory, and have domain experts review whether changes correct or erase genuine transitions.
+
+### 5.8 Task 3b: budget-aware training protocol
 
 **Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × two encoder initializations × five acquisition budgets × four learning rates × three epoch counts, for 600 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
 
@@ -455,16 +486,17 @@ The selected schedules vary in both epoch count and learning rate: acquired sets
 
 The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the partitions by image identity, rerun Task 3a → Task 3b, and use the resulting per-encoder, per-budget table for the strategy curve.
 
-### 5.8 Evidence categories
+### 5.9 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
 | Historical fixed-schedule budget curves | Strategy/budget and preprocessing hypotheses | Re-run after SHA-256 split exclusion before selecting a final acquisition rule |
 | Task 3b budget-aware protocol | Per-encoder, per-budget validation-selected learning rates and epoch counts | Re-run the same Task 3a → Task 3b selection after identity-safe partitioning |
 | SHA-256-safe split + epoch logging | Test-image exclusion and validation-based stopping mechanism | Use as the protocol for all new comparison arms |
+| Trajectory filename/order audit and soft-decoder implementation | Ordered-frame parsing and explicitly configured, sensitivity-tested physics preferences | Supply calibrated six-state frame probabilities, then audit raw versus decoded paths with domain experts |
 | Leakage-safe calibration and final selector curve | Final strategy ranking and effect size | Execute after validation freezes all settings |
 
-### 5.9 Claim Audit
+### 5.10 Claim Audit
 
 | Claim | Measured evidence | Interpretation | Concrete next test |
 |---|---|---|---|
@@ -477,6 +509,7 @@ The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the 
 | Historical uncertainty has the largest budget-100 utility and post-acquisition accuracy | 15-seed means: uncertainty 0.522 / +0.144; uncertainty--diversity 0.489 / +0.111; core-set 0.422 / +0.044 | Reducing geometric redundancy alone does not explain strategy utility | Identity-safe per-pair and batch-utility study with interaction term $I(B\mid L)$ |
 | Core-set's lower utility is not explained by its two-dimensional PCA position | Selected-pair PCA overlaps uncertainty, while core-set acts on full embeddings | Full-space distance must be tested against reconstruction utility, not inferred from a PCA plot | Record core-set distance, per-pair utility, batch interaction, and validation curves |
 | Training schedule depends on encoder and budget | Task 3b selects both 10- and 30-epoch settings and both $10^{-4}$ and $3\cdot10^{-4}$ learning rates | Training configuration is a controlled variable, not a fixed default | Re-run Task 3a/3b under SHA-256-safe partitions before Task 3c |
+| The trajectory decoder can encode three stated ordering preferences without modifying an image score | Configuration, decoder code, and filename/order audit | The rules are transparent post-prediction preferences, not labels or a learned physical model | Run the decoder on calibrated six-state trajectories and review raw-versus-decoded changes |
 
 ## 6. Reproducible Next Experiments
 
@@ -487,6 +520,7 @@ This sequence keeps the outer test unavailable until validation has frozen every
 3. **Leakage-safe strategy and utility comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only. For a declared subset of batches, retrain each selected pair alone from the same $L$, calculate $U(p\mid L)$ and $I(B\mid L)$, and save training/validation curves to distinguish interaction from overfitting.
 4. **Controls and reporting.** Run both Task 3b-selected epoch training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
 5. **Independent metadata-fusion study.** Obtain multiple image-resolved sessions, audit causal alignment, then run image-only, metadata-only, and fusion baselines under run-disjoint splits.
+6. **Trajectory soft-decoding study.** Export calibrated six-state probabilities for each ordered trajectory, run weak/moderate/strong constraint settings, and have domain experts review each changed frame against the raw probabilities and recorded experimental context.
 
 ## 7. Limitations and Next Experiment
 
