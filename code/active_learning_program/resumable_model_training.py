@@ -23,7 +23,8 @@ def atomic_torch_save(value: Any, path: Path) -> None:
 
 def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: str, deadline: float | None,
                                  heartbeat_seconds: int = 60, checkpoint_enabled: bool = True,
-                                 validation_split: str | None = None, early_stopping_patience: int | None = None):
+                                 validation_split: str | None = None, early_stopping_patience: int | None = None,
+                                 progress_callback: Callable[[dict[str, Any]], None] | None = None):
     """Train with optional resumable epoch checkpoints. Returns (model, metrics, paused)."""
     rows = exp.rows_for(pair_ids)
     if rows.empty: raise ValueError("Cannot train with no labeled pairs.")
@@ -77,6 +78,9 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
                                    "torch_rng_state": torch.get_rng_state(), "config": exp.cfg.__dict__, "partial_epoch": True}, checkpoint_path)
                 print(f"heartbeat phase={phase} epoch={epoch + 1}/{exp.cfg.epochs} checkpoint={checkpoint_path}", flush=True)
                 last_heartbeat = now
+            if progress_callback is not None:
+                progress_callback({"phase": phase, "epoch": epoch + 1, "maximum_epochs": exp.cfg.epochs,
+                                   "checkpoint": str(checkpoint_path)})
             if deadline is not None and now >= deadline:
                 return None, {"completed_epochs": epoch, "partial_epoch": True}, True
         metric = {"epoch": epoch + 1, "train_loss": float(np.mean(epoch_losses)) if epoch_losses else float("nan")}
@@ -93,6 +97,10 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
                 stale_epochs += 1
             model.train()
         epoch_metrics.append(metric)
+        if progress_callback is not None:
+            progress_callback({"phase": phase, "epoch": epoch + 1, "maximum_epochs": exp.cfg.epochs,
+                               "epoch_complete": True, "validation_accuracy": metric.get("validation_accuracy"),
+                               "checkpoint": str(checkpoint_path)})
         if checkpoint_enabled:
             atomic_torch_save({"phase": phase, "pair_ids": list(pair_ids), "completed_epochs": epoch + 1, "model": model.state_dict(), "optimizer": optimizer.state_dict(), "losses": losses, "epoch_metrics": epoch_metrics, "best_validation_accuracy": best_validation, "best_model": best_state, "stale_epochs": stale_epochs, "torch_rng_state": torch.get_rng_state(), "config": exp.cfg.__dict__}, checkpoint_path)
         print(f"epoch progress phase={phase} epoch={epoch + 1}/{exp.cfg.epochs} saved_checkpoint={checkpoint_path}", flush=True)
