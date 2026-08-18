@@ -33,25 +33,38 @@ $$
 \mathcal L_{BT} = -\frac{1}{|D|}\sum_{(i,j,t)\in D} w_{ij}\log P_\theta(x_i \succ x_j\mid t),
 $$
 
-where \(w_{ij}\) is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
+where $w_{ij}$ is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
 
 The model is initialized with an image encoder and fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images.
 
 ### 2.2 Active selection
 
-Candidate comparisons retain their images but hide their human winner labels. A simple uncertainty score is
+Candidate comparisons retain their images but hide their human winner labels. Active selection decides which $b$ comparisons should be labelled next so that the retrained preference model makes more accurate predictions on future, previously unseen comparisons. Let $L$ be the currently labelled pair groups, let $C$ be the label-hidden candidate groups, let $S_b\subseteq C$ be the $b$ groups selected by an acquisition strategy, and let $Y(S_b)$ be the labels revealed only after selection. The quantity that selection is trying to increase is
 
 $$
-u(i,j,t)=1-\left|2\sigma(r_\theta(x_i,t)-r_\theta(x_j,t))-1\right|.
+\Delta A_{\mathrm{val}}(S_b\mid L)=
+A_{\mathrm{val}}\!\left(\operatorname{Train}(L\cup Y(S_b))\right)
+-A_{\mathrm{val}}\!\left(\operatorname{Train}(L)\right).
 $$
 
-It is largest when the model is close to a 50--50 preference, so uncertainty acquisition asks for labels on comparisons it cannot decide. The project also tests random sampling, core-set coverage, cluster-quota uncertainty, and an uncertainty--diversity combination. For the latter, candidates are ranked by
+Here $A_{\mathrm{val}}$ is validation reconstruction accuracy, $\operatorname{Train}(\cdot)$ denotes the fixed training procedure, and $\Delta A_{\mathrm{val}}$ is the improvement attributable to the newly labelled batch. An acquisition rule cannot calculate this quantity directly because $Y(S_b)$ is hidden; instead, it uses the available images, embeddings, and model predictions as a proxy. Section 2.3 defines those proxies. Validation data choose a training schedule and compare design choices; the locked outer test is evaluated only after those choices are fixed.
 
-$$
-s(i,j)=\widetilde u(i,j)+\lambda\,\widetilde d(i,j),
-$$
+The current study is a single-round, batch active-learning experiment: train on $L$, score all of $C$, select one batch $S_b$, reveal its labels, retrain on $L\cup Y(S_b)$, and evaluate. This makes a strategy's contribution easy to compare at a fixed annotation budget.
 
-where $\widetilde u$ and $\widetilde d$ are normalized uncertainty and embedding-space diversity, and $\lambda$ is the additional weight assigned to diversity. This is a project-specific heuristic, not a claim of a universal standard.
+Implementation entry point: [Experiment.select](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L536).
+
+~~~text
+Algorithm 3: Single-round active-selection loop
+Input: labelled groups L, label-hidden candidate groups C, budget b,
+       acquisition rule A, validation set V, locked outer-test set T
+1. Train a reward model f on L using a validation-selected schedule.
+2. Compute permitted label-free quantities for every c in C.
+3. Select S_b = A(C, f, L, b); do not read winner labels in this step.
+4. Reveal Y(S_b), then retrain f' on L union Y(S_b).
+5. Measure A_val(f') on V for protocol decisions and save the full run record.
+6. Once all strategies and settings are frozen, evaluate the chosen protocol on T.
+Output: selected groups S_b, validation result, and one locked-test result.
+~~~
 
 ### 2.3 Acquisition strategies and their roles
 
@@ -60,14 +73,14 @@ All methods select complete pair groups, never individual images. The candidate 
 | Strategy | Selection rule | Why it may help | Main tuning or failure mode |
 |---|---|---|---|
 | Random | Uniform sample of candidate groups | Essential unbiased baseline | High variance at small budgets |
-| Uncertainty | Largest $u(i,j,t)$ | Requests comparisons near the model decision boundary | Can repeatedly select visually similar pairs |
+| Uncertainty | Largest mean predictive entropy | Requests comparisons near the model decision boundary | Can repeatedly select visually similar pairs |
 | Core-set | Farthest-first coverage in embedding space | Covers underrepresented image regions | Depends on encoder geometry and distance metric |
 | Cluster-quota uncertainty | Spread selections over clusters, then rank by uncertainty | Avoids spending all labels in one region | Cluster count and quota can be mismatched to the data |
-| Uncertainty + diversity | Rank by $s(i,j)$ | Balances difficult and nonredundant pairs | Requires validation choice of $\lambda$ |
-| Cluster-Margin | Prefer informative pairs from locally sparse/boundary clusters | Tests a different coverage mechanism | Historical evidence is a separate extension, not pooled with the five-strategy curve |
+| Uncertainty + diversity | Largest $a(c)$ | Balances difficult and nonredundant pairs | Requires validation choice of $\lambda$ |
+| Cluster-Margin | Low margin, then round-robin from small clusters | Keeps ambiguous pairs while protecting rare clusters | Historical evidence is a separate extension, not pooled with the five-strategy curve |
 | MC-dropout variance / mutual information | Rank disagreement across dropout predictions | Models epistemic uncertainty | Requires dropout probability and Monte-Carlo sample-count calibration |
 
-The common strategy dispatcher is [`Experiment.select`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L536). Each pseudocode block below links to the exact function that implements the selection rule.
+The common strategy dispatcher is [`Experiment.select`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L536). Each pseudocode block gives the exact implemented score or sampling distribution, defines its symbols, and links to the implementing function. $C$ is the candidate-pair pool, $L$ is the labelled-pair pool, and $b$ is the requested number of selected pair groups throughout.
 
 #### Algorithm 3a: Random baseline
 
@@ -79,6 +92,12 @@ initialize a deterministic random-number generator with s
 return b distinct groups sampled uniformly from C
 ```
 
+$$
+\Pr(S)=\binom{|C|}{b}^{-1}\quad\text{for every }S\subseteq C\text{ with }|S|=b.
+$$
+
+Thus every possible batch $S$ of $b$ groups has the same probability; $|C|$ is the number of available candidates. Random has no model-derived score and provides the reference for whether a more elaborate rule earns its complexity.
+
 #### Algorithm 3b: Predictive uncertainty
 
 Implementation: [`uncertainty_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L116), which calls [`score_uncertainty`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L75).
@@ -86,10 +105,17 @@ Implementation: [`uncertainty_sampling`](https://github.com/Purpleline-z/rl_quan
 ```text
 Input: candidates C, trained reward model f, budget b
 for each pair (xi, xj) in C:
-    p = sigmoid(f(xi,t) - f(xj,t))
-    uncertainty = mean BernoulliEntropy(p) across reward heads
+    p_h = sigmoid(r_h(xi) - r_h(xj)) for every reward head h
+    uncertainty = mean BernoulliEntropy(p_h) across reward heads
 return the b pairs with largest uncertainty
 ```
+
+$$
+p_h(c)=\sigma\!\left(r_\theta(x_i,h)-r_\theta(x_j,h)\right),\qquad
+u(c)=\frac{1}{H}\sum_{h=1}^{H}\left[-p_h(c)\log p_h(c)-(1-p_h(c))\log(1-p_h(c))\right].
+$$
+
+For candidate $c=(x_i,x_j)$, $p_h(c)$ is the predicted probability that $x_i$ wins under reward head $h$, $H$ is the number of heads, and $u(c)$ is their mean Bernoulli entropy. Large entropy means that the current model assigns a probability near one half, so this rule requests labels for comparisons it presently finds hard.
 
 #### Algorithm 3c: Core-set coverage
 
@@ -104,6 +130,13 @@ repeat b times:
 return selected
 ```
 
+$$
+v(c)=\frac{e(x_i)+e(x_j)}{2},\qquad
+c^*=\underset{c\in C\setminus S}{\arg\max}\ \min_{z\in\{v(\ell):\ell\in L\}\cup\{v(s):s\in S\}}\|v(c)-z\|_2.
+$$
+
+Here $e(x)$ is the encoder embedding of image $x$, $v(c)$ is the average embedding of the two images in pair $c$, $S$ is the batch selected so far, and $\|\cdot\|_2$ is Euclidean distance. The rule repeatedly adds the candidate furthest from already covered labelled or selected pairs. When $L$ is empty, the implementation initializes distances from the candidate-pool mean.
+
 #### Algorithm 3d: Cluster-quota uncertainty
 
 Implementation: [`cluster_quota_uncertainty_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L122).
@@ -116,6 +149,13 @@ within each cluster quota, choose the most uncertain remaining candidate
 fill any unused budget with globally most uncertain remaining candidates
 return selected groups
 ```
+
+$$
+n_g=|\{c\in C:g(c)=g\}|,\qquad
+q_g=\max\!\left(1,\operatorname{round}\!\left(b\frac{n_g}{|C|}\right)\right).
+$$
+
+$g(c)$ is the cluster assigned to pair $c$, $n_g$ is that cluster's candidate count, and $q_g$ is its proportional provisional quota. Within each cluster the implementation takes the $q_g$ largest uncertainty scores $u(c)$, then fills any remaining budget with the largest $u(c)$ globally. The minimum-one rule gives small clusters a chance to contribute before the budget is exhausted.
 
 #### Algorithm 3e: Uncertainty plus diversity
 
@@ -132,6 +172,13 @@ repeat until b groups are selected:
 return selected groups
 ```
 
+$$
+d(c;L,S)=\min_{z\in\{v(\ell):\ell\in L\}\cup\{v(s):s\in S\}}\|v(c)-z\|_2,
+\qquad a(c)=R(u(c))+\lambda R(d(c;L,S)).
+$$
+
+Here $u(c)$ is the uncertainty from Algorithm 3b, $d(c;L,S)$ is distance from covered pair embeddings, $S$ is updated after every selection, and $\lambda$ weights diversity. $R(\cdot)$ is the implementation's robust normalization: values are clipped at their 5th and 95th percentiles and rescaled to $[0,1]$. The rule greedily chooses the remaining candidate with the largest $a(c)$ and then recomputes diversity distances.
+
 #### Algorithm 3f: Cluster-Margin
 
 Implementation: [`cluster_margin_pairwise_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L145).
@@ -139,10 +186,17 @@ Implementation: [`cluster_margin_pairwise_sampling`](https://github.com/Purpleli
 ```text
 Input: candidates C with clusters, reward model f, budget b
 compute each pair's distance from probability 0.5 (its margin)
-prefilter min(10*k, number of candidates) pairs with the smallest margins
+prefilter min(10*b, number of candidates) pairs with the smallest margins
 round-robin across prefiltered clusters, visiting smaller prefiltered clusters first
 return b selected groups
 ```
+
+$$
+m(c)=\frac{1}{H}\sum_{h=1}^{H}\left|p_h(c)-\tfrac{1}{2}\right|,
+\qquad P=\operatorname{Bottom}_{\min(10b,|C|)}\{m(c):c\in C\}.
+$$
+
+$p_h(c)$ and $H$ have the meanings defined for predictive uncertainty. $m(c)$ is small when the heads place the comparison close to a 50--50 decision, and $P$ is the low-margin prefilter. The implementation then groups $P$ by $g(c)$, orders the groups from smallest to largest, and takes their smallest-margin remaining member in round-robin order until $b$ pairs are selected. This is deliberately not “choose $k$ clusters”: it starts from the smallest available prefiltered cluster and cycles through all eligible clusters to avoid losing rare regions.
 
 #### Algorithm 3g: MC-dropout probability variance
 
@@ -157,6 +211,12 @@ for each candidate:
 return b candidates with largest probability variance
 ```
 
+$$
+v_{\mathrm{MC}}(c)=\frac{1}{H}\sum_{h=1}^{H}\operatorname{Var}_{m=1}^{M}\!\left[p_{mh}(c)\right].
+$$
+
+$p_{mh}(c)$ is the preference probability for candidate $c$ from dropout pass $m$ and reward head $h$, $M$ is the number of stochastic dropout passes, and $H$ is the number of heads. A large $v_{\mathrm{MC}}(c)$ means predictions change substantially when dropout perturbs the model, so the candidate is selected as epistemically uncertain.
+
 #### Algorithm 3h: MC-dropout mutual information
 
 Implementation: the same [`score_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L33) and [`select_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L77) functions, dispatched with metric `mc_dropout_mutual_information`.
@@ -170,6 +230,15 @@ for each candidate:
     mutual_information = predictive_entropy - expected_entropy
 return b candidates with largest mutual_information
 ```
+
+$$
+I_{\mathrm{MC}}(c)=\frac{1}{H}\sum_{h=1}^{H}\left[
+h\!\left(\frac{1}{M}\sum_{m=1}^{M}p_{mh}(c)\right)
+-\frac{1}{M}\sum_{m=1}^{M}h\!\left(p_{mh}(c)\right)\right],
+\qquad h(p)=-p\log p-(1-p)\log(1-p).
+$$
+
+The symbols $p_{mh}(c)$, $M$, and $H$ are as above. $h(p)$ is Bernoulli entropy. The first term measures uncertainty after averaging dropout predictions; the second measures their average individual uncertainty. Their difference is large when model samples disagree, which directs labels toward uncertainty caused by model parameters rather than one consistently ambiguous pair.
 
 ### 2.4 Leakage-safe training algorithms
 
