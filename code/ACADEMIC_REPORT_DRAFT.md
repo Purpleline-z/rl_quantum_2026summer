@@ -508,47 +508,7 @@ The selected schedules vary in both epoch count and learning rate: acquired sets
 
 The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the partitions by image identity, rerun Task 3a → Task 3b, and use the resulting per-encoder, per-budget table for the strategy curve.
 
-### 5.9 Evidence categories
-
-| Category | Status | Permitted interpretation |
-|---|---|---|
-| Historical fixed-schedule budget curves | Strategy/budget and preprocessing hypotheses | Re-run after SHA-256 split exclusion before selecting a final acquisition rule |
-| Task 3b budget-aware protocol | Per-encoder, per-budget validation-selected learning rates and epoch counts | Re-run the same Task 3a → Task 3b selection after identity-safe partitioning |
-| SHA-256-safe split + epoch logging | Test-image exclusion and validation-based stopping mechanism | Use as the protocol for all new comparison arms |
-| Trajectory filename/order audit and soft-decoder implementation | Ordered-frame parsing and explicitly configured, sensitivity-tested physics preferences | Supply calibrated six-state frame probabilities, then audit raw versus decoded paths with domain experts |
-| Leakage-safe calibration and final selector curve | Final strategy ranking and effect size | Execute after validation freezes all settings |
-
-### 5.10 Claim Audit
-
-| Claim | Measured evidence | Interpretation | Concrete next test |
-|---|---|---|---|
-| Useful selector changes with acquisition budget | Five-seed winners change from random at 10 to uncertainty at 100 | Small batches benefit from stable pool coverage; larger batches can exploit ambiguity | Identity-safe paired strategy curve using the Task 3b-selected schedule and a fixed-update control |
-| Symmetry changes selector behavior | Stage 2 best condition ranges from symmetric-average core-set at 10 to no-symmetry uncertainty at 100 | Mirroring can either suppress nuisance variation or erase discriminative detail | Full strategy × budget × preprocessing factorial |
-| ImageNet provides a stronger starting geometry in the current screen | Validation: 0.556 vs. 0.389 for random; 0.611 vs. 0.300 for uncertainty | The starting coordinate system affects uncertainty, clustering, and coverage | Encoder × strategy × budget paired rerun |
-| HTR and RT13 are the principal frozen-feature boundary | PCA 5-NN confusion has 7/9 SimCLR and 5/7 ImageNet HTR/RT13 cross-errors | Their local appearance neighborhoods overlap | Target HTR--RT13 boundary-pair acquisition and feature ablation |
-| Twinned support is insufficient for stable 5-NN geometry | Only four labelled ideals; recall 0.000/0.250 | Current feature-space estimate is dominated by sample scarcity | Add labelled Twinned ideal images before encoder comparison |
-| A nontrivial trajectory region is outside ideal neighborhoods | PCA far fractions: 28.3% SimCLR, 18.1% ImageNet | The ideal set does not densely cover every observed trajectory region | Audit and label representative far trajectory frames |
-| Historical uncertainty has the largest budget-100 utility and post-acquisition accuracy | 15-seed means: uncertainty 0.522 / +0.144; uncertainty--diversity 0.489 / +0.111; core-set 0.422 / +0.044 | Reducing geometric redundancy alone does not explain strategy utility | Identity-safe per-pair and batch-utility study with interaction term $I(B\mid L)$ |
-| Core-set's lower utility is not explained by its two-dimensional PCA position | Selected-pair PCA overlaps uncertainty, while core-set acts on full embeddings | Full-space distance must be tested against reconstruction utility, not inferred from a PCA plot | Record core-set distance, per-pair utility, batch interaction, and validation curves |
-| Training schedule depends on encoder and budget | Task 3b selects both 10- and 30-epoch settings and both $10^{-4}$ and $3\cdot10^{-4}$ learning rates | Training configuration is a controlled variable, not a fixed default | Re-run Task 3a/3b under SHA-256-safe partitions before Task 3c |
-| The trajectory decoder can encode three stated ordering preferences without modifying an image score | Configuration, decoder code, and filename/order audit | The rules are transparent post-prediction preferences, not labels or a learned physical model | Run the decoder on calibrated six-state trajectories and review raw-versus-decoded changes |
-
-## 6. Reproducible Next Experiments
-
-This sequence keeps the outer test unavailable until validation has frozen every design choice.
-
-1. **Identity-safe split capacity audit.** Rebuild every seed by SHA-256 identity, confirm zero outer-test overlap with pairwise rows, candidate images, unlabeled trajectories, references, utility validation, and Bad anchors, and record how many rows are excluded.
-2. **Identity-safe Task 3a → Task 3b calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$ and epoch count $[3,10,30]$ at the protocol weight decay $10^{-4}$. Aggregate the five seeds and select one setting per encoder × budget before running any strategy arm.
-3. **Leakage-safe strategy and utility comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only. For a declared subset of batches, retrain each selected pair alone from the same $L$, calculate $U(p\mid L)$ and $I(B\mid L)$, and save training/validation curves to distinguish interaction from overfitting.
-4. **Controls and reporting.** Run both Task 3b-selected epoch training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
-5. **Independent metadata-fusion study.** Obtain multiple image-resolved sessions, audit causal alignment, then run image-only, metadata-only, and fusion baselines under run-disjoint splits.
-6. **Trajectory soft-decoding study.** Export calibrated six-state probabilities for each ordered trajectory, run weak/moderate/strong constraint settings, and have domain experts review each changed frame against the raw probabilities and recorded experimental context.
-
-## 7. Limitations and Next Experiment
-
-The outer ideal-image endpoint is small and may have high seed variation. Historical outer-test numbers used partitions with image-identity overlap. Rebuild the split by identity, select hyperparameters and stopping epochs from utility validation, freeze those choices, and then evaluate the declared strategies and seeds on the outer test.
-
-## 8. Conclusion
+## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. The next comparison uses this protocol to measure the strategy-by-budget curve after split reconstruction.
 
