@@ -139,7 +139,7 @@ Implementation: [`cluster_margin_pairwise_sampling`](https://github.com/Purpleli
 ```text
 Input: candidates C with clusters, reward model f, budget b
 compute each pair's distance from probability 0.5 (its margin)
-prefilter the lowest-margin candidates
+prefilter min(10*k, number of candidates) pairs with the smallest margins
 round-robin across prefiltered clusters, visiting smaller prefiltered clusters first
 return b selected groups
 ```
@@ -249,21 +249,43 @@ The historical factorial shows that preprocessing changes the ranking rather tha
 
 SimCLR is an image-only self-supervised initialization, whereas ImageNet initialization starts from supervised natural-image features. In the completed path-based validation screen, ImageNet exceeded SimCLR for random (0.556 vs. 0.389) and uncertainty (0.611 vs. 0.300). This is evidence about that particular split, encoder screen, and selected endpoint—not evidence that ImageNet is intrinsically superior for every budget or selector. The leakage-safe calibration should repeat encoder × budget × strategy comparisons with identical seeds and report paired differences.
 
-### 5.4 Metadata fusion: a separate, currently data-limited study
+### 5.4 PCA and t-SNE representation diagnostics
+
+PCA and t-SNE visualize frozen image embeddings before pairwise preference training. They do **not** select candidate pairs, choose an epoch, tune a hyperparameter, or establish outer-test performance. Their purpose is descriptive: reveal overlap, outliers, and whether the trajectory population is covered by the representation learned from images.
+
+![PCA of frozen SimCLR features](active_learning_studies/image_representation_analysis/results/representation_exploration/figures/rheed_simclr_resnet18_pca.png)
+
+*Figure 6. PCA of frozen RHEED-SimCLR features for the exploratory image manifest.*
+
+![t-SNE of frozen SimCLR features](active_learning_studies/image_representation_analysis/results/representation_exploration/figures/rheed_simclr_resnet18_tsne.png)
+
+*Figure 7. t-SNE of frozen RHEED-SimCLR features for the same exploratory manifest.*
+
+![PCA of frozen ImageNet features](active_learning_studies/image_representation_analysis/results/representation_exploration/figures/imagenet_resnet18_pca.png)
+
+*Figure 8. PCA of frozen ImageNet ResNet-18 features for the exploratory image manifest.*
+
+![t-SNE of frozen ImageNet features](active_learning_studies/image_representation_analysis/results/representation_exploration/figures/imagenet_resnet18_tsne.png)
+
+*Figure 9. t-SNE of frozen ImageNet ResNet-18 features for the same exploratory manifest.*
+
+The 154 labelled ideal images have a five-nearest-neighbour cross-validation accuracy of 0.884 using frozen SimCLR features and 0.896 using frozen ImageNet features, compared with 0.832 for raw pixels. The two-dimensional PCA projections preserve very different fractions of full-space variance (0.762 for SimCLR and 0.374 for ImageNet), so visual separation in PCA must not be compared as though both plots retain the same information. t-SNE is useful for spotting local neighborhoods and trajectory coverage, but it can visually exaggerate clusters. Consequently, these figures motivate encoder and distribution-shift experiments; they do not replace the leakage-safe active-learning evaluation. The exact coordinates, metrics, and image manifest are available in the [representation-analysis report](active_learning_studies/image_representation_analysis/results/representation_exploration/report.md).
+
+### 5.5 Metadata fusion: a separate, currently data-limited study
 
 Metadata fusion asks a different question from active pair selection: whether causal process-monitor variables improve image prediction beyond image features alone. It must not be pooled with the pairwise selector curves. Its minimum experiment contains three matched arms: image-only, metadata-only, and image-plus-metadata late fusion. The data contract requires image-to-record mappings, temporally causal joins, handling for missing values, and image/run-disjoint evaluation.
 
 There is no completed performance claim for fusion in the current repository because the available bundle lacks sufficiently broad, image-resolved growth sessions. The next valid fusion result therefore begins with a data-availability audit, then evaluates all three arms with accuracy, macro-F1, per-class scores, and cross-run generalization.
 
-### 5.5 No historical evidence for epoch 10
+### 5.6 No historical evidence for epoch 10
 
 ![Missing epoch-wise evidence](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/missing_historical_epoch_curve.svg)
 
-*Figure 6. Evidence status for historical epoch choices.*
+*Figure 10. Evidence status for historical epoch choices.*
 
 The archived outputs compare endpoint settings such as 1, 2, 3, 5, and 10 epochs, but do not provide validation accuracy after every epoch for a common leakage-safe protocol. Therefore, the report makes **no claim** that ten epochs is optimal or that early stopping would stop at epoch 10. A future curve must plot mean training loss and utility-validation accuracy by epoch, optionally with seed variation, and choose the epoch before one outer-test evaluation.
 
-### 5.6 Evidence categories
+### 5.7 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
@@ -302,4 +324,7 @@ Pairwise active learning can be evaluated rigorously only when the acquisition u
 - Figure 1: generated by `active_learning_studies/pair_disjoint_not_image_disjoint/generate_academic_report_assets.py`.
 - Figure 2: generated by the same script from the implemented split contract.
 - Figure 3: generated by the script from the cited historical CSV; it introduces no new numerical results.
-- Figure 4: generated by the script because no qualifying historical epoch-wise validation log exists.
+- Figure 4: generated by the script from the Stage 2 symmetry-factorial aggregate CSV.
+- Figure 5: generated by the script from the encoder-screen validation CSV.
+- Figures 6--9: existing PCA/t-SNE artifacts from `active_learning_studies/image_representation_analysis/results/representation_exploration/`; they use the exploratory manifest and are not active-learning outcome figures.
+- Figure 10: generated by the script because no qualifying historical epoch-wise validation log exists.
