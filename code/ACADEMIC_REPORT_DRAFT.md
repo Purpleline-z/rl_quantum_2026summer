@@ -48,10 +48,10 @@ $$
 It is largest when the model is close to a 50--50 preference, so uncertainty acquisition asks for labels on comparisons it cannot decide. The project also tests random sampling, core-set coverage, cluster-quota uncertainty, and an uncertainty--diversity combination. For the latter, candidates are ranked by
 
 $$
-s(i,j)=\lambda\,\widetilde u(i,j)+(1-\lambda)\,\widetilde d(i,j),
+s(i,j)=\widetilde u(i,j)+\lambda\,\widetilde d(i,j),
 $$
 
-where $\widetilde u$ and $\widetilde d$ are normalized uncertainty and embedding-space diversity, and $\lambda$ controls their balance. This is a project-specific heuristic, not a claim of a universal standard.
+where $\widetilde u$ and $\widetilde d$ are normalized uncertainty and embedding-space diversity, and $\lambda$ is the additional weight assigned to diversity. This is a project-specific heuristic, not a claim of a universal standard.
 
 ### 2.3 Acquisition strategies and their roles
 
@@ -67,17 +67,108 @@ All methods select complete pair groups, never individual images. The candidate 
 | Cluster-Margin | Prefer informative pairs from locally sparse/boundary clusters | Tests a different coverage mechanism | Historical evidence is a separate extension, not pooled with the five-strategy curve |
 | MC-dropout variance / mutual information | Rank disagreement across dropout predictions | Models epistemic uncertainty | Requires dropout probability and Monte-Carlo sample-count calibration |
 
+The common strategy dispatcher is [`Experiment.select`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L536). Each pseudocode block below links to the exact function that implements the selection rule.
+
+#### Algorithm 3a: Random baseline
+
+Implementation: [`random_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L110).
+
 ```text
-Algorithm 3: Score and acquire b pair groups
-Input: labelled groups L, label-hidden candidate groups C, strategy A, budget b
-1. Train the Bradley--Terry model using L and permitted reference anchors.
-2. Embed each candidate image and compute only A's allowed scores.
-3. For random, sample b groups uniformly.
-4. For uncertainty, rank by u; for core-set, maximize embedding coverage.
-5. For cluster-quota, allocate across clusters before uncertainty ranking.
-6. For uncertainty-diversity, rank lambda*u_tilde + (1-lambda)*d_tilde.
-7. Reveal preference labels only for the selected b groups and retrain.
-Output: selected groups, saved scores, ranks, configuration, and seed.
+Input: candidate pair groups C, budget b, random seed s
+initialize a deterministic random-number generator with s
+return b distinct groups sampled uniformly from C
+```
+
+#### Algorithm 3b: Predictive uncertainty
+
+Implementation: [`uncertainty_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L116), which calls [`score_uncertainty`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L75).
+
+```text
+Input: candidates C, trained reward model f, budget b
+for each pair (xi, xj) in C:
+    p = sigmoid(f(xi,t) - f(xj,t))
+    uncertainty = mean BernoulliEntropy(p) across reward heads
+return the b pairs with largest uncertainty
+```
+
+#### Algorithm 3c: Core-set coverage
+
+Implementation: [`core_set_select`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_shared_calculations.py#L52); pair embeddings are created through [`pair_vector`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_shared_calculations.py#L20).
+
+```text
+Input: candidate pair embeddings C, labelled-pair embeddings L, budget b
+selected = empty
+repeat b times:
+    choose c in C that has the greatest distance to L union selected
+    add c to selected
+return selected
+```
+
+#### Algorithm 3d: Cluster-quota uncertainty
+
+Implementation: [`cluster_quota_uncertainty_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L122).
+
+```text
+Input: candidates C with cluster IDs, reward model f, budget b
+compute uncertainty for every candidate
+allocate a proportional integer quota, with a minimum of one before budget is exhausted
+within each cluster quota, choose the most uncertain remaining candidate
+fill any unused budget with globally most uncertain remaining candidates
+return selected groups
+```
+
+#### Algorithm 3e: Uncertainty plus diversity
+
+Implementation: [`uncertainty_diversity_select`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_shared_calculations.py#L29).
+
+```text
+Input: uncertainty-scored candidates C, labelled embeddings L, budget b, lambda
+for each candidate c:
+    u = normalized predictive uncertainty of c
+    d = normalized distance from c to L and already selected pairs
+    score(c) = u + lambda*d
+repeat until b groups are selected:
+    add remaining candidate with largest score and update diversity distances
+return selected groups
+```
+
+#### Algorithm 3f: Cluster-Margin
+
+Implementation: [`cluster_margin_pairwise_sampling`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pair_acquisition_methods.py#L145).
+
+```text
+Input: candidates C with clusters, reward model f, budget b
+compute each pair's distance from probability 0.5 (its margin)
+prefilter the lowest-margin candidates
+round-robin across prefiltered clusters, visiting smaller prefiltered clusters first
+return b selected groups
+```
+
+#### Algorithm 3g: MC-dropout probability variance
+
+Implementation: [`score_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L33) and [`select_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L77).
+
+```text
+Input: candidates C, reward model f with dropout active, b, M stochastic passes
+for m = 1,...,M:
+    score every candidate with a different dropout mask
+for each candidate:
+    compute variance of its predicted preference probability across M passes
+return b candidates with largest probability variance
+```
+
+#### Algorithm 3h: MC-dropout mutual information
+
+Implementation: the same [`score_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L33) and [`select_mc_dropout`](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/monte_carlo_dropout_uncertainty.py#L77) functions, dispatched with metric `mc_dropout_mutual_information`.
+
+```text
+Input: candidates C, reward model f with dropout active, b, M stochastic passes
+obtain M stochastic preference distributions per candidate
+for each candidate:
+    predictive_entropy = entropy(mean probability)
+    expected_entropy = mean entropy(stochastic probabilities)
+    mutual_information = predictive_entropy - expected_entropy
+return b candidates with largest mutual_information
 ```
 
 ### 2.4 Leakage-safe training algorithms
