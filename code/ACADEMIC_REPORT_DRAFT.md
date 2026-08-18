@@ -225,11 +225,11 @@ The repository contains five-seed, fixed-schedule curves across acquisition budg
 
 ![Historical budget curve](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_selector_budget_curve.png)
 
-*Figure 3. Historical budget curves. They describe previous runs but are not final leakage-safe estimates.*
+*Figure 3. Five-strategy accuracy across acquisition budgets from the fixed-schedule study; the winner changes with budget.*
 
-These curves suggest that selector rankings depend on budget and preprocessing; they do not support one selector as universally best. They also do not isolate selection quality from the amount of optimization performed, because a fixed number of epochs processes different amounts of acquired data at different budgets.
+**Question.** Does the same acquisition rule select useful labels at every annotation budget? The five-seed curve answers no. At 10 acquired groups, random is highest (0.413); uncertainty takes a narrow lead at 25 (0.440); cluster-quota uncertainty leads at 50 (0.460); uncertainty--diversity leads at 75 (0.513); and uncertainty leads at 100 (0.647). The full means and standard deviations are in the [strategy-by-budget table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv).
 
-The historical five-strategy curve has a useful qualitative pattern: random is strongest at budget 10 (0.413), uncertainty is slightly strongest at budget 25 (0.440), cluster-quota uncertainty is strongest at budget 50 (0.460), uncertainty--diversity is strongest at budget 75 (0.513), and uncertainty is strongest at budget 100 (0.647). These are not final generalization claims because the historical split failed the later identity audit. They do show why random must remain a baseline and why the acquisition rule should not be selected independently of budget.
+This progression is informative because the budget changes the type of mistake a selector can make. With only 10 labels, a complicated score can spend most of its budget on a few idiosyncratic comparisons, while random sampling supplies a more stable cross-section of the pool. At 50 labels, cluster quotas can prevent the batch from collapsing into one embedding region. By 75--100 labels, the model can afford to sample several ambiguous regions, so uncertainty and uncertainty--diversity become more useful. This is a design hypothesis, not a statement about image physics: the next experiment tests it by comparing paired seed-level gains over random after validation selects the training schedule and a fixed-total-update control removes the confounding effect of different numbers of optimizer updates.
 
 ### 5.2 Symmetry preprocessing is an experimental factor
 
@@ -237,21 +237,33 @@ The repository evaluates three input modes: `none`, `left_half_mirror`, and `sym
 
 ![Historical symmetry factorial](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_symmetry_factorial.png)
 
-*Figure 4. Historical strategy--budget--symmetry interaction, generated from the Stage 2 aggregate CSV. It is diagnostic only.*
+*Figure 4. Strategy--budget--symmetry interaction from the Stage 2 aggregate CSV; no one preprocessing mode wins across conditions.*
 
-The historical factorial shows that preprocessing changes the ranking rather than delivering a universal gain. For example, at low budget some coverage-based methods improved under symmetric averaging, while at budget 100 the no-symmetry uncertainty endpoint remained stronger than the compared mirrored endpoint. The leakage-safe rerun must retain symmetry mode as a factor and report the strategy × budget × preprocessing interaction instead of choosing one transform globally.
+**Question.** Does enforcing horizontal symmetry make candidate comparisons easier to use? The answer depends on both budget and selector. The table below gives the strongest and weakest condition at each budget from the [Stage 2 factorial](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage2_symmetry_factorial/aggregate/strategy_budget_summary.csv).
+
+| Budget | Highest mean accuracy condition | Lowest mean accuracy condition | Operational meaning |
+|---:|---|---|---|
+| 10 | core-set + symmetric average: 0.533 | core-set + none: 0.307 | Averaging can make embedding coverage more stable when labels are scarce. |
+| 25 | random + symmetric average: 0.507 | core-set + none: 0.347 | The transform can help even without model-based selection, consistent with removing condition-specific variation. |
+| 50 | core-set + left-half mirror: 0.527 | uncertainty + none: 0.300 | Mirroring changes which regions look distinct in embedding space. |
+| 75 | uncertainty-diversity + none: 0.513 | random + none: 0.293 | The unmodified image retains useful information for the best selector at this budget. |
+| 100 | uncertainty + none: 0.647 | core-set + symmetric average: 0.367 | Strong symmetry processing can remove distinctions that uncertainty exploits. |
+
+`left_half_mirror` and `symmetric_average` therefore change the information given to the encoder; they are not just ways to create extra copies of the data. A gain after averaging is consistent with nuisance asymmetry being suppressed for that condition, whereas a loss is consistent with asymmetric detail contributing to the comparison. The follow-up is a pre-registered strategy × budget × preprocessing factorial under the identity-safe split, with the same validation-selected schedule for all arms at a given budget.
 
 ### 5.3 SimCLR versus ImageNet initialization
 
 ![Historical encoder-screen validation accuracy](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_encoder_screen.png)
 
-*Figure 5. Historical validation-only encoder screen; error bars are standard deviations over three seeds.*
+*Figure 5. Utility-validation encoder screen; error bars are standard deviations over three seeds.*
 
-SimCLR is an image-only self-supervised initialization, whereas ImageNet initialization starts from supervised natural-image features. In the completed path-based validation screen, ImageNet exceeded SimCLR for random (0.556 vs. 0.389) and uncertainty (0.611 vs. 0.300). This is evidence about that particular split, encoder screen, and selected endpoint—not evidence that ImageNet is intrinsically superior for every budget or selector. The leakage-safe calibration should repeat encoder × budget × strategy comparisons with identical seeds and report paired differences.
+**Question.** Which frozen starting representation gives the selector a more useful coordinate system? In the three-seed validation screen, ImageNet initialization exceeds SimCLR for both random selection (0.556 vs. 0.389) and uncertainty selection (0.611 vs. 0.300), as shown in the [encoder-screen CSV](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_screen/aggregate/encoder_utility_validation_summary.csv).
+
+This matters beyond a classifier accuracy number. The encoder determines which pairs appear close, which candidate clusters exist, and which comparisons look uncertain. In this screen, the ImageNet starting geometry made the subsequently fine-tuned reward model more useful on the utility-validation images. The next comparison should keep the identity-safe seeds, optimizer, stopping rule, and budget fixed while varying encoder × strategy; reporting the per-seed paired difference will show whether the improvement comes from a broad shift or a few favorable splits.
 
 ### 5.4 PCA and t-SNE representation diagnostics
 
-PCA and t-SNE visualize frozen image embeddings before pairwise preference training. They do **not** select candidate pairs, choose an epoch, tune a hyperparameter, or establish outer-test performance. Their purpose is descriptive: reveal overlap, outliers, and whether the trajectory population is covered by the representation learned from images.
+**Question.** Do frozen image features put examples of the same reconstruction type in the same local neighborhood, and do the labelled ideal images cover the trajectory population? An embedding is a numerical location assigned to each image: local label consistency means an image's nearest neighbours usually have the same reconstruction label. PCA displays the two directions with the most variation; the retained-variance fraction tells the reader how much of the full representation is visible in that two-axis sketch. t-SNE emphasizes who is near whom and is useful for local neighborhoods, but its apparent gap widths are not literal distances.
 
 ![PCA of frozen SimCLR features](active_learning_studies/image_representation_analysis/results/representation_exploration/figures/rheed_simclr_resnet18_pca.png)
 
@@ -269,30 +281,59 @@ PCA and t-SNE visualize frozen image embeddings before pairwise preference train
 
 *Figure 9. t-SNE of frozen ImageNet ResNet-18 features for the same exploratory manifest.*
 
-The 154 labelled ideal images have a five-nearest-neighbour cross-validation accuracy of 0.884 using frozen SimCLR features and 0.896 using frozen ImageNet features, compared with 0.832 for raw pixels. The two-dimensional PCA projections preserve very different fractions of full-space variance (0.762 for SimCLR and 0.374 for ImageNet), so visual separation in PCA must not be compared as though both plots retain the same information. t-SNE is useful for spotting local neighborhoods and trajectory coverage, but it can visually exaggerate clusters. Consequently, these figures motivate encoder and distribution-shift experiments; they do not replace the leakage-safe active-learning evaluation. The exact coordinates, metrics, and image manifest are available in the [representation-analysis report](active_learning_studies/image_representation_analysis/results/representation_exploration/report.md).
+The full frozen-feature check gives 5-NN accuracy 0.884 for SimCLR and 0.896 for ImageNet, versus 0.832 for raw pixels. The more specific coordinate diagnostics now show what that average hides. In PCA coordinates, `(1 x 1)` has the highest 5-NN recall for both SimCLR (0.927) and ImageNet (0.976); `c(6 x 2)` is also locally consistent (0.857 and 0.881). These are the classes whose nearest feature-space neighbours usually share their label, so coverage- or similarity-based acquisition has a meaningful local geometry to work with for them.
+
+The main ambiguous boundary is `HTR` versus `RT13`: SimCLR PCA 5-NN misclassifies 7 HTR images as RT13 and 9 RT13 images as HTR; ImageNet PCA makes the same pair of errors 5 and 7 times. Their nearest-other-class distances are also small relative to within-class spread in the [class-separation table](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/class_separation_metrics.csv). This says that frozen appearance features alone place many HTR and RT13 images in mixed neighborhoods. The most useful follow-up is not a generic encoder rerun: it is a boundary-pair acquisition slice that deliberately measures whether expert preference labels resolve HTR--RT13 comparisons, alongside an image-only versus permitted-additional-feature ablation.
+
+`Twinned(2 x 1)` has only four labelled ideal images and has PCA recall 0.000 for SimCLR and 0.250 for ImageNet. That is primarily a data-support problem: with four examples, there are too few same-class neighbours to define a stable five-neighbour neighborhood. The next data action is to obtain or annotate additional Twinned ideal images before claiming that an encoder separates, or fails to separate, this type.
+
+![Per-class PCA-coordinate 5-NN recall](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/per_class_knn_recall_pca.png)
+
+*Figure 10. Which ideal-image types have locally label-consistent PCA neighborhoods? `(1 x 1)` and `c(6 x 2)` are high-recall in both encoders; the small Twinned sample is not. Generated from [per-class 5-NN diagnostics](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/per_class_knn_metrics.csv).*
+
+![ImageNet PCA-coordinate 5-NN confusion](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/imagenet_resnet18_pca_knn_confusion.png)
+
+*Figure 11. Which reconstruction types share local ImageNet-feature neighborhoods? The off-diagonal HTR--RT13 counts identify the principal boundary for targeted comparisons. Generated from the [confusion matrix](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/knn_confusion_matrix.csv).*
+
+For trajectory coverage, the near threshold is the 95th percentile of each labelled ideal image's leave-one-out nearest-ideal distance, rather than an arbitrary radius. In the PCA views, 71.7% of trajectory frames lie inside the SimCLR labelled-ideal neighborhood and 81.9% lie inside the ImageNet neighborhood; the remaining 28.3% and 18.1% are feature-space regions sparsely represented by the ideal set. These frames are candidates for a trajectory coverage audit or expert labeling before treating an ideal-image classifier as representative of the whole trajectory stream. The full thresholds and fractions are in [trajectory-neighborhood coverage](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/trajectory_neighborhood_coverage.csv).
+
+![Trajectory neighborhood coverage](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/trajectory_neighborhood_coverage.png)
+
+*Figure 12. Fraction of trajectory frames near the labelled ideal-image neighbourhood in each two-dimensional view. The plot identifies coverage gaps to inspect; it does not assign labels to unlabeled trajectory frames.*
+
+PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet variation, so the ImageNet PCA plot is a more compressed sketch of its full representation. The report therefore uses the two-dimensional plots to locate candidate overlap and coverage questions, then tests those questions with acquisition and validation experiments rather than treating a plotted gap as a performance result. All metrics, coordinate files, and thresholds are recorded in the [diagnostic manifest](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/manifest.json).
 
 ### 5.5 Metadata fusion: a separate, currently data-limited study
 
-Metadata fusion asks a different question from active pair selection: whether causal process-monitor variables improve image prediction beyond image features alone. It must not be pooled with the pairwise selector curves. Its minimum experiment contains three matched arms: image-only, metadata-only, and image-plus-metadata late fusion. The data contract requires image-to-record mappings, temporally causal joins, handling for missing values, and image/run-disjoint evaluation.
-
-There is no completed performance claim for fusion in the current repository because the available bundle lacks sufficiently broad, image-resolved growth sessions. The next valid fusion result therefore begins with a data-availability audit, then evaluates all three arms with accuracy, macro-F1, per-class scores, and cross-run generalization.
+**Question.** Do process-monitor variables contain prediction information that is absent from the image? This is a different experiment from active pair selection. It requires three matched models—image-only, metadata-only, and image-plus-metadata late fusion—so that a gain can be attributed to the combination rather than to a changed split or image encoder. The available bundle does not yet provide multiple image-resolved sessions with a causal sensor-to-image mapping. The next action is therefore concrete: assemble those mappings, then evaluate the three arms on run-disjoint sessions with accuracy, macro-F1, per-class outcomes, and missing-metadata handling reported together.
 
 ### 5.6 No historical evidence for epoch 10
 
 ![Missing epoch-wise evidence](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/missing_historical_epoch_curve.svg)
 
-*Figure 10. Evidence status for historical epoch choices.*
+*Figure 13. Evidence available for choosing a stopping epoch.*
 
-The archived outputs compare endpoint settings such as 1, 2, 3, 5, and 10 epochs, but do not provide validation accuracy after every epoch for a common leakage-safe protocol. Therefore, the report makes **no claim** that ten epochs is optimal or that early stopping would stop at epoch 10. A future curve must plot mean training loss and utility-validation accuracy by epoch, optionally with seed variation, and choose the epoch before one outer-test evaluation.
+The archived outputs compare endpoints such as 1, 2, 3, 5, and 10 epochs, but do not record validation accuracy after every epoch for one common protocol. That leaves a specific operational gap: there is no evidence for whether epoch 10 is still improving validation performance, already plateaued, or beginning to overfit. The new training loop records mean loss and utility-validation accuracy per epoch. The next calibration should plot their seed mean and variation, sweep patience, retain the validation-best checkpoint, and only then evaluate the frozen choice once on the outer test.
 
 ### 5.7 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
-| Historical fixed-schedule budget curves | Completed, but affected by identity audit | Diagnostic context only |
-| Path-based budget-aware calibration | Completed artifact | Do not use for final test claims |
-| SHA-256-safe split + epoch logging | Implemented | Required basis for new experiments |
-| Leakage-safe calibration and final selector curve | Planned | Required before final performance conclusion |
+| Historical fixed-schedule budget curves | Strategy/budget and preprocessing hypotheses | Re-run after SHA-256 split exclusion before selecting a final acquisition rule |
+| Path-based budget-aware calibration | Candidate learning-rate and epoch ranges | Recalibrate under the identity-safe split |
+| SHA-256-safe split + epoch logging | Test-image exclusion and validation-based stopping mechanism | Use as the protocol for all new comparison arms |
+| Leakage-safe calibration and final selector curve | Final strategy ranking and effect size | Execute after validation freezes all settings |
+
+### 5.8 Claim Audit
+
+| Claim | Measured evidence | Interpretation | Concrete next test |
+|---|---|---|---|
+| Useful selector changes with acquisition budget | Five-seed winners change from random at 10 to uncertainty at 100 | Small batches benefit from stable pool coverage; larger batches can exploit ambiguity | Identity-safe paired strategy curve with fixed-update control |
+| Symmetry changes selector behavior | Stage 2 best condition ranges from symmetric-average core-set at 10 to no-symmetry uncertainty at 100 | Mirroring can either suppress nuisance variation or erase discriminative detail | Full strategy × budget × preprocessing factorial |
+| ImageNet provides a stronger starting geometry in the current screen | Validation: 0.556 vs. 0.389 for random; 0.611 vs. 0.300 for uncertainty | The starting coordinate system affects uncertainty, clustering, and coverage | Encoder × strategy × budget paired rerun |
+| HTR and RT13 are the principal frozen-feature boundary | PCA 5-NN confusion has 7/9 SimCLR and 5/7 ImageNet HTR/RT13 cross-errors | Their local appearance neighborhoods overlap | Target HTR--RT13 boundary-pair acquisition and feature ablation |
+| Twinned support is insufficient for stable 5-NN geometry | Only four labelled ideals; recall 0.000/0.250 | Current feature-space estimate is dominated by sample scarcity | Add labelled Twinned ideal images before encoder comparison |
+| A nontrivial trajectory region is outside ideal neighborhoods | PCA far fractions: 28.3% SimCLR, 18.1% ImageNet | The ideal set does not densely cover every observed trajectory region | Audit and label representative far trajectory frames |
 
 ## 6. Reproducible Next Experiments
 
@@ -327,4 +368,5 @@ Pairwise active learning can be evaluated rigorously only when the acquisition u
 - Figure 4: generated by the script from the Stage 2 symmetry-factorial aggregate CSV.
 - Figure 5: generated by the script from the encoder-screen validation CSV.
 - Figures 6--9: existing PCA/t-SNE artifacts from `active_learning_studies/image_representation_analysis/results/representation_exploration/`; they use the exploratory manifest and are not active-learning outcome figures.
-- Figure 10: generated by the script because no qualifying historical epoch-wise validation log exists.
+- Figures 10--12: generated by `generate_section5_representation_diagnostics.py` from saved exploratory coordinate CSVs.
+- Figure 13: generated by the script because no qualifying historical epoch-wise validation log exists.

@@ -1,0 +1,5 @@
+representation,projection,n_labelled_ideal,n_unlabelled_trajectory,near_threshold_2d,trajectory_near_fraction,trajectory_far_fraction,trajectory_median_nearest_ideal_distance_2d,threshold_definition
+rheed_simclr_resnet18,pca,154,1124,3.570490596298816,0.7170818505338078,0.28291814946619215,1.1556413645567083,95th percentile of leave-one-out nearest-labelled-ideal distances in this 2D projection
+rheed_simclr_resnet18,tsne,154,1124,3.39343497346087,0.5151245551601423,0.48487544483985767,3.104683097369639,95th percentile of leave-one-out nearest-labelled-ideal distances in this 2D projection
+imagenet_resnet18,pca,154,1124,1.9768296639955727,0.8193950177935944,0.1806049822064057,0.6835544286374624,95th percentile of leave-one-out nearest-labelled-ideal distances in this 2D projection
+imagenet_resnet18,tsne,154,1124,3.254332277443895,0.4430604982206406,0.5569395017793595,4.440801575397782,95th percentile of leave-one-out nearest-labelled-ideal distances in this 2D projection

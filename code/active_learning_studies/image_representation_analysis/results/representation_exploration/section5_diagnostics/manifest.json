@@ -1,0 +1,12 @@
+{
+  "input_coordinate_files": [
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\code\\active_learning_studies\\image_representation_analysis\\results\\representation_exploration\\coordinates\\rheed_simclr_resnet18_pca.csv",
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\code\\active_learning_studies\\image_representation_analysis\\results\\representation_exploration\\coordinates\\rheed_simclr_resnet18_tsne.csv",
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\code\\active_learning_studies\\image_representation_analysis\\results\\representation_exploration\\coordinates\\imagenet_resnet18_pca.csv",
+    "F:\\intern\\uchi ra cs\\quantum rheed codex\\code\\active_learning_studies\\image_representation_analysis\\results\\representation_exploration\\coordinates\\imagenet_resnet18_tsne.csv"
+  ],
+  "k": 5,
+  "distance_metric": "Euclidean distance in saved 2D coordinates",
+  "near_threshold": "95th percentile of leave-one-out nearest-labelled-ideal distances per representation/projection",
+  "scope": "descriptive diagnostics only; not used for model selection"
+}

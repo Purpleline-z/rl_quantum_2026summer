@@ -1,0 +1,101 @@
+representation,projection,true_class,predicted_class,count
+rheed_simclr_resnet18,pca,(1 x 1),(1 x 1),38
+rheed_simclr_resnet18,pca,(1 x 1),HTR,0
+rheed_simclr_resnet18,pca,(1 x 1),RT13,1
+rheed_simclr_resnet18,pca,(1 x 1),Twinned(2 x 1),0
+rheed_simclr_resnet18,pca,(1 x 1),c(6 x 2),2
+rheed_simclr_resnet18,pca,HTR,(1 x 1),1
+rheed_simclr_resnet18,pca,HTR,HTR,21
+rheed_simclr_resnet18,pca,HTR,RT13,7
+rheed_simclr_resnet18,pca,HTR,Twinned(2 x 1),0
+rheed_simclr_resnet18,pca,HTR,c(6 x 2),0
+rheed_simclr_resnet18,pca,RT13,(1 x 1),1
+rheed_simclr_resnet18,pca,RT13,HTR,9
+rheed_simclr_resnet18,pca,RT13,RT13,28
+rheed_simclr_resnet18,pca,RT13,Twinned(2 x 1),0
+rheed_simclr_resnet18,pca,RT13,c(6 x 2),0
+rheed_simclr_resnet18,pca,Twinned(2 x 1),(1 x 1),2
+rheed_simclr_resnet18,pca,Twinned(2 x 1),HTR,0
+rheed_simclr_resnet18,pca,Twinned(2 x 1),RT13,2
+rheed_simclr_resnet18,pca,Twinned(2 x 1),Twinned(2 x 1),0
+rheed_simclr_resnet18,pca,Twinned(2 x 1),c(6 x 2),0
+rheed_simclr_resnet18,pca,c(6 x 2),(1 x 1),2
+rheed_simclr_resnet18,pca,c(6 x 2),HTR,0
+rheed_simclr_resnet18,pca,c(6 x 2),RT13,4
+rheed_simclr_resnet18,pca,c(6 x 2),Twinned(2 x 1),0
+rheed_simclr_resnet18,pca,c(6 x 2),c(6 x 2),36
+rheed_simclr_resnet18,tsne,(1 x 1),(1 x 1),41
+rheed_simclr_resnet18,tsne,(1 x 1),HTR,0
+rheed_simclr_resnet18,tsne,(1 x 1),RT13,0
+rheed_simclr_resnet18,tsne,(1 x 1),Twinned(2 x 1),0
+rheed_simclr_resnet18,tsne,(1 x 1),c(6 x 2),0
+rheed_simclr_resnet18,tsne,HTR,(1 x 1),2
+rheed_simclr_resnet18,tsne,HTR,HTR,23
+rheed_simclr_resnet18,tsne,HTR,RT13,4
+rheed_simclr_resnet18,tsne,HTR,Twinned(2 x 1),0
+rheed_simclr_resnet18,tsne,HTR,c(6 x 2),0
+rheed_simclr_resnet18,tsne,RT13,(1 x 1),1
+rheed_simclr_resnet18,tsne,RT13,HTR,5
+rheed_simclr_resnet18,tsne,RT13,RT13,29
+rheed_simclr_resnet18,tsne,RT13,Twinned(2 x 1),3
+rheed_simclr_resnet18,tsne,RT13,c(6 x 2),0
+rheed_simclr_resnet18,tsne,Twinned(2 x 1),(1 x 1),1
+rheed_simclr_resnet18,tsne,Twinned(2 x 1),HTR,0
+rheed_simclr_resnet18,tsne,Twinned(2 x 1),RT13,3
+rheed_simclr_resnet18,tsne,Twinned(2 x 1),Twinned(2 x 1),0
+rheed_simclr_resnet18,tsne,Twinned(2 x 1),c(6 x 2),0
+rheed_simclr_resnet18,tsne,c(6 x 2),(1 x 1),0
+rheed_simclr_resnet18,tsne,c(6 x 2),HTR,0
+rheed_simclr_resnet18,tsne,c(6 x 2),RT13,3
+rheed_simclr_resnet18,tsne,c(6 x 2),Twinned(2 x 1),0
+rheed_simclr_resnet18,tsne,c(6 x 2),c(6 x 2),39
+imagenet_resnet18,pca,(1 x 1),(1 x 1),40
+imagenet_resnet18,pca,(1 x 1),HTR,0
+imagenet_resnet18,pca,(1 x 1),RT13,0
+imagenet_resnet18,pca,(1 x 1),Twinned(2 x 1),0
+imagenet_resnet18,pca,(1 x 1),c(6 x 2),1
+imagenet_resnet18,pca,HTR,(1 x 1),0
+imagenet_resnet18,pca,HTR,HTR,23
+imagenet_resnet18,pca,HTR,RT13,5
+imagenet_resnet18,pca,HTR,Twinned(2 x 1),0
+imagenet_resnet18,pca,HTR,c(6 x 2),1
+imagenet_resnet18,pca,RT13,(1 x 1),0
+imagenet_resnet18,pca,RT13,HTR,7
+imagenet_resnet18,pca,RT13,RT13,27
+imagenet_resnet18,pca,RT13,Twinned(2 x 1),3
+imagenet_resnet18,pca,RT13,c(6 x 2),1
+imagenet_resnet18,pca,Twinned(2 x 1),(1 x 1),0
+imagenet_resnet18,pca,Twinned(2 x 1),HTR,0
+imagenet_resnet18,pca,Twinned(2 x 1),RT13,3
+imagenet_resnet18,pca,Twinned(2 x 1),Twinned(2 x 1),1
+imagenet_resnet18,pca,Twinned(2 x 1),c(6 x 2),0
+imagenet_resnet18,pca,c(6 x 2),(1 x 1),0
+imagenet_resnet18,pca,c(6 x 2),HTR,2
+imagenet_resnet18,pca,c(6 x 2),RT13,3
+imagenet_resnet18,pca,c(6 x 2),Twinned(2 x 1),0
+imagenet_resnet18,pca,c(6 x 2),c(6 x 2),37
+imagenet_resnet18,tsne,(1 x 1),(1 x 1),40
+imagenet_resnet18,tsne,(1 x 1),HTR,0
+imagenet_resnet18,tsne,(1 x 1),RT13,0
+imagenet_resnet18,tsne,(1 x 1),Twinned(2 x 1),0
+imagenet_resnet18,tsne,(1 x 1),c(6 x 2),1
+imagenet_resnet18,tsne,HTR,(1 x 1),0
+imagenet_resnet18,tsne,HTR,HTR,25
+imagenet_resnet18,tsne,HTR,RT13,3
+imagenet_resnet18,tsne,HTR,Twinned(2 x 1),0
+imagenet_resnet18,tsne,HTR,c(6 x 2),1
+imagenet_resnet18,tsne,RT13,(1 x 1),0
+imagenet_resnet18,tsne,RT13,HTR,3
+imagenet_resnet18,tsne,RT13,RT13,32
+imagenet_resnet18,tsne,RT13,Twinned(2 x 1),3
+imagenet_resnet18,tsne,RT13,c(6 x 2),0
+imagenet_resnet18,tsne,Twinned(2 x 1),(1 x 1),0
+imagenet_resnet18,tsne,Twinned(2 x 1),HTR,0
+imagenet_resnet18,tsne,Twinned(2 x 1),RT13,3
+imagenet_resnet18,tsne,Twinned(2 x 1),Twinned(2 x 1),1
+imagenet_resnet18,tsne,Twinned(2 x 1),c(6 x 2),0
+imagenet_resnet18,tsne,c(6 x 2),(1 x 1),0
+imagenet_resnet18,tsne,c(6 x 2),HTR,0
+imagenet_resnet18,tsne,c(6 x 2),RT13,3
+imagenet_resnet18,tsne,c(6 x 2),Twinned(2 x 1),0
+imagenet_resnet18,tsne,c(6 x 2),c(6 x 2),39
