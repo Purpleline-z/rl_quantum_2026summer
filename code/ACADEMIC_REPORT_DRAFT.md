@@ -20,6 +20,8 @@ Figure 1 shows the intended evaluation firewall. Validation can select training 
 
 ### 2.1 Preference reward model
 
+See https://github.com/ymeng3/Quantum/tree/main/Classifier2.
+
 Each image $x$ is passed through a ResNet-18 encoder and a reward head that returns one score per reconstruction class, $r_\theta(x,t)$. For a labelled pair $(x_i,x_j)$ of type $t$, the Bradley--Terry model assigns the probability that the first image is preferred as
 
 $$
