@@ -2,7 +2,7 @@
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. One thing to note is that an SHA-256 audit found byte-identical images crossing prior partitions (1-3 ideal images in each seed were included as unlabelled images in "trajectory" folder), so those results cannot be treated as leakage-free final estimates. The revised implementation uses content identity rather than path names to construct and audit splits, removes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics for validation-only early stopping.
+This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. An SHA-256 audit found byte-identical images crossing prior partitions: 1--3 ideal images per seed also appeared as unlabelled trajectory images. The revised implementation constructs and audits splits by content identity, excludes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics for validation-only early stopping.
 
 ## 1. Introduction
 
@@ -45,11 +45,11 @@ Candidate comparisons retain their images but hide their human winner labels. Ac
 
 $$
 \Delta A_{\mathrm{val}}(S_b\mid L)=
-A_{\mathrm{val}}\!\left(\operatorname{Train}(L\cup Y(S_b))\right)
--A_{\mathrm{val}}\!\left(\operatorname{Train}(L)\right).
+A_{\mathrm{val}}\!\left(F(L\cup Y(S_b))\right)
+-A_{\mathrm{val}}\!\left(F(L)\right).
 $$
 
-Here $A_{\mathrm{val}}$ is validation reconstruction accuracy, $\operatorname{Train}(\cdot)$ denotes the fixed training procedure, and $\Delta A_{\mathrm{val}}$ is the improvement attributable to the newly labelled batch. An acquisition rule cannot calculate this quantity directly because $Y(S_b)$ is hidden; instead, it uses the available images, embeddings, and model predictions as a proxy. Section 2.3 defines those proxies. Validation data choose a training schedule and compare design choices; the locked outer test is evaluated only after those choices are fixed.
+Here $F(L)$ is the model produced by the fixed training procedure using labelled groups $L$, $A_{\mathrm{val}}$ is validation reconstruction accuracy, and $\Delta A_{\mathrm{val}}$ is the improvement attributable to the newly labelled batch. An acquisition rule cannot calculate this quantity directly because $Y(S_b)$ is hidden; instead, it uses the available images, embeddings, and model predictions as a proxy. Section 2.3 defines those proxies. Validation data choose a training schedule and compare design choices; the locked outer test is evaluated only after those choices are fixed.
 
 The current study is a single-round, batch active-learning experiment: train on $L$, score all of $C$, select one batch $S_b$, reveal its labels, retrain on $L\cup Y(S_b)$, and evaluate. This makes a strategy's contribution easy to compare at a fixed annotation budget.
 
@@ -154,7 +154,7 @@ return selected groups
 
 $$
 n_g=|\{c\in C:g(c)=g\}|,\qquad
-q_g=\max\!\left(1,\operatorname{round}\!\left(b\frac{n_g}{|C|}\right)\right).
+q_g=\max\!\left(1,\mathrm{round}\!\left(b\frac{n_g}{|C|}\right)\right).
 $$
 
 $g(c)$ is the cluster assigned to pair $c$, $n_g$ is that cluster's candidate count, and $q_g$ is its proportional provisional quota. Within each cluster the implementation takes the $q_g$ largest uncertainty scores $u(c)$, then fills any remaining budget with the largest $u(c)$ globally. The minimum-one rule gives small clusters a chance to contribute before the budget is exhausted.
@@ -195,10 +195,9 @@ return b selected groups
 
 $$
 m(c)=\frac{1}{H}\sum_{h=1}^{H}\left|p_h(c)-\tfrac{1}{2}\right|,
-\qquad P=\operatorname{Bottom}_{\min(10b,|C|)}\{m(c):c\in C\}.
 $$
 
-$p_h(c)$ and $H$ have the meanings defined for predictive uncertainty. $m(c)$ is small when the heads place the comparison close to a 50--50 decision, and $P$ is the low-margin prefilter. The implementation then groups $P$ by $g(c)$, orders the groups from smallest to largest, and takes their smallest-margin remaining member in round-robin order until $b$ pairs are selected. This is deliberately not “choose $k$ clusters”: it starts from the smallest available prefiltered cluster and cycles through all eligible clusters to avoid losing rare regions.
+$p_h(c)$ and $H$ have the meanings defined for predictive uncertainty. $m(c)$ is small when the heads place the comparison close to a 50--50 decision. Let $P$ contain the $\min(10b,|C|)$ candidates with the smallest margins. The implementation groups $P$ by $g(c)$, orders the groups from smallest to largest, and takes their smallest-margin remaining member in round-robin order until $b$ pairs are selected.
 
 #### Algorithm 3g: MC-dropout probability variance
 
@@ -214,7 +213,8 @@ return b candidates with largest probability variance
 ```
 
 $$
-v_{\mathrm{MC}}(c)=\frac{1}{H}\sum_{h=1}^{H}\operatorname{Var}_{m=1}^{M}\!\left[p_{mh}(c)\right].
+\bar p_h(c)=\frac{1}{M}\sum_{m=1}^{M}p_{mh}(c),\qquad
+v_{\mathrm{MC}}(c)=\frac{1}{H}\sum_{h=1}^{H}\frac{1}{M}\sum_{m=1}^{M}\left[p_{mh}(c)-\bar p_h(c)\right]^2.
 $$
 
 $p_{mh}(c)$ is the preference probability for candidate $c$ from dropout pass $m$ and reward head $h$, $M$ is the number of stochastic dropout passes, and $H$ is the number of heads. A large $v_{\mathrm{MC}}(c)$ means predictions change substantially when dropout perturbs the model, so the candidate is selected as epistemically uncertain.
@@ -300,11 +300,11 @@ The repository contains five-seed, fixed-schedule curves across acquisition budg
 
 **Question.** Does the same acquisition rule select useful labels at every annotation budget? The five-seed curve answers no. At 10 acquired groups, random is highest (0.413); uncertainty takes a narrow lead at 25 (0.440); cluster-quota uncertainty leads at 50 (0.460); uncertainty--diversity leads at 75 (0.513); and uncertainty leads at 100 (0.647). The full means and standard deviations are in the [strategy-by-budget table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv).
 
-This progression is informative because the budget changes the type of mistake a selector can make. With only 10 labels, a complicated score can spend most of its budget on a few idiosyncratic comparisons, while random sampling supplies a more stable cross-section of the pool. At 50 labels, cluster quotas can prevent the batch from collapsing into one embedding region. By 75--100 labels, the model can afford to sample several ambiguous regions, so uncertainty and uncertainty--diversity become more useful. This is a design hypothesis, not a statement about image physics: the next experiment tests it by comparing paired seed-level gains over random after validation selects the training schedule and a fixed-total-update control removes the confounding effect of different numbers of optimizer updates.
+The changing winners indicate that annotation budget changes the selection problem. At 10 labels, random sampling provides a stable cross-section of the pool; at 50, cluster quotas can prevent the batch from collapsing into one embedding region; at 75--100, uncertainty-based rules can sample several ambiguous regions. Test these explanations with paired seed-level gains over random after validation selects the training schedule, alongside a fixed-total-update control that removes the effect of differing optimizer updates.
 
 ### 5.2 Symmetry preprocessing is an experimental factor
 
-The repository evaluates three input modes: `none`, `left_half_mirror`, and `symmetric_average`. The latter two encode a symmetry assumption by reconstructing an image from its left half or averaging it with its horizontal reflection. They are not treated as harmless augmentations: they can remove discriminative asymmetry as well as reduce nuisance variation.
+The repository evaluates three input modes: `none`, `left_half_mirror`, and `symmetric_average`. The latter two encode a symmetry assumption by reconstructing an image from its left half or averaging it with its horizontal reflection. They can remove discriminative asymmetry and reduce nuisance variation.
 
 ![Historical symmetry factorial](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_symmetry_factorial.png)
 
@@ -320,7 +320,7 @@ The repository evaluates three input modes: `none`, `left_half_mirror`, and `sym
 | 75 | uncertainty-diversity + none: 0.513 | random + none: 0.293 | The unmodified image retains useful information for the best selector at this budget. |
 | 100 | uncertainty + none: 0.647 | core-set + symmetric average: 0.367 | Strong symmetry processing can remove distinctions that uncertainty exploits. |
 
-`left_half_mirror` and `symmetric_average` therefore change the information given to the encoder; they are not just ways to create extra copies of the data. A gain after averaging is consistent with nuisance asymmetry being suppressed for that condition, whereas a loss is consistent with asymmetric detail contributing to the comparison. The follow-up is a pre-registered strategy × budget × preprocessing factorial under the identity-safe split, with the same validation-selected schedule for all arms at a given budget.
+`left_half_mirror` and `symmetric_average` change the information given to the encoder. A gain after averaging indicates that suppressing asymmetry helps that selector and budget; a loss indicates that the removed asymmetric detail helps the comparison. Test this interaction with an identity-safe strategy × budget × preprocessing factorial using the same validation-selected schedule for all arms at a given budget.
 
 ### 5.3 SimCLR versus ImageNet initialization
 
@@ -330,7 +330,7 @@ The repository evaluates three input modes: `none`, `left_half_mirror`, and `sym
 
 **Question.** Which frozen starting representation gives the selector a more useful coordinate system? In the three-seed validation screen, ImageNet initialization exceeds SimCLR for both random selection (0.556 vs. 0.389) and uncertainty selection (0.611 vs. 0.300), as shown in the [encoder-screen CSV](active_learning_studies/pair_disjoint_not_image_disjoint/results/protocol_diagnostics/encoder_initialization_screen/aggregate/encoder_utility_validation_summary.csv).
 
-This matters beyond a classifier accuracy number. The encoder determines which pairs appear close, which candidate clusters exist, and which comparisons look uncertain. In this screen, the ImageNet starting geometry made the subsequently fine-tuned reward model more useful on the utility-validation images. The next comparison should keep the identity-safe seeds, optimizer, stopping rule, and budget fixed while varying encoder × strategy; reporting the per-seed paired difference will show whether the improvement comes from a broad shift or a few favorable splits.
+The encoder determines which pairs appear close, which candidate clusters exist, and which comparisons look uncertain. In this screen, ImageNet initialization produced higher utility-validation accuracy after fine-tuning. Compare encoder × strategy with identity-safe seeds, optimizer, stopping rule, and budget held fixed; report per-seed paired differences to distinguish a broad shift from a few favourable splits.
 
 ### 5.4 PCA and t-SNE representation diagnostics
 
@@ -354,9 +354,9 @@ This matters beyond a classifier accuracy number. The encoder determines which p
 
 The full frozen-feature check gives 5-NN accuracy 0.884 for SimCLR and 0.896 for ImageNet, versus 0.832 for raw pixels. The more specific coordinate diagnostics now show what that average hides. In PCA coordinates, `(1 x 1)` has the highest 5-NN recall for both SimCLR (0.927) and ImageNet (0.976); `c(6 x 2)` is also locally consistent (0.857 and 0.881). These are the classes whose nearest feature-space neighbours usually share their label, so coverage- or similarity-based acquisition has a meaningful local geometry to work with for them.
 
-The main ambiguous boundary is `HTR` versus `RT13`: SimCLR PCA 5-NN misclassifies 7 HTR images as RT13 and 9 RT13 images as HTR; ImageNet PCA makes the same pair of errors 5 and 7 times. Their nearest-other-class distances are also small relative to within-class spread in the [class-separation table](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/class_separation_metrics.csv). This says that frozen appearance features alone place many HTR and RT13 images in mixed neighborhoods. The most useful follow-up is not a generic encoder rerun: it is a boundary-pair acquisition slice that deliberately measures whether expert preference labels resolve HTR--RT13 comparisons, alongside an image-only versus permitted-additional-feature ablation.
+The main ambiguous boundary is `HTR` versus `RT13`: SimCLR PCA 5-NN misclassifies 7 HTR images as RT13 and 9 RT13 images as HTR; ImageNet PCA makes the same pair of errors 5 and 7 times. Their nearest-other-class distances are also small relative to within-class spread in the [class-separation table](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/class_separation_metrics.csv), placing many HTR and RT13 images in mixed frozen-feature neighborhoods. Use a boundary-pair acquisition slice to test whether expert preference labels resolve HTR--RT13 comparisons, alongside an image-only versus permitted-additional-feature ablation.
 
-`Twinned(2 x 1)` has only four labelled ideal images and has PCA recall 0.000 for SimCLR and 0.250 for ImageNet. That is primarily a data-support problem: with four examples, there are too few same-class neighbours to define a stable five-neighbour neighborhood. The next data action is to obtain or annotate additional Twinned ideal images before claiming that an encoder separates, or fails to separate, this type.
+`Twinned(2 x 1)` has only four labelled ideal images and PCA recall of 0.000 for SimCLR and 0.250 for ImageNet. Four examples provide too few same-class neighbours for a stable five-neighbour neighborhood. Obtain or annotate additional Twinned ideal images before comparing encoder separation for this type.
 
 ![Per-class PCA-coordinate 5-NN recall](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/per_class_knn_recall_pca.png)
 
@@ -372,11 +372,11 @@ For trajectory coverage, the near threshold is the 95th percentile of each label
 
 *Figure 12. Fraction of trajectory frames near the labelled ideal-image neighbourhood in each two-dimensional view. The plot identifies coverage gaps to inspect; it does not assign labels to unlabeled trajectory frames.*
 
-PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet variation, so the ImageNet PCA plot is a more compressed sketch of its full representation. The report therefore uses the two-dimensional plots to locate candidate overlap and coverage questions, then tests those questions with acquisition and validation experiments rather than treating a plotted gap as a performance result. All metrics, coordinate files, and thresholds are recorded in the [diagnostic manifest](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/manifest.json).
+PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet variation, so the ImageNet PCA plot is a more compressed sketch of its full representation. Use the two-dimensional plots to locate candidate overlap and coverage questions, then test those questions with acquisition and validation experiments. All metrics, coordinate files, and thresholds are recorded in the [diagnostic manifest](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/manifest.json).
 
 ### 5.5 Metadata fusion: a separate, currently data-limited study
 
-**Question.** Do process-monitor variables contain prediction information that is absent from the image? This is a different experiment from active pair selection. It requires three matched models—image-only, metadata-only, and image-plus-metadata late fusion—so that a gain can be attributed to the combination rather than to a changed split or image encoder. The available bundle does not yet provide multiple image-resolved sessions with a causal sensor-to-image mapping. The next action is therefore concrete: assemble those mappings, then evaluate the three arms on run-disjoint sessions with accuracy, macro-F1, per-class outcomes, and missing-metadata handling reported together.
+**Question.** Do process-monitor variables contain prediction information absent from the image? Test this with three matched models—image-only, metadata-only, and image-plus-metadata late fusion—under the same split and image encoder. The available bundle lacks multiple image-resolved sessions with a causal sensor-to-image mapping. After assembling those mappings, evaluate the three arms on run-disjoint sessions and report accuracy, macro-F1, per-class outcomes, and missing-metadata handling.
 
 ### 5.6 Task 3b: budget-aware training protocol
 
@@ -387,9 +387,9 @@ PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet var
 | ImageNet | 30 epochs, $10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ |
 | SimCLR | 30 epochs, $10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $10^{-4}$ |
 
-The selected schedules vary in both epoch count and learning rate. That variation is the useful finding: smaller and larger acquired sets do not present the optimizer with the same amount or composition of pairwise data, and the two encoder initializations respond differently. Task 3b therefore prevents a strategy comparison from accidentally rewarding an arm because it received a better training schedule. In Task 3c, every strategy at the same encoder and budget must use the same Task 3b-selected setting; the strategy comparison can then focus on the value of the acquired labels rather than a hidden optimizer advantage.
+The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data, and the two encoder initializations respond differently. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
 
-The currently saved Task 3b table was built before the SHA-256 image-identity repair. Its role is to define the calibration procedure and show why schedule selection must be budget-aware. The next operational step is to rerun the same Task 3a → Task 3b process after rebuilding the partitions by image identity, then use the resulting table for the final strategy curve.
+The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the partitions by image identity, rerun Task 3a → Task 3b, and use the resulting per-encoder, per-budget table for the strategy curve.
 
 ### 5.7 Evidence categories
 
@@ -414,7 +414,7 @@ The currently saved Task 3b table was built before the SHA-256 image-identity re
 
 ## 6. Reproducible Next Experiments
 
-The required experiment sequence is deliberately ordered so that the outer test cannot influence a decision.
+This sequence keeps the outer test unavailable until validation has frozen every design choice.
 
 1. **Identity-safe split capacity audit.** Rebuild every seed by SHA-256 identity, confirm zero outer-test overlap with pairwise rows, candidate images, unlabeled trajectories, references, utility validation, and Bad anchors, and record how many rows are excluded.
 2. **Identity-safe Task 3a → Task 3b calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$ and epoch count $[3,10,30]$ at the protocol weight decay $10^{-4}$. Aggregate the five seeds and select one setting per encoder × budget before running any strategy arm.
@@ -424,11 +424,11 @@ The required experiment sequence is deliberately ordered so that the outer test 
 
 ## 7. Limitations and Next Experiment
 
-The outer ideal-image endpoint is small and may have high seed variation. The historical data-identity leakage means previously reported outer-test numbers must not be presented as final generalization estimates. The next experiment must rebuild the split by identity, train using only permitted data, select hyperparameters and stopping epochs from utility validation, freeze those choices, and then run a single final outer-test comparison across declared strategies and seeds.
+The outer ideal-image endpoint is small and may have high seed variation. Historical outer-test numbers used partitions with image-identity overlap. Rebuild the split by identity, select hyperparameters and stopping epochs from utility validation, freeze those choices, and then evaluate the declared strategies and seeds on the outer test.
 
 ## 8. Conclusion
 
-Pairwise active learning can be evaluated rigorously only when the acquisition unit, training data, validation decisions, and final test set are explicitly separated. This repository now provides the necessary computational safeguards: pair-disjoint acquisition groups, content-identity exclusion of outer-test images, validation-only early stopping, and artifact-level auditing. The historical curves are useful motivation; the leakage-safe rerun is the necessary evidence for a final result.
+The implemented protocol separates pair-disjoint acquisition groups, content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. The next comparison uses this protocol to measure the strategy-by-budget curve after split reconstruction.
 
 ## References
 
