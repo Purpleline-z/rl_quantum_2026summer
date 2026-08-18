@@ -1,16 +1,14 @@
-# Leakage-Safe Active Selection from Pairwise Image Preferences
-
-## An evidence-aware computational study
+# Active Selection from Pairwise Image Preferences
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training a Bradley--Terry reward model. The practical question is not simply whether a model can fit already labelled comparisons; it is whether a selection rule chooses comparisons that improve a downstream reconstruction classifier. We implement a ResNet-18 reward model, compare uncertainty and coverage-aware acquisition rules, and evaluate a fixed outer set of ideal images. The report deliberately separates historical diagnostic results from final evidence: a later SHA-256 audit found byte-identical images crossing prior partitions, so those results cannot be treated as leakage-free final estimates. The revised implementation uses content identity rather than path names to construct and audit splits, removes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics for validation-only early stopping. Thus, the main contribution is a reproducible evaluation protocol for learning from pairwise image preferences under a label budget, not a claim of final state-of-the-art accuracy.
+This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. One thing to note is that an SHA-256 audit found byte-identical images crossing prior partitions (1-3 ideal images in each seed were included as unlabelled images in "trajectory" folder), so those results cannot be treated as leakage-free final estimates. The revised implementation uses content identity rather than path names to construct and audit splits, removes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics for validation-only early stopping.
 
 ## 1. Introduction
 
 Pairwise labels ask a simple question: *given two images, which one is preferred for a specified reconstruction type?* They are often easier for experts to provide than absolute scores. However, expert time is limited, so an active-learning system must choose which hidden comparisons to reveal.
 
-We study the following computational question: among candidate **pair groups**, which groups should be labelled and added to a preference-trained image model? The final endpoint is an ideal-image reconstruction prediction task, not agreement with the model's own acquisition score. This distinction prevents a selector from being judged solely by a quantity it helped define.
+We study the following computational question: among **candidate pairs**, which pairs should be labelled and added to a preference-trained image model? 
 
 Figure 1 shows the intended evaluation firewall. Validation can select training settings and a stopping epoch; the outer test is used only after these choices are frozen.
 
