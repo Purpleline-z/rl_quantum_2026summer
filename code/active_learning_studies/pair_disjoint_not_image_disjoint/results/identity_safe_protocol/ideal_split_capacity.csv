@@ -1,0 +1,6 @@
+class,raw_files,unique_identities,outer_test,utility_validation,reference
+(1 x 1),41,41,8,8,25
+c(6 x 2),42,41,8,8,25
+(√13 x √13),38,36,7,7,22
+HTR,29,26,5,5,16
+Total (default classes; Twinned excluded),150,144,28,28,88
