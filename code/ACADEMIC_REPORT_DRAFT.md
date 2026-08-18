@@ -412,7 +412,7 @@ $I(B\mid L)$ measures non-additive batch interaction. Evaluate whether it varies
 
 ### 5.6 Metadata fusion: a separate, currently data-limited study
 
-**Question.** Do process-monitor variables contain prediction information absent from the image? Test this with three matched models—image-only, metadata-only, and image-plus-metadata late fusion—under the same split and image encoder. The available bundle lacks multiple image-resolved sessions with a causal sensor-to-image mapping. After assembling those mappings, evaluate the three arms on run-disjoint sessions and report accuracy, macro-F1, per-class outcomes, and missing-metadata handling.
+**Question.** Do process-monitor variables contain prediction information absent from the image? 
 
 ### 5.7 Task 3b: budget-aware training protocol
 
