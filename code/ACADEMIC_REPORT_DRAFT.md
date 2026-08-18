@@ -37,7 +37,9 @@ $$
 
 where $w_{ij}$ is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
 
-The model is initialized with an image encoder and fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images.
+The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.7 replaces this fixed schedule with validation-selected settings.
+
+The two encoder initializations are different starting representations under this same downstream training procedure. The shipped SimCLR checkpoint is image-only self-supervised pretraining and has not seen pairwise preference labels. ImageNet initialization uses torchvision ResNet-18 weights trained with ImageNet-1K supervision. Pairwise labels enter only during reward-model fine-tuning.
 
 ### 2.2 Active selection
 
@@ -274,7 +276,13 @@ return saved model with highest validation metric
 
 ## 3. Data Protocol and Leakage Prevention
 
-The unit of acquisition is an unordered pair group; initial and candidate groups are pair-disjoint. The same image may occur in different non-test pair groups because image-disjoint pair partitions are unnecessarily restrictive for this application. In contrast, no outer-test identity may appear in training pairs, candidate images, reference anchors, utility validation, or Bad-image anchors.
+### 3.1 Historical data and benchmark contract
+
+The v1.8 preference source contains 669 valid rows representing 179 unordered pair groups. In the completed controlled benchmark, 50 groups form the initial labelled set, 120 form the candidate pool, and 9 are unused. There is no separate pairwise validation partition: every preference group is initial, candidate, or unused. The [Stage 1 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/study_manifest.json) records the exact allocation.
+
+The unit of acquisition is an unordered pair group; initial and candidate groups are pair-disjoint. The same image may occur in different non-test pair groups because image-disjoint pair partitions are unnecessarily restrictive for this application. Ideal reference, utility-validation, and outer-test images are separately partitioned. In contrast, no outer-test identity may appear in training pairs, candidate images, reference anchors, utility validation, or Bad-image anchors.
+
+### 3.2 Identity-safe split contract
 
 ![Leakage-safe split protocol](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/leakage_safe_split_protocol.svg)
 
@@ -298,7 +306,17 @@ The repository contains five-seed, fixed-schedule curves across acquisition budg
 
 *Figure 3. Five-strategy accuracy across acquisition budgets from the fixed-schedule study; the winner changes with budget.*
 
-**Question.** Does the same acquisition rule select useful labels at every annotation budget? The five-seed curve answers no. At 10 acquired groups, random is highest (0.413); uncertainty takes a narrow lead at 25 (0.440); cluster-quota uncertainty leads at 50 (0.460); uncertainty--diversity leads at 75 (0.513); and uncertainty leads at 100 (0.647). The full means and standard deviations are in the [strategy-by-budget table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv).
+**Question.** Does the same acquisition rule select useful labels at every annotation budget? This historical five-seed curve uses the unmodified-image mode and the fixed full-model schedule described in Section 2.1. Mean outer-test accuracy identifies the leading arm at each budget:
+
+| Acquired pair groups | Leading arm | Mean outer-test accuracy | Decision carried into the identity-safe rerun |
+|---:|---|---:|---|
+| 10 | Random | 0.413 | Retain random as the paired baseline when labels are scarce. |
+| 25 | Uncertainty | 0.440 | Compare against random under the validation-selected schedule. |
+| 50 | Cluster-quota uncertainty | 0.460 | Retain this documented coverage comparator. |
+| 75 | Uncertainty + diversity | 0.513 | Preserve the exact diversity weight as a validation-tuned setting. |
+| 100 | Uncertainty | 0.647 | Use uncertainty as a principal reference arm. |
+
+The full means and standard deviations are in the [strategy-by-budget table](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/aggregate/strategy_budget_summary.csv).
 
 The changing winners indicate that annotation budget changes the selection problem. At 10 labels, random sampling provides a stable cross-section of the pool; at 50, cluster quotas can prevent the batch from collapsing into one embedding region; at 75--100, uncertainty-based rules can sample several ambiguous regions. Test these explanations with paired seed-level gains over random after validation selects the training schedule, alongside a fixed-total-update control that removes the effect of differing optimizer updates.
 
