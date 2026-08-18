@@ -34,10 +34,12 @@ class DatasetProtocolTests(unittest.TestCase):
             rows = []
             for index, (label, folder) in enumerate(folders.items()):
                 target = data / folder; target.mkdir()
-                for image_index in range(3): Image.new("L", (8, 8), 20 + image_index).save(target / f"{index}_{image_index}.png")
-                a, b = f"{folder}/{index}_0.png", f"{folder}/{index}_1.png"
+                for image_index in range(3): Image.new("L", (8, 8), 20 + 10 * index + image_index).save(target / f"{index}_{image_index}.png")
+                trajectory = data / "Trajectories" / str(index); trajectory.mkdir(parents=True)
+                for image_index in range(3): Image.new("L", (8, 8), 100 + 10 * index + image_index).save(trajectory / f"{index}_{image_index}.png")
+                a, b = f"Trajectories/{index}/{index}_0.png", f"Trajectories/{index}/{index}_1.png"
                 rows.append({"Image1_Path": a, "Image2_Path": b, "Reconstruction_Type": label, "Winner": "1"})
-                rows.append({"Image1_Path": f"{folder}/{index}_1.png", "Image2_Path": f"{folder}/{index}_2.png", "Reconstruction_Type": label, "Winner": "2"})
+                rows.append({"Image1_Path": f"Trajectories/{index}/{index}_1.png", "Image2_Path": f"Trajectories/{index}/{index}_2.png", "Reconstruction_Type": label, "Winner": "2"})
             pd.DataFrame(rows).to_csv(data / "Quantum Label Data - Pairwise_Comparisonv1.8.csv", index=False)
             pd.DataFrame(columns=["Reconstruction", "Image_Path"]).to_csv(data / "Quantum Label Data - Absolute_Scoringv1.8 (1).csv", index=False)
             exp = Experiment(Config(data_root=str(root), initial_pairs=4, candidate_pairs=4, dataset_version="v1.8"))
@@ -49,6 +51,10 @@ class DatasetProtocolTests(unittest.TestCase):
             utility = {p for values in exp.utility_images.values() for p in values}
             references = {p for values in exp.references.values() for p in values}
             self.assertFalse(test & utility); self.assertFalse(test & references); self.assertFalse(utility & references)
+            audit = exp.protocol_audit(initial, pool)
+            self.assertEqual(audit["reference_test_identity_overlap"], 0)
+            self.assertEqual(audit["utility_test_identity_overlap"], 0)
+            self.assertEqual(audit["pairwise_image_identity_overlap_outer_test"], 0)
 
     def test_controlled_utility_never_queries_outer_test(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -109,6 +109,7 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
     model, metrics, paused = train_with_epoch_checkpoints(
         value, pair_ids, checkpoint, phase, None,
         heartbeat_seconds=int(protocol["checkpoint_heartbeat_seconds"]), checkpoint_enabled=True,
+        validation_split="utility_validation", early_stopping_patience=protocol.get("early_stopping_patience"),
     )
     if paused or model is None:
         raise RuntimeError("Calibration paused; rerun the identical command.")
@@ -116,6 +117,8 @@ def run_validation_calibration_cell(protocol: dict[str, Any], output: Path, task
     write_json({**task, "initial_pair_groups": len(initial), "reference_selected_pair_ids": selected,
                 "training_pairwise_accuracy": metrics["pairwise_accuracy"],
                 "optimizer_updates": metrics.get("optimizer_updates"),
+                "epoch_metrics": metrics.get("epoch_metrics", []),
+                "best_validation_accuracy": metrics.get("best_validation_accuracy"),
                 "utility_validation_accuracy": validation["test_accuracy"],
                 "utility_validation_by_class": validation["by_class"],
                 "outer_test_not_evaluated": True, "checkpoint": str(checkpoint)}, result)
@@ -171,7 +174,9 @@ def aggregate_budget_aware_validation_calibration(protocol: dict[str, Any]) -> N
     summary.to_csv(destination / "validation_calibration_summary.csv", index=False)
     write_json({"selection_endpoint": "utility_validation_accuracy_mean", "outer_test_used_for_selection": False,
                 "protocol_by_encoder_and_acquisition_budget": locked,
-                "rule": "The selected setting is shared by all acquisition strategies at its encoder and budget."},
+                "rule": "The selected setting is shared by all acquisition strategies at its encoder and budget.",
+                "early_stopping_patience": protocol.get("early_stopping_patience"),
+                "epoch_metrics_are_validation_only": True},
                destination / "budget_aware_protocol_by_encoder_and_budget.json")
     print(f"Wrote budget-aware protocol from {len(matched)} validation-only cells to {destination}", flush=True)
 

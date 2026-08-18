@@ -20,18 +20,18 @@ Figure 1 shows the intended evaluation firewall. Validation can select training 
 
 ### 2.1 Preference reward model
 
-Each image \(x\) is passed through a ResNet-18 encoder and a reward head that returns one score per reconstruction class, \(r_\theta(x,t)\). For a labelled pair \((x_i,x_j)\) of type \(t\), the Bradley--Terry model assigns the probability that the first image is preferred as
+Each image $x$ is passed through a ResNet-18 encoder and a reward head that returns one score per reconstruction class, $r_\theta(x,t)$. For a labelled pair $(x_i,x_j)$ of type $t$, the Bradley--Terry model assigns the probability that the first image is preferred as
 
-\[
+$$
 P_\theta(x_i \succ x_j \mid t) = \sigma\!\left(r_\theta(x_i,t)-r_\theta(x_j,t)\right),
 \qquad \sigma(z)=\frac{1}{1+e^{-z}}.
-\]
+$$
 
 In plain language, the model is confident that the first image should win when its learned score is much larger than the second image's score. For a first-image win, the loss is
 
-\[
+$$
 \mathcal L_{BT} = -\frac{1}{|D|}\sum_{(i,j,t)\in D} w_{ij}\log P_\theta(x_i \succ x_j\mid t),
-\]
+$$
 
 where \(w_{ij}\) is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
 
@@ -41,19 +41,46 @@ The model is initialized with an image encoder and fine-tuned with AdamW. Ideal 
 
 Candidate comparisons retain their images but hide their human winner labels. A simple uncertainty score is
 
-\[
+$$
 u(i,j,t)=1-\left|2\sigma(r_\theta(x_i,t)-r_\theta(x_j,t))-1\right|.
-\]
+$$
 
 It is largest when the model is close to a 50--50 preference, so uncertainty acquisition asks for labels on comparisons it cannot decide. The project also tests random sampling, core-set coverage, cluster-quota uncertainty, and an uncertainty--diversity combination. For the latter, candidates are ranked by
 
-\[
+$$
 s(i,j)=\lambda\,\widetilde u(i,j)+(1-\lambda)\,\widetilde d(i,j),
-\]
+$$
 
-where \(\widetilde u\) and \(\widetilde d\) are normalized uncertainty and embedding-space diversity, and \(\lambda\) controls their balance. This is a project-specific heuristic, not a claim of a universal standard.
+where $\widetilde u$ and $\widetilde d$ are normalized uncertainty and embedding-space diversity, and $\lambda$ controls their balance. This is a project-specific heuristic, not a claim of a universal standard.
 
-### 2.3 Algorithms
+### 2.3 Acquisition strategies and their roles
+
+All methods select complete pair groups, never individual images. The candidate view contains image paths and permitted model outputs, but not the human winner label.
+
+| Strategy | Selection rule | Why it may help | Main tuning or failure mode |
+|---|---|---|---|
+| Random | Uniform sample of candidate groups | Essential unbiased baseline | High variance at small budgets |
+| Uncertainty | Largest $u(i,j,t)$ | Requests comparisons near the model decision boundary | Can repeatedly select visually similar pairs |
+| Core-set | Farthest-first coverage in embedding space | Covers underrepresented image regions | Depends on encoder geometry and distance metric |
+| Cluster-quota uncertainty | Spread selections over clusters, then rank by uncertainty | Avoids spending all labels in one region | Cluster count and quota can be mismatched to the data |
+| Uncertainty + diversity | Rank by $s(i,j)$ | Balances difficult and nonredundant pairs | Requires validation choice of $\lambda$ |
+| Cluster-Margin | Prefer informative pairs from locally sparse/boundary clusters | Tests a different coverage mechanism | Historical evidence is a separate extension, not pooled with the five-strategy curve |
+| MC-dropout variance / mutual information | Rank disagreement across dropout predictions | Models epistemic uncertainty | Requires dropout probability and Monte-Carlo sample-count calibration |
+
+```text
+Algorithm 3: Score and acquire b pair groups
+Input: labelled groups L, label-hidden candidate groups C, strategy A, budget b
+1. Train the Bradley--Terry model using L and permitted reference anchors.
+2. Embed each candidate image and compute only A's allowed scores.
+3. For random, sample b groups uniformly.
+4. For uncertainty, rank by u; for core-set, maximize embedding coverage.
+5. For cluster-quota, allocate across clusters before uncertainty ranking.
+6. For uncertainty-diversity, rank lambda*u_tilde + (1-lambda)*d_tilde.
+7. Reveal preference labels only for the selected b groups and retrain.
+Output: selected groups, saved scores, ranks, configuration, and seed.
+```
+
+### 2.4 Leakage-safe training algorithms
 
 ```text
 Algorithm 1: Build leakage-safe partitions
@@ -82,16 +109,6 @@ for epoch = 1,...,E:
 return saved model with highest validation metric
 ```
 
-```text
-Algorithm 3: Single-shot active pair selection
-Input: initial labelled groups L, label-hidden candidate groups C, budget b
-train a reward model on L
-score only permitted candidate images/embeddings
-select b distinct pair groups using a declared acquisition rule
-reveal winner labels only for selected groups
-retrain from scratch on L plus selected groups
-evaluate once on the frozen outer test after protocol choices are fixed
-```
 
 ## 3. Data Protocol and Leakage Prevention
 
@@ -121,15 +138,41 @@ The repository contains five-seed, fixed-schedule curves across acquisition budg
 
 These curves suggest that selector rankings depend on budget and preprocessing; they do not support one selector as universally best. They also do not isolate selection quality from the amount of optimization performed, because a fixed number of epochs processes different amounts of acquired data at different budgets.
 
-### 5.2 No historical evidence for epoch 10
+The historical five-strategy curve has a useful qualitative pattern: random is strongest at budget 10 (0.413), uncertainty is slightly strongest at budget 25 (0.440), cluster-quota uncertainty is strongest at budget 50 (0.460), uncertainty--diversity is strongest at budget 75 (0.513), and uncertainty is strongest at budget 100 (0.647). These are not final generalization claims because the historical split failed the later identity audit. They do show why random must remain a baseline and why the acquisition rule should not be selected independently of budget.
+
+### 5.2 Symmetry preprocessing is an experimental factor
+
+The repository evaluates three input modes: `none`, `left_half_mirror`, and `symmetric_average`. The latter two encode a symmetry assumption by reconstructing an image from its left half or averaging it with its horizontal reflection. They are not treated as harmless augmentations: they can remove discriminative asymmetry as well as reduce nuisance variation.
+
+![Historical symmetry factorial](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_symmetry_factorial.png)
+
+*Figure 4. Historical strategy--budget--symmetry interaction, generated from the Stage 2 aggregate CSV. It is diagnostic only.*
+
+The historical factorial shows that preprocessing changes the ranking rather than delivering a universal gain. For example, at low budget some coverage-based methods improved under symmetric averaging, while at budget 100 the no-symmetry uncertainty endpoint remained stronger than the compared mirrored endpoint. The leakage-safe rerun must retain symmetry mode as a factor and report the strategy × budget × preprocessing interaction instead of choosing one transform globally.
+
+### 5.3 SimCLR versus ImageNet initialization
+
+![Historical encoder-screen validation accuracy](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/historical_encoder_screen.png)
+
+*Figure 5. Historical validation-only encoder screen; error bars are standard deviations over three seeds.*
+
+SimCLR is an image-only self-supervised initialization, whereas ImageNet initialization starts from supervised natural-image features. In the completed path-based validation screen, ImageNet exceeded SimCLR for random (0.556 vs. 0.389) and uncertainty (0.611 vs. 0.300). This is evidence about that particular split, encoder screen, and selected endpoint—not evidence that ImageNet is intrinsically superior for every budget or selector. The leakage-safe calibration should repeat encoder × budget × strategy comparisons with identical seeds and report paired differences.
+
+### 5.4 Metadata fusion: a separate, currently data-limited study
+
+Metadata fusion asks a different question from active pair selection: whether causal process-monitor variables improve image prediction beyond image features alone. It must not be pooled with the pairwise selector curves. Its minimum experiment contains three matched arms: image-only, metadata-only, and image-plus-metadata late fusion. The data contract requires image-to-record mappings, temporally causal joins, handling for missing values, and image/run-disjoint evaluation.
+
+There is no completed performance claim for fusion in the current repository because the available bundle lacks sufficiently broad, image-resolved growth sessions. The next valid fusion result therefore begins with a data-availability audit, then evaluates all three arms with accuracy, macro-F1, per-class scores, and cross-run generalization.
+
+### 5.5 No historical evidence for epoch 10
 
 ![Missing epoch-wise evidence](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/missing_historical_epoch_curve.svg)
 
-*Figure 4. Evidence status for historical epoch choices.*
+*Figure 6. Evidence status for historical epoch choices.*
 
 The archived outputs compare endpoint settings such as 1, 2, 3, 5, and 10 epochs, but do not provide validation accuracy after every epoch for a common leakage-safe protocol. Therefore, the report makes **no claim** that ten epochs is optimal or that early stopping would stop at epoch 10. A future curve must plot mean training loss and utility-validation accuracy by epoch, optionally with seed variation, and choose the epoch before one outer-test evaluation.
 
-### 5.3 Evidence categories
+### 5.6 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
@@ -138,11 +181,21 @@ The archived outputs compare endpoint settings such as 1, 2, 3, 5, and 10 epochs
 | SHA-256-safe split + epoch logging | Implemented | Required basis for new experiments |
 | Leakage-safe calibration and final selector curve | Planned | Required before final performance conclusion |
 
-## 6. Limitations and Next Experiment
+## 6. Reproducible Next Experiments
+
+The required experiment sequence is deliberately ordered so that the outer test cannot influence a decision.
+
+1. **Identity-safe split capacity audit.** Rebuild every seed by SHA-256 identity, confirm zero outer-test overlap with pairwise rows, candidate images, unlabeled trajectories, references, utility validation, and Bad anchors, and record how many rows are excluded.
+2. **Validation-only training calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$, weight decay $[10^{-5},10^{-4},10^{-3}]$, maximum epochs $[3,10,30]$, and early-stopping patience $[3,5,8]$. Save loss and validation accuracy at every epoch.
+3. **Leakage-safe strategy comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only.
+4. **Controls and reporting.** Run both budget-specific early-stopped training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
+5. **Independent metadata-fusion study.** Obtain multiple image-resolved sessions, audit causal alignment, then run image-only, metadata-only, and fusion baselines under run-disjoint splits.
+
+## 7. Limitations and Next Experiment
 
 The outer ideal-image endpoint is small and may have high seed variation. The historical data-identity leakage means previously reported outer-test numbers must not be presented as final generalization estimates. The next experiment must rebuild the split by identity, train using only permitted data, select hyperparameters and stopping epochs from utility validation, freeze those choices, and then run a single final outer-test comparison across declared strategies and seeds.
 
-## 7. Conclusion
+## 8. Conclusion
 
 Pairwise active learning can be evaluated rigorously only when the acquisition unit, training data, validation decisions, and final test set are explicitly separated. This repository now provides the necessary computational safeguards: pair-disjoint acquisition groups, content-identity exclusion of outer-test images, validation-only early stopping, and artifact-level auditing. The historical curves are useful motivation; the leakage-safe rerun is the necessary evidence for a final result.
 

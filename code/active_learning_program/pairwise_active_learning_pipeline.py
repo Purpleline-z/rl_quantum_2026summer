@@ -183,6 +183,9 @@ class Experiment:
         self.device = torch.device("cuda" if cfg.device == "auto" and torch.cuda.is_available() else ("cpu" if cfg.device == "auto" else cfg.device))
         self.references: dict[str, list[Path]] = {}; self.test_images: dict[str, list[Path]] = {}; self.utility_images: dict[str, list[Path]] = {}
         self.groups: dict[str, pd.DataFrame] = {}; self.candidate_metadata: dict[str, dict[str, str]] = {}; self.bad_paths: list[Path] = []
+        self._content_hash_cache: dict[Path, str] = {}
+        self.excluded_test_identity_pairwise_rows = 0
+        self.excluded_test_identity_bad_anchors = 0
         self.utility_cache_path = self.output / "utility_cache.json"
         self.utility_cache = json.loads(self.utility_cache_path.read_text()) if self.utility_cache_path.exists() else {}
         self.metadata: pd.DataFrame | None = None; self.metadata_columns: list[str] = []; self.metadata_model = None
@@ -209,10 +212,16 @@ class Experiment:
         df["resolved_img2"] = [str((self.data_root / p).resolve()) for p in df.Image2_Path]
         df = df[df.resolved_img1.map(lambda p: Path(p).is_file()) & df.resolved_img2.map(lambda p: Path(p).is_file())].copy()
         if df.empty: raise ValueError("No valid pairwise rows with resolvable images.")
+        self._split_ideals()
+        test_identities = self._content_identities({p for paths in self.test_images.values() for p in paths})
+        # Outer-test ideal images are removed from the unlabeled trajectory/pair pool by content identity, not merely by filename.
+        keep = ~df.resolved_img1.map(lambda p: self._content_identity(Path(p)) in test_identities) & ~df.resolved_img2.map(lambda p: self._content_identity(Path(p)) in test_identities)
+        self.excluded_test_identity_pairwise_rows = int((~keep).sum())
+        df = df[keep].copy()
+        if df.empty: raise ValueError("All pairwise rows overlap the outer test by image identity.")
         df["type_idx"] = df.canonical_type.map(TYPE_TO_INDEX)
         df["confidence_weight"] = df.get("Confidence", pd.Series(index=df.index)).map({"Confident": 1.0, "Somewhat sure": .7}).fillna(1.0)
         self.groups = {key: g.reset_index(drop=True) for key, g in df.groupby("pair_id", sort=True)}
-        self._split_ideals()
         self._load_bad_references()
         ids = list(self.groups); rng = random.Random(self.cfg.seed); rng.shuffle(ids)
         # Greedy initial selection guarantees per-type coverage when possible.
@@ -250,9 +259,19 @@ class Experiment:
 
     def _split_ideals(self) -> None:
         rng = random.Random(self.cfg.seed)
+        assigned_identities: set[str] = set()
         for name, dirname in IDEAL_DIRS.items():
             if name == "Twinned(2 x 1)" and not self.cfg.include_twinned: continue
             files = sorted([p for ext in ("*.png", "*.bmp", "*.jpg", "*.jpeg") for p in (self.data_root / dirname).glob(ext)])
+            # A byte-identical ideal image belongs to one split only, even if copied under another filename or class folder.
+            unique_files: list[Path] = []
+            class_identities: set[str] = set()
+            for path in files:
+                identity = self._content_identity(path)
+                if identity not in assigned_identities and identity not in class_identities:
+                    unique_files.append(path)
+                    class_identities.add(identity)
+            files = unique_files
             if len(files) < 2: print(f"WARNING: {name} has fewer than 2 ideal images; excluded."); continue
             rng.shuffle(files)
             ntest = max(1, int(round(len(files) * self.cfg.test_fraction)))
@@ -265,7 +284,21 @@ class Experiment:
             self.test_images[name] = files[:ntest]
             self.utility_images[name] = files[ntest:ntest + nutility]
             self.references[name] = files[ntest + nutility:]
+            assigned_identities.update(class_identities)
         if len(self.test_images) < 2: raise ValueError("Need at least two ideal reconstruction classes for evaluation.")
+
+    def _content_identity(self, path: Path) -> str:
+        path = path.resolve()
+        if path not in self._content_hash_cache:
+            digest = hashlib.sha256()
+            with path.open("rb") as handle:
+                for block in iter(lambda: handle.read(1024 * 1024), b""):
+                    digest.update(block)
+            self._content_hash_cache[path] = digest.hexdigest()
+        return self._content_hash_cache[path]
+
+    def _content_identities(self, paths: Iterable[Path]) -> set[str]:
+        return {self._content_identity(path) for path in paths}
 
     def _load_bad_references(self) -> None:
         """Load absolute-scoring Bad images as negative anchors, never as ideal tests."""
@@ -276,9 +309,13 @@ class Experiment:
             print(f"WARNING: {self.absolute_csv.name} has no recognised Bad-label/path columns; bad anchors disabled.")
             return
         bad = frame[frame[label_column].astype(str).str.contains("bad", case=False, na=False)]
+        test_identities = self._content_identities({p for paths in self.test_images.values() for p in paths})
         for raw in bad[path_column].dropna().astype(str):
             path = (self.data_root / raw).resolve()
-            if path.is_file(): self.bad_paths.append(path)
+            if path.is_file() and self._content_identity(path) not in test_identities:
+                self.bad_paths.append(path)
+            elif path.is_file():
+                self.excluded_test_identity_bad_anchors += 1
 
     def _write_manifests(self, initial: list[str], candidates: list[str]) -> None:
         base = Path(self.cfg.manifest_dir) if self.cfg.manifest_dir else self.output / "manifests"; paths = {
@@ -287,7 +324,8 @@ class Experiment:
             "ideal": base / "ideal_for_test" / "ideal_test.csv"}
         for p in paths.values(): p.parent.mkdir(parents=True, exist_ok=True)
         def export(ids: list[str], path: Path):
-            pd.concat([self.groups[i] for i in ids], ignore_index=True).to_csv(path, index=False)
+            rows = [self.groups[i] for i in ids]
+            (pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()).to_csv(path, index=False)
         export(initial, paths["pretrain"]); export(candidates, paths["candidate"])
         rows = [{"class": c, "path": str(p.resolve()), "split": "test"} for c, ps in self.test_images.items() for p in ps]
         rows += [{"class": c, "path": str(p.resolve()), "split": "utility_validation"} for c, ps in self.utility_images.items() for p in ps]
@@ -302,6 +340,10 @@ class Experiment:
         outer_test = {p for ps in self.test_images.values() for p in ps}
         utility = {p for ps in self.utility_images.values() for p in ps}
         pair_images = {p for pair_id in self.groups for p in self.groups[pair_id].resolved_img1.tolist() + self.groups[pair_id].resolved_img2.tolist()}
+        reference_ids, outer_test_ids, utility_ids, pair_ids = (
+            self._content_identities(reference), self._content_identities(outer_test),
+            self._content_identities(utility), self._content_identities({Path(p) for p in pair_images}),
+        )
         return {
             "dataset_version": self.dataset.version,
             "input_hashes": file_hashes([self.pairwise_csv, self.absolute_csv, self.encoder_weights]),
@@ -312,6 +354,12 @@ class Experiment:
             "reference_test_overlap": len(reference & outer_test), "utility_test_overlap": len(utility & outer_test),
             "reference_utility_overlap": len(reference & utility),
             "pairwise_image_overlap_outer_test": len(pair_images & outer_test),
+            "reference_test_identity_overlap": len(reference_ids & outer_test_ids),
+            "utility_test_identity_overlap": len(utility_ids & outer_test_ids),
+            "reference_utility_identity_overlap": len(reference_ids & utility_ids),
+            "pairwise_image_identity_overlap_outer_test": len(pair_ids & outer_test_ids),
+            "excluded_test_identity_pairwise_rows": self.excluded_test_identity_pairwise_rows,
+            "excluded_test_identity_bad_anchors": self.excluded_test_identity_bad_anchors,
             "bad_reference_count": len(self.bad_paths), "candidate_labels_hidden_from_selector": True,
             "candidate_oracle_is_pair_level": True,
         }
