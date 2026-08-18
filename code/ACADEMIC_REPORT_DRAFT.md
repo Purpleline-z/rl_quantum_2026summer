@@ -37,13 +37,35 @@ $$
 
 where $w_{ij}$ is an optional annotator-confidence weight. The implementation also handles reversed wins, ties, and not-applicable labels using the corresponding loss terms in `pairwise_active_learning_pipeline.py`.
 
-The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as training anchors only; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.8 replaces this fixed schedule with validation-selected settings.
+#### Downstream reconstruction prediction and accuracy
+
+The downstream endpoint is reconstruction-type accuracy on held-out ideal images, not pairwise training accuracy. For a test or utility-validation image $x$, let $R_c$ be the set of ideal reference anchors labelled as class $c$, and let $R_{-c}=\bigcup_{d\ne c}R_d$ be the anchors from every *other* class. The class-$c$ win rate is
+
+$$
+W_c(x)=\frac{1}{|R_{-c}|}\sum_{z\in R_{-c}}\sigma\!\left(r_\theta(x,c)-r_\theta(z,c)\right).
+$$
+
+$r_\theta(x,c)$ is the $c$-th reward-head score for image $x$. Each term asks whether $x$ is more compatible with class $c$ than an anchor known to belong to another class, on the class-$c$ reward dimension. $W_c(x)$ averages that comparison over all non-$c$ reference anchors. The predicted reconstruction type is
+
+$$
+\hat c(x)=\underset{c\in\mathcal C}{\arg\max}\ W_c(x),
+$$
+
+where $\mathcal C$ is the available reconstruction-type set. Thus a class wins only when its reward dimension separates the image from reference examples of the competing classes; the model does not compare an image with same-class reference anchors at this step. For an evaluation split $E$ with absolute labels $c(x)$, downstream accuracy is
+
+$$
+A(E)=\frac{1}{|E|}\sum_{x\in E}\mathbf{1}\!\left[\hat c(x)=c(x)\right].
+$$
+
+In plain language, this is the fraction of held-out ideal images assigned the correct reconstruction type. $A(E)$ is calculated identically for `utility_validation` and `outer_test`; only the former is available while selecting epochs, learning rates, and acquisition settings. The implementation is [Experiment.evaluate](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L447-L464), which also saves correct count, total count, and per-class accuracy.
+
+The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as both training anchors and the fixed comparison bank for downstream prediction; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.8 replaces this fixed schedule with validation-selected settings.
 
 The two encoder initializations are different starting representations under this same downstream training procedure. The shipped SimCLR checkpoint is image-only self-supervised pretraining and has not seen pairwise preference labels. ImageNet initialization uses torchvision ResNet-18 weights trained with ImageNet-1K supervision. Pairwise labels enter only during reward-model fine-tuning.
 
 ### 2.2 Active selection
 
-Candidate comparisons retain their images but hide their human winner labels. Active selection decides which $b$ comparisons should be labelled next so that the retrained preference model makes more accurate predictions on future, previously unseen comparisons. Let $L$ be the currently labelled pair groups, let $C$ be the label-hidden candidate groups, let $S_b\subseteq C$ be the $b$ groups selected by an acquisition strategy, and let $Y(S_b)$ be the labels revealed only after selection. The quantity that selection is trying to increase is
+Candidate comparisons retain their images but hide their human winner labels. Active selection decides which $b$ comparisons should be labelled next so that the retrained preference model makes more accurate reconstruction-type predictions on held-out ideal images. Let $L$ be the currently labelled pair groups, let $C$ be the label-hidden candidate groups, let $S_b\subseteq C$ be the $b$ groups selected by an acquisition strategy, and let $Y(S_b)$ be the labels revealed only after selection. The quantity that selection is trying to increase is
 
 $$
 \Delta A_{\mathrm{val}}(S_b\mid L)=
