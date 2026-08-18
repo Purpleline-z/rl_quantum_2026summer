@@ -374,11 +374,47 @@ For trajectory coverage, the near threshold is the 95th percentile of each label
 
 PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet variation, so the ImageNet PCA plot is a more compressed sketch of its full representation. Use the two-dimensional plots to locate candidate overlap and coverage questions, then test those questions with acquisition and validation experiments. All metrics, coordinate files, and thresholds are recorded in the [diagnostic manifest](active_learning_studies/image_representation_analysis/results/representation_exploration/section5_diagnostics/manifest.json).
 
-### 5.5 Metadata fusion: a separate, currently data-limited study
+### 5.5 Historical utility, redundancy, and batch interaction
+
+**Question.** Why can a pair or a batch look useful in an intermediate utility analysis but not yield the highest final accuracy? The historical individual-pair utility used in the exploratory runs is
+
+$$
+U(p\mid L)=A_{\mathrm{outer}}\!\left(F(L\cup\{p\})\right)-A_{\mathrm{outer}}\!\left(F(L)\right).
+$$
+
+Here $p$ is one candidate pair, $L$ is the current labelled set, $F$ is the fixed retraining procedure, and $A_{\mathrm{outer}}$ is accuracy on the historical ideal-image outer-test set. This quantity asks what happens when one pair is added by itself. The realised utility of a selected batch $B$ is $U(B\mid L)=A_{\mathrm{outer}}(F(L\cup B))-A_{\mathrm{outer}}(F(L))$. It is not the sum of the individual utilities because pairs are retrained together; their gradients and the later selection sequence can change one another's effect. These outer-test utilities are historical diagnostics only and are not used by the current selector or budget-aware calibration.
+
+The earlier budget-30 observation comes from one sequential trace, where each round changes $L$ before the final endpoint is measured. Its intermediate single-pair utilities and later final accuracy therefore condition on different labelled sets. The [sequential log](active_learning_studies/pair_disjoint_not_image_disjoint/results/earlier_explorations/sequential_exploration_20260728/epoch%202%20budget%2030%20batch%202%20seed%2042%20experiment_log.csv) identifies a question for the controlled study; it does not separate redundancy, interaction, or overfitting.
+
+![Historical 15-seed utility and accuracy comparison](active_learning_studies/pair_disjoint_not_image_disjoint/results/strategy_followup_analysis/fifteen_seed_extension/fifteen_seed_strategy_comparison.png)
+
+*Figure 13. Historical 15-seed budget-100 comparison. The figure asks whether the strategy that improves batch utility also improves post-acquisition accuracy; uncertainty has the largest mean on both measures.*
+
+At budget 100, uncertainty has the largest historical mean post-acquisition accuracy (0.522) and batch utility (+0.144) over 15 seeds. Uncertainty--diversity follows at 0.489 and +0.111; random at 0.460 and +0.082; cluster-diverse at 0.427 and +0.049; and core-set at 0.422 and +0.044, as reported in the [15-seed summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/strategy_followup_analysis/fifteen_seed_extension/fifteen_seed_summary.csv). Post-acquisition-accuracy standard deviations range from 0.121 to 0.188, and the per-seed outcomes therefore vary across runs.
+
+![Historical pair similarity versus batch utility](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/diversity_and_coverage/figures/pair_similarity_vs_batch_utility.png)
+
+*Figure 14. Historical pair-similarity versus batch-utility diagnostic. The figure asks whether less similar selected pairs explain utility; the strategy means do not show a monotonic relationship.*
+
+Redundancy does not explain the observed ranking by itself. Core-set has the lowest mean image-reuse rate (0.082) and uncertainty--diversity lowers it relative to random (0.091 versus 0.094), yet their mean batch utilities (+0.044 and +0.111) remain below uncertainty (+0.144). Mean pair cosine similarities are tightly grouped from 0.947 to 0.949 despite the utility spread, in the [redundancy table](active_learning_studies/pair_disjoint_not_image_disjoint/results/strategy_followup_analysis/redundancy_analysis/redundancy_utility_accuracy.csv). Thus “more diverse” is not sufficient evidence that a batch provides more reconstruction-relevant supervision.
+
+![Historical PCA of selected core-set pairs](active_learning_studies/pair_disjoint_not_image_disjoint/results/selected_summaries/diversity_and_coverage/figures/core_set_selected_pairs_pca.png)
+
+*Figure 15. Historical PCA of selected pair embeddings. Overlap between core-set and uncertainty selections in this two-dimensional view does not test the full-dimensional farthest-first distances used by core-set.*
+
+The PCA overlap between core-set and uncertainty selections does not conflict with the core-set algorithm: core-set chooses farthest-first pairs using full pair embeddings, whereas the plot compresses those embeddings to two coordinates. The actual concern is different: distant regions in the frozen embedding may not correspond to comparisons that improve reconstruction accuracy. Resolve that question with an identity-safe experiment that, for each selected batch, records individual utilities, the realised batch utility, and
+
+$$
+I(B\mid L)=U(B\mid L)-\sum_{p\in B}U(p\mid L).
+$$
+
+$I(B\mid L)$ measures non-additive batch interaction. Evaluate whether it varies with image reuse, pair similarity, cluster coverage, and training/validation curves. A negative interaction term supports harmful combination effects; a validation decline while pairwise training accuracy rises supports overfitting; neither explanation can be assigned from the saved historical batch records because their individual utilities are unavailable.
+
+### 5.6 Metadata fusion: a separate, currently data-limited study
 
 **Question.** Do process-monitor variables contain prediction information absent from the image? Test this with three matched models—image-only, metadata-only, and image-plus-metadata late fusion—under the same split and image encoder. The available bundle lacks multiple image-resolved sessions with a causal sensor-to-image mapping. After assembling those mappings, evaluate the three arms on run-disjoint sessions and report accuracy, macro-F1, per-class outcomes, and missing-metadata handling.
 
-### 5.6 Task 3b: budget-aware training protocol
+### 5.7 Task 3b: budget-aware training protocol
 
 **Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × two encoder initializations × five acquisition budgets × four learning rates × three epoch counts, for 600 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
 
@@ -391,7 +427,7 @@ The selected schedules vary in both epoch count and learning rate: acquired sets
 
 The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the partitions by image identity, rerun Task 3a → Task 3b, and use the resulting per-encoder, per-budget table for the strategy curve.
 
-### 5.7 Evidence categories
+### 5.8 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
@@ -400,7 +436,7 @@ The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the 
 | SHA-256-safe split + epoch logging | Test-image exclusion and validation-based stopping mechanism | Use as the protocol for all new comparison arms |
 | Leakage-safe calibration and final selector curve | Final strategy ranking and effect size | Execute after validation freezes all settings |
 
-### 5.8 Claim Audit
+### 5.9 Claim Audit
 
 | Claim | Measured evidence | Interpretation | Concrete next test |
 |---|---|---|---|
@@ -410,6 +446,8 @@ The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the 
 | HTR and RT13 are the principal frozen-feature boundary | PCA 5-NN confusion has 7/9 SimCLR and 5/7 ImageNet HTR/RT13 cross-errors | Their local appearance neighborhoods overlap | Target HTR--RT13 boundary-pair acquisition and feature ablation |
 | Twinned support is insufficient for stable 5-NN geometry | Only four labelled ideals; recall 0.000/0.250 | Current feature-space estimate is dominated by sample scarcity | Add labelled Twinned ideal images before encoder comparison |
 | A nontrivial trajectory region is outside ideal neighborhoods | PCA far fractions: 28.3% SimCLR, 18.1% ImageNet | The ideal set does not densely cover every observed trajectory region | Audit and label representative far trajectory frames |
+| Historical uncertainty has the largest budget-100 utility and post-acquisition accuracy | 15-seed means: uncertainty 0.522 / +0.144; uncertainty--diversity 0.489 / +0.111; core-set 0.422 / +0.044 | Reducing geometric redundancy alone does not explain strategy utility | Identity-safe per-pair and batch-utility study with interaction term $I(B\mid L)$ |
+| Core-set's lower utility is not explained by its two-dimensional PCA position | Selected-pair PCA overlaps uncertainty, while core-set acts on full embeddings | Full-space distance must be tested against reconstruction utility, not inferred from a PCA plot | Record core-set distance, per-pair utility, batch interaction, and validation curves |
 | Training schedule depends on encoder and budget | Task 3b selects both 10- and 30-epoch settings and both $10^{-4}$ and $3\cdot10^{-4}$ learning rates | Training configuration is a controlled variable, not a fixed default | Re-run Task 3a/3b under SHA-256-safe partitions before Task 3c |
 
 ## 6. Reproducible Next Experiments
@@ -418,7 +456,7 @@ This sequence keeps the outer test unavailable until validation has frozen every
 
 1. **Identity-safe split capacity audit.** Rebuild every seed by SHA-256 identity, confirm zero outer-test overlap with pairwise rows, candidate images, unlabeled trajectories, references, utility validation, and Bad anchors, and record how many rows are excluded.
 2. **Identity-safe Task 3a → Task 3b calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$ and epoch count $[3,10,30]$ at the protocol weight decay $10^{-4}$. Aggregate the five seeds and select one setting per encoder × budget before running any strategy arm.
-3. **Leakage-safe strategy comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only.
+3. **Leakage-safe strategy and utility comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only. For a declared subset of batches, retrain each selected pair alone from the same $L$, calculate $U(p\mid L)$ and $I(B\mid L)$, and save training/validation curves to distinguish interaction from overfitting.
 4. **Controls and reporting.** Run both Task 3b-selected epoch training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
 5. **Independent metadata-fusion study.** Obtain multiple image-resolved sessions, audit causal alignment, then run image-only, metadata-only, and fusion baselines under run-disjoint splits.
 
@@ -446,3 +484,6 @@ The implemented protocol separates pair-disjoint acquisition groups, content-ide
 - Figure 5: generated by the script from the encoder-screen validation CSV.
 - Figures 6--9: existing PCA/t-SNE artifacts from `active_learning_studies/image_representation_analysis/results/representation_exploration/`; they use the exploratory manifest and are not active-learning outcome figures.
 - Figures 10--12: generated by `generate_section5_representation_diagnostics.py` from saved exploratory coordinate CSVs.
+- Figure 13: generated from `strategy_followup_analysis/fifteen_seed_extension/fifteen_seed_summary.csv`.
+- Figure 14: generated from `strategy_followup_analysis/redundancy_analysis/redundancy_utility_accuracy.csv`.
+- Figure 15: generated from stored selected pair embeddings in the historical follow-up analysis.
