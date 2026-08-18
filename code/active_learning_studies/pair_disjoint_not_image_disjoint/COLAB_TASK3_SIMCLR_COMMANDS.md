@@ -17,7 +17,7 @@ drive.mount('/content/drive')
 ```
 
 ```bash
-%cd /content/rl_quantum_2026summer/quantum\ rheed\ codex
+%cd /content/rl_quantum_2026summer
 !DRIVE_OUTPUT='/content/drive/MyDrive/rl_quantum_task3_simclr_identity_safe' ; \
  python code/active_learning_studies/pair_disjoint_not_image_disjoint/run_simclr_identity_safe_task3_colab.py \
  write_protocol --drive-output "$DRIVE_OUTPUT"
