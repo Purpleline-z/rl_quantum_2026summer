@@ -307,20 +307,25 @@ PCA retains 76.2% of the SimCLR feature variation but only 37.4% of ImageNet var
 
 **Question.** Do process-monitor variables contain prediction information that is absent from the image? This is a different experiment from active pair selection. It requires three matched models—image-only, metadata-only, and image-plus-metadata late fusion—so that a gain can be attributed to the combination rather than to a changed split or image encoder. The available bundle does not yet provide multiple image-resolved sessions with a causal sensor-to-image mapping. The next action is therefore concrete: assemble those mappings, then evaluate the three arms on run-disjoint sessions with accuracy, macro-F1, per-class outcomes, and missing-metadata handling reported together.
 
-### 5.6 No historical evidence for epoch 10
+### 5.6 Task 3b: budget-aware training protocol
 
-![Missing epoch-wise evidence](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/missing_historical_epoch_curve.svg)
+**Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × two encoder initializations × five acquisition budgets × four learning rates × three epoch counts, for 600 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
 
-*Figure 13. Evidence available for choosing a stopping epoch.*
+| Encoder | Budget 10 | Budget 25 | Budget 50 | Budget 75 | Budget 100 |
+|---|---|---|---|---|---|
+| ImageNet | 30 epochs, $10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ |
+| SimCLR | 30 epochs, $10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $10^{-4}$ |
 
-The archived outputs compare endpoints such as 1, 2, 3, 5, and 10 epochs, but do not record validation accuracy after every epoch for one common protocol. That leaves a specific operational gap: there is no evidence for whether epoch 10 is still improving validation performance, already plateaued, or beginning to overfit. The new training loop records mean loss and utility-validation accuracy per epoch. The next calibration should plot their seed mean and variation, sweep patience, retain the validation-best checkpoint, and only then evaluate the frozen choice once on the outer test.
+The selected schedules vary in both epoch count and learning rate. That variation is the useful finding: smaller and larger acquired sets do not present the optimizer with the same amount or composition of pairwise data, and the two encoder initializations respond differently. Task 3b therefore prevents a strategy comparison from accidentally rewarding an arm because it received a better training schedule. In Task 3c, every strategy at the same encoder and budget must use the same Task 3b-selected setting; the strategy comparison can then focus on the value of the acquired labels rather than a hidden optimizer advantage.
+
+The currently saved Task 3b table was built before the SHA-256 image-identity repair. Its role is to define the calibration procedure and show why schedule selection must be budget-aware. The next operational step is to rerun the same Task 3a → Task 3b process after rebuilding the partitions by image identity, then use the resulting table for the final strategy curve.
 
 ### 5.7 Evidence categories
 
 | Category | Status | Permitted interpretation |
 |---|---|---|
 | Historical fixed-schedule budget curves | Strategy/budget and preprocessing hypotheses | Re-run after SHA-256 split exclusion before selecting a final acquisition rule |
-| Path-based budget-aware calibration | Candidate learning-rate and epoch ranges | Recalibrate under the identity-safe split |
+| Task 3b budget-aware protocol | Per-encoder, per-budget validation-selected learning rates and epoch counts | Re-run the same Task 3a → Task 3b selection after identity-safe partitioning |
 | SHA-256-safe split + epoch logging | Test-image exclusion and validation-based stopping mechanism | Use as the protocol for all new comparison arms |
 | Leakage-safe calibration and final selector curve | Final strategy ranking and effect size | Execute after validation freezes all settings |
 
@@ -328,21 +333,22 @@ The archived outputs compare endpoints such as 1, 2, 3, 5, and 10 epochs, but do
 
 | Claim | Measured evidence | Interpretation | Concrete next test |
 |---|---|---|---|
-| Useful selector changes with acquisition budget | Five-seed winners change from random at 10 to uncertainty at 100 | Small batches benefit from stable pool coverage; larger batches can exploit ambiguity | Identity-safe paired strategy curve with fixed-update control |
+| Useful selector changes with acquisition budget | Five-seed winners change from random at 10 to uncertainty at 100 | Small batches benefit from stable pool coverage; larger batches can exploit ambiguity | Identity-safe paired strategy curve using the Task 3b-selected schedule and a fixed-update control |
 | Symmetry changes selector behavior | Stage 2 best condition ranges from symmetric-average core-set at 10 to no-symmetry uncertainty at 100 | Mirroring can either suppress nuisance variation or erase discriminative detail | Full strategy × budget × preprocessing factorial |
 | ImageNet provides a stronger starting geometry in the current screen | Validation: 0.556 vs. 0.389 for random; 0.611 vs. 0.300 for uncertainty | The starting coordinate system affects uncertainty, clustering, and coverage | Encoder × strategy × budget paired rerun |
 | HTR and RT13 are the principal frozen-feature boundary | PCA 5-NN confusion has 7/9 SimCLR and 5/7 ImageNet HTR/RT13 cross-errors | Their local appearance neighborhoods overlap | Target HTR--RT13 boundary-pair acquisition and feature ablation |
 | Twinned support is insufficient for stable 5-NN geometry | Only four labelled ideals; recall 0.000/0.250 | Current feature-space estimate is dominated by sample scarcity | Add labelled Twinned ideal images before encoder comparison |
 | A nontrivial trajectory region is outside ideal neighborhoods | PCA far fractions: 28.3% SimCLR, 18.1% ImageNet | The ideal set does not densely cover every observed trajectory region | Audit and label representative far trajectory frames |
+| Training schedule depends on encoder and budget | Task 3b selects both 10- and 30-epoch settings and both $10^{-4}$ and $3\cdot10^{-4}$ learning rates | Training configuration is a controlled variable, not a fixed default | Re-run Task 3a/3b under SHA-256-safe partitions before Task 3c |
 
 ## 6. Reproducible Next Experiments
 
 The required experiment sequence is deliberately ordered so that the outer test cannot influence a decision.
 
 1. **Identity-safe split capacity audit.** Rebuild every seed by SHA-256 identity, confirm zero outer-test overlap with pairwise rows, candidate images, unlabeled trajectories, references, utility validation, and Bad anchors, and record how many rows are excluded.
-2. **Validation-only training calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$, weight decay $[10^{-5},10^{-4},10^{-3}]$, maximum epochs $[3,10,30]$, and early-stopping patience $[3,5,8]$. Save loss and validation accuracy at every epoch.
+2. **Identity-safe Task 3a → Task 3b calibration.** For every encoder and budget, use utility validation to screen learning rate $[10^{-5},3\cdot10^{-5},10^{-4},3\cdot10^{-4}]$ and epoch count $[3,10,30]$ at the protocol weight decay $10^{-4}$. Aggregate the five seeds and select one setting per encoder × budget before running any strategy arm.
 3. **Leakage-safe strategy comparison.** Freeze the selected schedule and evaluate random, uncertainty, core-set, cluster-quota uncertainty, uncertainty--diversity, Cluster-Margin, and eligible MC-dropout rules at budgets $[10,25,50,75,100]$ across the declared seeds. Sweep uncertainty--diversity $\lambda \in [0,0.25,0.5,0.75,1]$, cluster count, dropout probability, and MC sample count on validation only.
-4. **Controls and reporting.** Run both budget-specific early-stopped training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
+4. **Controls and reporting.** Run both Task 3b-selected epoch training and a fixed-total-optimizer-update control. Only after all choices are frozen, run outer-test evaluation and report mean, standard deviation, per-seed values, and paired differences versus random.
 5. **Independent metadata-fusion study.** Obtain multiple image-resolved sessions, audit causal alignment, then run image-only, metadata-only, and fusion baselines under run-disjoint splits.
 
 ## 7. Limitations and Next Experiment
@@ -369,4 +375,3 @@ Pairwise active learning can be evaluated rigorously only when the acquisition u
 - Figure 5: generated by the script from the encoder-screen validation CSV.
 - Figures 6--9: existing PCA/t-SNE artifacts from `active_learning_studies/image_representation_analysis/results/representation_exploration/`; they use the exploratory manifest and are not active-learning outcome figures.
 - Figures 10--12: generated by `generate_section5_representation_diagnostics.py` from saved exploratory coordinate CSVs.
-- Figure 13: generated by the script because no qualifying historical epoch-wise validation log exists.

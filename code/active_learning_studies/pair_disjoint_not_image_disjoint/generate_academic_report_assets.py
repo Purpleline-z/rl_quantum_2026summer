@@ -80,17 +80,8 @@ def save_symmetry_and_encoder_figures() -> None:
         ax.grid(axis="y", alpha=.25); fig.tight_layout()
         fig.savefig(OUT / "historical_encoder_screen.png", dpi=180); plt.close(fig)
 
-
-def save_missing_epoch_evidence_notice() -> None:
-    fig, ax = plt.subplots(figsize=(8, 3)); ax.axis("off")
-    ax.text(.5, .60, "EPOCH-WISE CURVE NOT AVAILABLE FOR HISTORICAL RUNS", ha="center", va="center", weight="bold", color="#922b21", fontsize=13)
-    ax.text(.5, .34, "The historical artifacts report endpoints at selected epoch counts, not\nvalidation accuracy after every epoch. Therefore they cannot justify stopping at epoch 10.", ha="center", va="center", fontsize=10)
-    fig.tight_layout(); fig.savefig(OUT / "missing_historical_epoch_curve.svg"); plt.close(fig)
-
-
 if __name__ == "__main__":
     save_protocol_diagrams()
     save_historical_budget_curve()
     save_symmetry_and_encoder_figures()
-    save_missing_epoch_evidence_notice()
     print(f"Wrote paper assets to {OUT}")
