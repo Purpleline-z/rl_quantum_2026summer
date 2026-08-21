@@ -163,6 +163,21 @@ def deterministic_reference(candidates: list[str], seed: int, budget: int) -> li
     return random.Random(seed * 1_000_003 + budget).sample(candidates, min(budget, len(candidates)))
 
 
+def baseline_id_for(task: dict[str, Any], protocol: dict[str, Any]) -> str:
+    """Identify a reusable baseline without mixing dropout architectures."""
+    key = {name: task[name] for name in ("seed", "budget", "learning_rate", "epochs")}
+    key["dropout_probability"] = task.get("selector_parameters", {}).get("dropout_probability", protocol["default_dropout_probability"])
+    return stable_id(key)
+
+
+def cleanup_finished_shared_baselines(protocol: dict[str, Any], output: Path, tasks: list[dict[str, Any]], folder: str) -> None:
+    """Remove only baselines whose every dependent durable result already exists."""
+    for baseline_id in {baseline_id_for(task, protocol) for task in tasks}:
+        dependent = [task for task in tasks if baseline_id_for(task, protocol) == baseline_id]
+        if all(result_path(output, folder, task).exists() for task in dependent):
+            (output / "resumable_checkpoints" / "shared_final_baselines" / f"{baseline_id}.pth").unlink(missing_ok=True)
+
+
 def train_resumable(exp: Experiment, pairs: list[str], checkpoint: Path, phase: str, progress: MinuteProgress):
     return train_with_epoch_checkpoints(exp, pairs, checkpoint, phase, None, heartbeat_seconds=1800,
                                         validation_split="utility_validation", early_stopping_patience=5,
@@ -187,6 +202,9 @@ def run_calibration_cell(protocol: dict[str, Any], output: Path, task: dict[str,
     if run:
         run.log({"utility_validation_accuracy": record["utility_validation_accuracy"], "elapsed_seconds": record["elapsed_seconds"]})
         run.save(str(target), policy="now"); run.finish()
+    # The compact JSON is the durable record.  This checkpoint only exists for
+    # interruption recovery and is not needed after a completed calibration cell.
+    (output / "resumable_checkpoints" / "task3a" / f"{stable_id(task)}.pth").unlink(missing_ok=True)
     clear_memory()
 
 
@@ -228,12 +246,7 @@ def run_strategy_cell(protocol: dict[str, Any], output: Path, task: dict[str, An
     started = time.monotonic(); run = wandb_run(project, {**task, "git_sha": git_sha()}, stable_id(task))
     exp = make_experiment(protocol, output / f"{folder}_runs" / stable_id(task), task, int(task["epochs"]), device)
     initial, candidates = exp.load_and_split(); audit = assert_audit(exp, initial, candidates)
-    # Task 3c uses one frozen dropout probability, so all eight final strategies
-    # share this baseline. The selector pre-screen varies it and must not share
-    # weights across different model architectures.
-    baseline_key = {key: task[key] for key in ("seed", "budget", "learning_rate", "epochs")}
-    baseline_key["dropout_probability"] = task.get("selector_parameters", {}).get("dropout_probability", protocol["default_dropout_probability"])
-    baseline_id = stable_id(baseline_key)
+    baseline_id = baseline_id_for(task, protocol)
     baseline_checkpoint = output / "resumable_checkpoints" / "shared_final_baselines" / f"{baseline_id}.pth"
     baseline_model, _, paused = train_resumable(exp, initial, baseline_checkpoint, f"baseline-{baseline_id}", progress)
     if paused or baseline_model is None: raise RuntimeError("Baseline paused; repeat the same command.")
@@ -255,6 +268,10 @@ def run_strategy_cell(protocol: dict[str, Any], output: Path, task: dict[str, An
     if run:
         run.log({key: value for key, value in record.items() if isinstance(value, (int, float))})
         run.save(str(target), policy="now"); run.finish()
+    # Preserve a final checkpoint only while its JSON result is not durable.
+    # Shared baseline checkpoints are cleaned once every dependent strategy cell
+    # is complete; they remain available for the next strategy in the meantime.
+    final_checkpoint.unlink(missing_ok=True)
     clear_memory()
 
 
@@ -289,6 +306,8 @@ def run_queue(action: str, protocol: dict[str, Any], output: Path, device: str, 
     tasks = calibration_tasks(protocol) if action == "run_task3a" else selector_tasks(protocol, output) if action == "run_selector_screen" else final_tasks(protocol, output)
     folder = "task3a_validation_cells" if action == "run_task3a" else "selector_validation_cells" if action == "run_selector_screen" else "task3c_final_strategy_cells"
     complete = sum(result_path(output, folder, task).exists() for task in tasks)
+    if action != "run_task3a":
+        cleanup_finished_shared_baselines(protocol, output, tasks, folder)
     timing = output / "warmup_timing_estimate.json"; estimate = read_json(timing).get("seconds_per_final_cell") if timing.exists() else None
     progress = MinuteProgress(output, action, len(tasks), complete, estimate); progress.start()
     try:
@@ -298,6 +317,7 @@ def run_queue(action: str, protocol: dict[str, Any], output: Path, device: str, 
             started = time.monotonic()
             if action == "run_task3a": run_calibration_cell(protocol, output, task, device, progress, project)
             else: run_strategy_cell(protocol, output, task, device, progress, project, folder, action == "run_task3c")
+            if action != "run_task3a": cleanup_finished_shared_baselines(protocol, output, tasks, folder)
             progress.completed_cell(time.monotonic()-started)
     finally:
         progress.close()
@@ -313,6 +333,7 @@ def warmup(protocol: dict[str, Any], output: Path, device: str) -> None:
     elapsed = time.monotonic()-started
     atomic_json({"seconds_per_epoch": elapsed, "seconds_per_final_cell": elapsed * 12, "identity_audit": audit, "metrics": metrics,
                  "assumptions": "one epoch warm-up multiplied by 12 to cover baseline, selection, final training, validation, and overhead"}, output / "warmup_timing_estimate.json")
+    (output / "resumable_checkpoints" / "warmup.pth").unlink(missing_ok=True)
     total_cells = len(calibration_tasks(protocol)) + 45 + len(protocol["seeds"]) * len(protocol["budgets"]) * len(STRATEGIES)
     print(f"Initial ETA: phase=warmup_complete, total_cells={total_cells}, estimated_duration={elapsed*12*total_cells/3600:.2f}h, assumptions=representative one-epoch warm-up", flush=True)
     clear_memory()

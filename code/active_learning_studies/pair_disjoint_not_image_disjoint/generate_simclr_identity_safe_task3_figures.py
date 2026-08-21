@@ -47,7 +47,8 @@ def main() -> None:
     paired = final.merge(random, on=["seed", "budget"]); paired["difference_vs_random"] = paired.outer_test_accuracy - paired.random_accuracy
     fig, ax = plt.subplots(figsize=(8, 4.8))
     for strategy, group in paired[~paired.strategy.eq("random")].groupby("strategy"):
-        ax.plot(group.budget, group.groupby("budget").difference_vs_random.mean(), marker="o", label=strategy)
+        mean_difference = group.groupby("budget", as_index=False).difference_vs_random.mean().sort_values("budget")
+        ax.plot(mean_difference.budget, mean_difference.difference_vs_random, marker="o", label=strategy)
     ax.axhline(0, color="black", linewidth=.8); ax.set(xlabel="Budget", ylabel="Paired outer-test difference vs random", title="Per-seed paired strategy effect | SimCLR | n=3")
     ax.grid(alpha=.25); ax.legend(fontsize=7, ncol=2); produced += save_all(fig, out, "paired_outer_test_difference_vs_random")
     fig, ax = plt.subplots(figsize=(9, 5))

@@ -1,6 +1,10 @@
 # Colab commands: SimCLR three-seed identity-safe Task 3
 
 Run these cells in order. Set `DRIVE_OUTPUT` once; do not change it between resumes.
+Completed cells retain their compact JSON results but delete their training
+checkpoints automatically. A shared baseline checkpoint is kept only until all
+strategies that depend on it have completed, so checkpoints consume Drive disk
+space temporarily and never accumulate in Colab RAM.
 
 ```python
 from google.colab import drive
