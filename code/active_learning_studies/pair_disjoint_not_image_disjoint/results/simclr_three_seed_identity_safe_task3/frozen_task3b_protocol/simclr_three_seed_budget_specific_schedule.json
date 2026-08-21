@@ -1,0 +1,28 @@
+{
+  "outer_test_used_for_selection": false,
+  "protocol_by_budget": {
+    "10": {
+      "epochs": 30,
+      "learning_rate": 0.0003
+    },
+    "100": {
+      "epochs": 10,
+      "learning_rate": 0.0003
+    },
+    "25": {
+      "epochs": 10,
+      "learning_rate": 0.0003
+    },
+    "50": {
+      "epochs": 30,
+      "learning_rate": 0.0003
+    },
+    "75": {
+      "epochs": 10,
+      "learning_rate": 0.0003
+    }
+  },
+  "selection_endpoint": "mean utility-validation accuracy",
+  "simclr_only": true,
+  "tie_break": "fewer epochs, then lower learning rate"
+}

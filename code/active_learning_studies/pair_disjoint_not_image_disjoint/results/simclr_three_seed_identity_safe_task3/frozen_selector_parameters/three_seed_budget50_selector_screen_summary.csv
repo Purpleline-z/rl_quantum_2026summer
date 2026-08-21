@@ -1,0 +1,16 @@
+strategy,parameters,mean_validation_accuracy,n
+cluster_margin_pairwise,"{""cluster_count"": 10}",0.6904761904761906,3
+cluster_margin_pairwise,"{""cluster_count"": 20}",0.5595238095238095,3
+cluster_quota_uncertainty,"{""cluster_count"": 10}",0.5595238095238095,3
+cluster_quota_uncertainty,"{""cluster_count"": 20}",0.6666666666666666,3
+mc_dropout_mutual_information,"{""dropout_probability"": 0.1, ""mc_samples"": 10}",0.7142857142857143,3
+mc_dropout_mutual_information,"{""dropout_probability"": 0.1, ""mc_samples"": 20}",0.46428571428571425,3
+mc_dropout_mutual_information,"{""dropout_probability"": 0.2, ""mc_samples"": 10}",0.7619047619047619,3
+mc_dropout_mutual_information,"{""dropout_probability"": 0.2, ""mc_samples"": 20}",0.5595238095238095,3
+mc_dropout_probability_variance,"{""dropout_probability"": 0.1, ""mc_samples"": 10}",0.6428571428571428,3
+mc_dropout_probability_variance,"{""dropout_probability"": 0.1, ""mc_samples"": 20}",0.4285714285714286,3
+mc_dropout_probability_variance,"{""dropout_probability"": 0.2, ""mc_samples"": 10}",0.6785714285714285,3
+mc_dropout_probability_variance,"{""dropout_probability"": 0.2, ""mc_samples"": 20}",0.6428571428571428,3
+uncertainty_diversity,"{""diversity_lambda"": 0.25}",0.6190476190476191,3
+uncertainty_diversity,"{""diversity_lambda"": 0.5}",0.6547619047619048,3
+uncertainty_diversity,"{""diversity_lambda"": 0.75}",0.5119047619047619,3

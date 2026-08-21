@@ -1,0 +1,29 @@
+{
+  "global_selector_parameters": {
+    "cluster_count": 20,
+    "diversity_lambda": 0.5,
+    "dropout_probability": 0.2,
+    "mc_samples": 10
+  },
+  "outer_test_used_for_selection": false,
+  "per_strategy_winners": {
+    "cluster_margin_pairwise": {
+      "cluster_count": 10
+    },
+    "cluster_quota_uncertainty": {
+      "cluster_count": 20
+    },
+    "mc_dropout_mutual_information": {
+      "dropout_probability": 0.2,
+      "mc_samples": 10
+    },
+    "mc_dropout_probability_variance": {
+      "dropout_probability": 0.2,
+      "mc_samples": 10
+    },
+    "uncertainty_diversity": {
+      "diversity_lambda": 0.5
+    }
+  },
+  "selection_endpoint": "mean utility-validation accuracy"
+}

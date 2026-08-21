@@ -1,0 +1,51 @@
+{
+  "budgets": [
+    10,
+    25,
+    50,
+    75,
+    100
+  ],
+  "cluster_counts": [
+    10,
+    20
+  ],
+  "dataset_version": "v1.8",
+  "default_cluster_count": 20,
+  "default_diversity_lambda": 0.5,
+  "default_dropout_probability": 0.2,
+  "default_mc_samples": 20,
+  "diversity_lambdas": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "dropout_probabilities": [
+    0.1,
+    0.2
+  ],
+  "initial_pair_groups": 10,
+  "learning_rates": [
+    1e-05,
+    3e-05,
+    0.0001,
+    0.0003
+  ],
+  "maximum_acquired_pair_groups": 100,
+  "maximum_epochs": [
+    3,
+    10,
+    30
+  ],
+  "mc_samples": [
+    10,
+    20
+  ],
+  "seeds": [
+    42,
+    79,
+    123
+  ],
+  "train_batch_size": 16,
+  "weight_decay": 0.0001
+}
