@@ -1,0 +1,23 @@
+{
+  "study_name": "identity_safe_fixed_3_epoch_vs_30_epoch_single_shot",
+  "dataset_version": "v1.8",
+  "encoder_initialization": "simclr",
+  "seeds": [42, 79, 123],
+  "initial_pair_groups": 10,
+  "candidate_pair_groups": 100,
+  "acquisition_budgets": [10, 25, 50, 75, 100],
+  "strategies": ["random", "uncertainty"],
+  "fixed_epoch_counts": [3, 30],
+  "learning_rate": 0.0001,
+  "weight_decay": 0.0001,
+  "train_batch_size": 16,
+  "dropout_probability": 0.2,
+  "include_twinned": false,
+  "exclude_all_ideal_identities_from_pairwise": true,
+  "outer_test_reporting_epochs": [3, 30],
+  "checkpoint_heartbeat_seconds": 1800,
+  "worker_assignment": {
+    "0": [[42, 3], [42, 30], [79, 3]],
+    "1": [[79, 30], [123, 3], [123, 30]]
+  }
+}

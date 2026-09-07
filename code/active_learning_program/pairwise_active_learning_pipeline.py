@@ -167,6 +167,11 @@ class Config:
     utility_validation_fraction: float = .2
     bad_anchor_weight: float = .10
     encoder_initialization: str = "simclr"
+    # The historical pair-disjoint studies remove outer-test identities from
+    # pairwise data.  New fixed-epoch work can request the stronger contract
+    # that no ideal image, including a reference anchor or utility-validation
+    # image, is also present in the pairwise training/candidate universe.
+    exclude_all_ideal_identities_from_pairwise: bool = False
 
 
 class Experiment:
@@ -185,6 +190,7 @@ class Experiment:
         self.groups: dict[str, pd.DataFrame] = {}; self.candidate_metadata: dict[str, dict[str, str]] = {}; self.bad_paths: list[Path] = []
         self._content_hash_cache: dict[Path, str] = {}
         self.excluded_test_identity_pairwise_rows = 0
+        self.excluded_all_ideal_identity_pairwise_rows = 0
         self.excluded_test_identity_bad_anchors = 0
         self.utility_cache_path = self.output / "utility_cache.json"
         self.utility_cache = json.loads(self.utility_cache_path.read_text()) if self.utility_cache_path.exists() else {}
@@ -214,11 +220,17 @@ class Experiment:
         if df.empty: raise ValueError("No valid pairwise rows with resolvable images.")
         self._split_ideals()
         test_identities = self._content_identities({p for paths in self.test_images.values() for p in paths})
-        # Outer-test ideal images are removed from the unlabeled trajectory/pair pool by content identity, not merely by filename.
-        keep = ~df.resolved_img1.map(lambda p: self._content_identity(Path(p)) in test_identities) & ~df.resolved_img2.map(lambda p: self._content_identity(Path(p)) in test_identities)
-        self.excluded_test_identity_pairwise_rows = int((~keep).sum())
+        protected_identities = set(test_identities)
+        if self.cfg.exclude_all_ideal_identities_from_pairwise:
+            protected_identities |= self._content_identities({p for paths in self.references.values() for p in paths})
+            protected_identities |= self._content_identities({p for paths in self.utility_images.values() for p in paths})
+        # Protected ideal images are removed from the unlabeled trajectory/pair
+        # pool by content identity, not merely by filename.
+        keep = ~df.resolved_img1.map(lambda p: self._content_identity(Path(p)) in protected_identities) & ~df.resolved_img2.map(lambda p: self._content_identity(Path(p)) in protected_identities)
+        self.excluded_test_identity_pairwise_rows = int((~df.resolved_img1.map(lambda p: self._content_identity(Path(p)) in test_identities) & ~df.resolved_img2.map(lambda p: self._content_identity(Path(p)) in test_identities)).sum())
+        self.excluded_all_ideal_identity_pairwise_rows = int((~keep).sum())
         df = df[keep].copy()
-        if df.empty: raise ValueError("All pairwise rows overlap the outer test by image identity.")
+        if df.empty: raise ValueError("All pairwise rows overlap protected ideal images by image identity.")
         df["type_idx"] = df.canonical_type.map(TYPE_TO_INDEX)
         df["confidence_weight"] = df.get("Confidence", pd.Series(index=df.index)).map({"Confident": 1.0, "Somewhat sure": .7}).fillna(1.0)
         self.groups = {key: g.reset_index(drop=True) for key, g in df.groupby("pair_id", sort=True)}
@@ -354,11 +366,14 @@ class Experiment:
             "reference_test_overlap": len(reference & outer_test), "utility_test_overlap": len(utility & outer_test),
             "reference_utility_overlap": len(reference & utility),
             "pairwise_image_overlap_outer_test": len(pair_images & outer_test),
+            "pairwise_image_identity_overlap_reference": len(pair_ids & reference_ids),
+            "pairwise_image_identity_overlap_utility_validation": len(pair_ids & utility_ids),
             "reference_test_identity_overlap": len(reference_ids & outer_test_ids),
             "utility_test_identity_overlap": len(utility_ids & outer_test_ids),
             "reference_utility_identity_overlap": len(reference_ids & utility_ids),
             "pairwise_image_identity_overlap_outer_test": len(pair_ids & outer_test_ids),
             "excluded_test_identity_pairwise_rows": self.excluded_test_identity_pairwise_rows,
+            "excluded_all_ideal_identity_pairwise_rows": self.excluded_all_ideal_identity_pairwise_rows,
             "excluded_test_identity_bad_anchors": self.excluded_test_identity_bad_anchors,
             "bad_reference_count": len(self.bad_paths), "candidate_labels_hidden_from_selector": True,
             "candidate_oracle_is_pair_level": True,

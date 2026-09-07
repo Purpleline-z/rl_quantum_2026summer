@@ -24,7 +24,9 @@ def atomic_torch_save(value: Any, path: Path) -> None:
 def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: str, deadline: float | None,
                                  heartbeat_seconds: int = 60, checkpoint_enabled: bool = True,
                                  validation_split: str | None = None, early_stopping_patience: int | None = None,
-                                 progress_callback: Callable[[dict[str, Any]], None] | None = None):
+                                 progress_callback: Callable[[dict[str, Any]], None] | None = None,
+                                 evaluation_splits_by_epoch: dict[int, tuple[str, ...]] | None = None,
+                                 return_best_validation_model: bool = True):
     """Train with optional resumable epoch checkpoints. Returns (model, metrics, paused)."""
     rows = exp.rows_for(pair_ids)
     if rows.empty: raise ValueError("Cannot train with no labeled pairs.")
@@ -96,6 +98,23 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
             else:
                 stale_epochs += 1
             model.train()
+        # These evaluations are for explicitly pre-registered reporting
+        # epochs.  They are recorded in the checkpoint but never update the
+        # validation-selected state or early-stopping counter.
+        requested_splits = (evaluation_splits_by_epoch or {}).get(epoch + 1, ())
+        if requested_splits:
+            model.eval()
+            recorded = {}
+            for split in requested_splits:
+                outcome = exp.evaluate(model, split)
+                recorded[split] = {
+                    "accuracy": float(outcome["test_accuracy"]),
+                    "correct": int(outcome["test_correct"]),
+                    "total": int(outcome["test_total"]),
+                    "by_class": outcome["by_class"],
+                }
+            metric["pre_registered_evaluations"] = recorded
+            model.train()
         epoch_metrics.append(metric)
         if progress_callback is not None:
             progress_callback({"phase": phase, "epoch": epoch + 1, "maximum_epochs": exp.cfg.epochs,
@@ -114,7 +133,7 @@ def train_with_epoch_checkpoints(exp, pair_ids, checkpoint_path: Path, phase: st
             print(f"early stop phase={phase} at epoch={epoch + 1}; best validation accuracy={best_validation:.4f}", flush=True)
             break
     model.eval()
-    if best_state is not None:
+    if return_best_validation_model and best_state is not None:
         model.load_state_dict(best_state)
     return model, {"loss": float(np.mean(losses)) if losses else float("nan"), "pairwise_accuracy": exp.pairwise_accuracy(model, rows),
                    "epoch_metrics": epoch_metrics, "best_validation_accuracy": best_validation if validation_split else None}, False

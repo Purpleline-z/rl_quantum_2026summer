@@ -15,6 +15,7 @@ The study is pair-disjoint: a pair cannot be in both the initial labeled set and
 | `protocol_diagnostics/` | How did LR and encoder screens behave in their recorded protocols? | ImageNet and `3e-4` screened better in selected fixed settings; budget-aware validation is needed before using one schedule everywhere. |
 | `selected_summaries/lambda_sweep/` | Which diversity weight worked at the tested endpoint? | The recorded lambda `0.5` was the best of the tested weights; it remains a project-specific design choice. |
 | `budget_aware_validation_calibration_account_*/` and `budget_aware_protocol/` | Which LR/epoch setting is appropriate for each budget and encoder? | Complete path-based calibration: ImageNet is higher at four budgets, SimCLR at budget 50. It must be rerun after identity-level split repair. |
+| `simclr_three_seed_identity_safe_task3/fixed_epoch_3_and_30_single_shot_*/` | Does fixed 30-epoch single-shot selection differ from fixed 3-epoch selection when LR is held at `1e-4`? | Registered implementation; results are pending the two-account queue. |
 
 ## Task sequence
 
@@ -39,6 +40,10 @@ The aggregation action selected a learning rate and epoch count for each `(encod
 ### Task 3c: final paired budget curves
 
 Task 3c must not start from the current Task 3b table. First rebuild all ideal and pairwise partitions around SHA-256 image identity, remove or jointly partition duplicate copies, and confirm capacity for ten initial plus 100 candidate pair groups. Then rerun validation calibration. Only the repaired protocol may be used to compare approved strategies at budgets 10, 25, 50, 75, and 100. Every final cell will start a fresh acquisition model and fresh final model; the standard and fixed-update controls will then separate “selected better labels” from “ran more updates because the acquired set was larger.”
+
+### Registered fixed-epoch single-shot comparison
+
+The fixed 3-versus-30 epoch comparison is separate from the validation-selected Task 3 schedule. It holds SimCLR initialization, `1e-4` learning rate, batch size, optimizer, initial ten pair groups, and candidate pool fixed; it compares Random with standard Uncertainty across three seeds and five budgets. Its strengthened data rule removes every ideal-image identity—not only outer-test identities—from the pairwise universe. The 3-epoch and 30-epoch selector models are each trained for their own registered epoch count, so any observed difference can be attributed to the fixed training duration rather than a selector trained under another duration. [Exact two-account Colab commands](COLAB_FIXED_3_VS_30_EPOCH_SINGLE_SHOT_COMMANDS.md)
 
 ## Persistence and result handling
 
