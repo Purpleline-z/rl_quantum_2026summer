@@ -30,6 +30,8 @@ The sealed evaluation reports pairwise winner accuracy for decisive test pairs a
 
 No result table is included yet because no completed experiment output has been committed. When Drive results are uploaded, add the measured architecture comparison, explain whether peak features changed reconstruction preference performance, and state the resulting data-collection implication (for example, whether more labels or a better peak extractor is the useful next investment).
 
+Committed experiment evidence belongs in `paper_replicate/results/<self_explanatory_run_name>/`. The publication command copies compact tables, JSON records, plots, and written interpretations from Drive while excluding raw images, temporary checkpoints, optimizer state, model weights, and files larger than 15 MB. Each published run contains a SHA-256 manifest so a later reader can identify exactly which Drive outputs support the reported result.
+
 ## Layout
 
 - `peak_aware_static_rheed_reward_model.py`: model and peak-profile extractor.
@@ -38,5 +40,6 @@ No result table is included yet because no completed experiment output has been 
 - `evaluate_image_disjoint_reconstruction_reward_model.py`: sealed test-pair evaluation.
 - `export_active_learning_pair_selection_features.py`: selector-ready reward, uncertainty, and embedding export.
 - `run_resumable_paper_replicate_task_queue.py`: Colab/Drive task queue.
+- `publish_drive_results_to_github.py`: filtered Drive-to-GitHub result publication.
 
 See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for exact commands and time estimates.

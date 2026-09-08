@@ -60,3 +60,24 @@ cd /content/rl_quantum_2026summer && python -m paper_replicate.run_resumable_pap
 ```
 
 The training progress bar reports the current epoch. `training_progress.json` is updated after every epoch; a durable `completed_task_result.json` is written before the temporary checkpoint is removed. Final model weights and feature exports are retained in Drive.
+
+## Publish completed results to GitHub `main` (2--5 minutes)
+
+Run this only after the experiment queue has written its completion JSON. It copies compact scientific evidence into `paper_replicate/results/<run name>/`; it does not copy images, checkpoints, optimizer state, model weights, or files above 15 MB.
+
+```bash
+%%bash
+set -euo pipefail
+cd /content/rl_quantum_2026summer
+git pull --rebase origin main
+python -m paper_replicate.publish_drive_results_to_github \
+  --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate \
+  --repository-root /content/rl_quantum_2026summer \
+  --run-name static_peak_aware_reward_model_seed_042_to_303
+git status --short
+git add paper_replicate/results/static_peak_aware_reward_model_seed_042_to_303
+git commit -m "Add static peak-aware RHEED experiment results"
+git push origin main
+```
+
+Use a different self-explanatory `--run-name` for each distinct experiment. If Git reports that the remote changed between `pull` and `push`, run the same cell again; it rebases the local result commit before retrying the push.
