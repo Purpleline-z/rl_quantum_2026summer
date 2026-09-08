@@ -1,121 +1,92 @@
-# Colab commands for the static peak-aware RHEED study
+# One-T4 Colab execution
 
-Every account mounts its own Google Drive and writes to its own `MyDrive` path. GitHub is cloned into Colab's temporary disk; Drive holds the durable JSON records, checkpoints, weights, and results.
+This is the only experiment command. It uses one T4 runtime for the session-held-out audit, training, sealed evaluation, result interpretation, filtered publication, and push to `main`. It never reuses a `/content` clone, so prior Colab cache files, local `.gitignore` files, staged results, and old commits cannot affect it.
 
-## Initial cells on every runtime (about 3--8 minutes)
+## Required one-time Drive authorization
+
+Google requires an interactive authorization the first time a runtime mounts Drive. Run this once after opening the Colab runtime; no result directory is created before it succeeds.
 
 ```python
 from google.colab import drive
 drive.mount("/content/drive")
 ```
 
-```bash
-%%bash
-set -euo pipefail
-export PYTHONDONTWRITEBYTECODE=1
-REPOSITORY_DIRECTORY="/content/rl_quantum_2026summer"
-if [ ! -d "${REPOSITORY_DIRECTORY}/.git" ]; then
-  git clone https://github.com/Purpleline-z/rl_quantum_2026summer.git "${REPOSITORY_DIRECTORY}"
-fi
-cd "${REPOSITORY_DIRECTORY}"
-git status --short
-git pull --ff-only origin main
-python -m pip install --quiet --upgrade pip
-python -m pip install --quiet pandas pillow scikit-learn tqdm
-```
+## Single all-in-one cell
 
-All following cells use `RHEED_DATA_ROOT=/content/rl_quantum_2026summer/data` and persist results in `/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate`. Re-run an interrupted cell unchanged: it reads its completed JSON or the last epoch checkpoint. Every task cell sets `PYTHONDONTWRITEBYTECODE=1`, so it cannot create Git-changing Python cache files.
-
-## CPU task 1: create the sealed split (5 minutes)
-
-```bash
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name verify_input_data_and_create_image_disjoint_split --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
-```
-
-## GPU account A: architecture comparison (4--12 minutes total on a T4)
-
-```bash
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name compare_image_encoder_with_peak_aware_encoder --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --seeds 42,79 --model-variants image_encoder_only,image_encoder_plus_peak_features --device cuda --checkpoint-heartbeat-minutes 30 --resume
-```
-
-## GPU account B: independent repeat (5--15 minutes on a T4)
-
-```bash
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name independently_repeat_peak_aware_model_comparison --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --seeds 123,202,303 --model-variants image_encoder_only,image_encoder_plus_peak_features --device cuda --checkpoint-heartbeat-minutes 30 --resume
-```
-
-## GPU account A: sealed test and active-learning export (10--20 minutes)
-
-Run this in the same Google Drive account used for GPU account A. It selects the best validation result from GPU A's comparison, retrains the chosen architecture, evaluates the sealed test images, and exports active-learning features. GPU account B has a separate Drive and is reserved for independent repetition; it cannot read account A's comparison JSON.
-
-```bash
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name train_selected_model_and_evaluate_sealed_image_disjoint_test_set --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cuda --checkpoint-heartbeat-minutes 30 --resume
-```
-
-## CPU tasks 2--4 (5--20 minutes each)
-
-```bash
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name audit_pairwise_absolute_and_ideal_label_coverage --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name validate_peak_feature_extraction_on_training_and_validation_images --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name run_model_and_data_protocol_tests --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
-cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name summarize_completed_gpu_tasks_and_prepare_active_learning_features --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
-```
-
-The training progress bar reports the current epoch. `training_progress.json` is updated after every epoch; a durable `completed_task_result.json` is written before the temporary checkpoint is removed. Final model weights and feature exports are retained in Drive.
-
-## Publish completed results to GitHub `main` (2--5 minutes)
-
-Run this only after the experiment queue has written its completion JSON. It copies compact scientific evidence into `paper_replicate/results/<run name>/`; it does not copy images, checkpoints, optimizer state, model weights, or files above 15 MB.
-
-```bash
-%%bash
-set -euo pipefail
-cd /content/rl_quantum_2026summer
-git pull --ff-only origin main
-git config user.name "Purpleline-z"
-git config user.email "purpleline@uchicago.edu"
-python -m paper_replicate.publish_drive_results_to_github \
-  --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate \
-  --repository-root /content/rl_quantum_2026summer \
-  --run-name static_peak_aware_reward_model_seed_042_to_303
-git status --short
-git add paper_replicate/results/static_peak_aware_reward_model_seed_042_to_303
-git commit -m "Add static peak-aware RHEED experiment results"
-git push origin main
-```
-
-Use a different self-explanatory `--run-name` for each distinct experiment. Do not run `git pull` while a result publication is staged or committed locally. If another machine updates `main` before the final push, first finish the current commit, then run `git pull --rebase origin main` and retry the push.
-
-`git config user.name` and `git config user.email` identify the author of the commit in this Colab clone; they do not authenticate GitHub access. The final `git push` uses the GitHub credential stored in the runtime. If it requests credentials, use a GitHub personal access token with repository write permission as the password; never place a token in this notebook or commit it to the repository.
-
-### Colab PAT setup for a non-interactive `%%bash` push
-
-`%%bash` cannot answer Git's interactive username/password prompts. In Colab's left sidebar, open **Secrets**, add a secret named `GITHUB_PAT`, paste a fine-grained token that can write to this repository, and enable notebook access. Then run this Python cell after the result commit and rebase; it supplies the token only to the `git push` subprocess and deletes its temporary askpass helper immediately afterward.
+Before running it, set `GITHUB_TOKEN` as a Colab Secret with repository write permission and notebook access enabled. The cell reads it only into the push subprocess and never writes it to Drive, a notebook, git configuration, or the remote URL. A token pasted into chat is exposed and must be revoked after this run; create a replacement token in GitHub rather than reusing it.
 
 ```python
-from google.colab import userdata
-import os
 from pathlib import Path
+import os
+import shutil
 import subprocess
+import tempfile
 
-repository_directory = Path("/content/rl_quantum_2026summer")
-askpass_script = Path("/tmp/paper_replicate_git_askpass.sh")
-askpass_script.write_text(
-    "#!/bin/sh\n"
-    "case \"$1\" in\n"
-    "  *Username*) echo 'Purpleline-z' ;;\n"
-    "  *Password*) echo \"$GITHUB_PAT\" ;;\n"
-    "esac\n",
-    encoding="utf-8",
-)
-askpass_script.chmod(0o700)
-push_environment = os.environ.copy()
-push_environment["GITHUB_PAT"] = userdata.get("GITHUB_PAT")
-push_environment["GIT_ASKPASS"] = str(askpass_script)
-push_environment["GIT_TERMINAL_PROMPT"] = "0"
+drive_root = Path("/content/drive/MyDrive")
+if not drive_root.is_dir():
+    raise RuntimeError("Google Drive is not mounted. Run the one-time mount cell first; no experiment was started.")
+
+from google.colab import userdata
+github_token = userdata.get("GITHUB_TOKEN")
+if not github_token:
+    raise RuntimeError("Colab Secret GITHUB_TOKEN is missing. No experiment was started.")
+
+repository_url = "https://github.com/Purpleline-z/rl_quantum_2026summer.git"
+run_name = "session_held_out_static_rheed_classifier_t4"
+drive_results_root = drive_root / "rl_quantum_2026summer_results" / "paper_replicate"
+drive_results_root.mkdir(parents=True, exist_ok=True)
+temporary_parent = Path(tempfile.mkdtemp(prefix="rheed_single_t4_"))
+repository_root = temporary_parent / "rl_quantum_2026summer"
+environment = os.environ | {"PYTHONDONTWRITEBYTECODE": "1", "GIT_TERMINAL_PROMPT": "0"}
+
+def run(command, *, cwd=None, env=environment):
+    print("+", " ".join(map(str, command)))
+    subprocess.run(list(map(str, command)), cwd=cwd, env=env, check=True)
+
 try:
-    subprocess.run(["git", "push", "origin", "main"], cwd=repository_directory, env=push_environment, check=True)
+    run(["git", "clone", "--depth", "1", "--branch", "main", repository_url, repository_root])
+    run(["python", "-m", "pip", "install", "--quiet", "pandas", "pillow", "scikit-learn", "tqdm"])
+    run(["python", "-m", "paper_replicate.run_single_t4_session_held_out_study",
+         "--data-root", repository_root / "data",
+         "--drive-results-root", drive_results_root,
+         "--run-name", run_name, "--device", "cuda",
+         "--seeds", "42,79,123,202,303", "--epochs", "12",
+         "--repository-root", repository_root, "--resume"], cwd=repository_root)
+    result_json = drive_results_root / run_name / "completed_task_result.json"
+    run(["python", "-m", "paper_replicate.update_readme_from_session_held_out_result",
+         "--result-json", result_json, "--readme", repository_root / "paper_replicate" / "README.md"], cwd=repository_root)
+    run(["python", "-m", "paper_replicate.publish_drive_results_to_github",
+         "--drive-results-root", drive_results_root / run_name,
+         "--repository-root", repository_root, "--run-name", run_name], cwd=repository_root)
+    run(["git", "config", "user.name", "Purpleline-z"], cwd=repository_root)
+    run(["git", "config", "user.email", "purpleline@uchicago.edu"], cwd=repository_root)
+    run(["git", "add", "paper_replicate/README.md", f"paper_replicate/results/{run_name}"], cwd=repository_root)
+    if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repository_root).returncode == 0:
+        print("No new result files to commit; the existing published run already matches Drive.")
+    else:
+        run(["git", "commit", "-m", "Add session-held-out static RHEED study results"], cwd=repository_root)
+        askpass = temporary_parent / "git_askpass.sh"
+        askpass.write_text("#!/bin/sh\ncase \"$1\" in *Username*) echo Purpleline-z ;; *Password*) echo \"$GITHUB_TOKEN\" ;; esac\n")
+        askpass.chmod(0o700)
+        push_environment = environment | {"GITHUB_TOKEN": github_token, "GIT_ASKPASS": str(askpass)}
+        try:
+            run(["git", "pull", "--rebase", "origin", "main"], cwd=repository_root, env=push_environment)
+            run(["git", "push", "origin", "main"], cwd=repository_root, env=push_environment)
+        finally:
+            askpass.unlink(missing_ok=True)
 finally:
-    askpass_script.unlink(missing_ok=True)
-    push_environment.pop("GITHUB_PAT", None)
+    github_token = None
+    shutil.rmtree(temporary_parent, ignore_errors=True)
 ```
+
+## Time and output
+
+The initial audit takes about 2–5 minutes. If any held-out session has fewer than 50 decisive comparisons, it writes `session_held_out_data_readiness_audit.json` and `completed_task_result.json` under:
+
+`/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/session_held_out_static_rheed_classifier_t4/`
+
+It then stops without training or manufacturing an accuracy result. The audit records the additional pair count needed in each session.
+
+Once all three sessions meet the threshold, one T4 needs about 50–90 minutes for 3 outer session folds × 5 seeds × 2 variants. Every epoch writes `training_progress.json` with elapsed time and remaining-time estimate. A repeat of this exact cell resumes Drive jobs with a completed JSON or a recent checkpoint. Checkpoints are deleted only after durable model results are written; images, weights, and Drive feature outputs are retained.
+
+Only compact JSON/CSV/Markdown/PNG/PDF plus a SHA-256 manifest are published under `paper_replicate/results/session_held_out_static_rheed_classifier_t4/`. No raw RHEED image, model weight, checkpoint, cache, or token is published.

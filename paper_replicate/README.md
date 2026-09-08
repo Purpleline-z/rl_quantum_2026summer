@@ -26,9 +26,17 @@ The study is designed to answer a useful local question: do peak-aware image mea
 
 Each trained model returns five reconstruction rewards in this order: `(1 x 1)`, `Twinned(2 x 1)`, `c(6 x 2)`, `(√13 x √13)`, and `HTR`; a separate quality score; and a 512-dimensional image embedding. For a candidate pair it exports reward margins, per-type preference probabilities, mean entropy, and concatenated embeddings. Existing uncertainty, diversity, hybrid, cluster, core-set, and MC-dropout selectors can use these values without changing their acquisition rule.
 
-The sealed evaluation reports pairwise winner accuracy for decisive test pairs and records the exact image identities in `image_disjoint_test_split.json`. Test identities are chosen before training and never participate in training, validation, image augmentation, feature fitting, calibration, or model selection. The fixed final model reads them only once to produce final evaluation predictions.
+The definitive evaluation is session-held-out rather than merely image-held-out: all images from one dated acquisition session are sealed away while the model is trained and selected from the other sessions. This protects against accidentally learning near-adjacent frames from the same growth run. Before training, the protocol requires at least 50 decisive (`1` or `2`) expert comparisons in every held-out session. Test images and labels do not participate in training, validation, augmentation, calibration, feature fitting, or architecture selection.
 
-No result table is included yet because no completed experiment output has been committed. When Drive results are uploaded, add the measured architecture comparison, explain whether peak features changed reconstruction preference performance, and state the resulting data-collection implication (for example, whether more labels or a better peak extractor is the useful next investment).
+For each outer held-out session, both architectures are trained with five seeds. The chosen architecture is the one with the highest **mean validation** decisive-pair accuracy across those seeds. The sealed session is then evaluated once per selected seed. Reports include decisive-pair accuracy, all-label macro-F1 (which includes `tie` and `not_apply`), calibrated preference probabilities, per-reconstruction-type counts, and active-learning embeddings/reward margins/entropy. Temperature and tie/not-applicable thresholds are fitted using validation predictions only.
+
+## Latest session-held-out result
+
+<!-- SESSION_HELD_OUT_RESULTS_START -->
+
+No session-held-out classifier result has been published yet. The older random image-identity split artifacts under `results/static_peak_aware_reward_model_seed_042_to_303/` remain an implementation record only; they are excluded from architecture selection and from this result section.
+
+<!-- SESSION_HELD_OUT_RESULTS_END -->
 
 The comparison queue requires the repository's shipped RHEED SimCLR ResNet-18 checkpoint. Each completed training JSON records its checkpoint path and the count of loaded tensors. Results without `encoder_provenance.name = rheed_simclr_resnet18` are queue-protocol smoke tests from the earlier random-encoder implementation and must be replaced by rerunning the same queue command with `--resume`; the runner detects that missing provenance and retrains the affected job.
 
@@ -41,9 +49,10 @@ Committed experiment evidence belongs in `paper_replicate/results/<self_explanat
 - `train_peak_aware_reconstruction_reward_model.py`: checkpointed Bradley--Terry training.
 - `evaluate_image_disjoint_reconstruction_reward_model.py`: sealed test-pair evaluation.
 - `export_active_learning_pair_selection_features.py`: selector-ready reward, uncertainty, and embedding export.
-- `run_resumable_paper_replicate_task_queue.py`: Colab/Drive task queue.
+- `run_single_t4_session_held_out_study.py`: one-T4 session-held-out audit, training, selection, and sealed evaluation.
+- `run_resumable_paper_replicate_task_queue.py`: legacy image-identity task queue retained only for earlier run reproducibility.
 - `publish_drive_results_to_github.py`: filtered Drive-to-GitHub result publication.
 
 See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for exact commands and time estimates.
 
-When Colab accounts mount different Google Drives, their result queues are independent. Run the final sealed evaluation in account A, which owns the architecture-comparison JSON. Account B supplies a separately published replication result; compare the two accounts only after their compact JSON records have been uploaded to GitHub.
+See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for the one-T4 command, Drive output path, resume behavior, and publication procedure.

@@ -11,7 +11,7 @@ from torchvision import transforms as T
 from tqdm.auto import tqdm
 
 from .peak_aware_static_rheed_reward_model import PeakAwareStaticRHEEDRewardModel, RECONSTRUCTION_TYPES
-from .pairwise_and_absolute_label_dataset import load_pairwise_rows, load_absolute_and_ideal_anchors
+from .pairwise_and_absolute_label_dataset import load_pairwise_rows, load_absolute_and_ideal_anchors, session_id_for_image
 
 TYPE_INDEX = {name: index for index, name in enumerate(RECONSTRUCTION_TYPES)}
 TRANSFORM = T.Compose([T.Resize((224, 224)), T.Grayscale(3), T.ToTensor(), T.Normalize((.5,)*3, (.25,)*3)])
@@ -38,7 +38,26 @@ def _loss(rewards_left, rewards_right, type_indices, winners):
     if not_apply: values.append(torch.stack(not_apply).mean())
     return torch.stack(values).mean() if values else rewards_left.sum() * 0
 
-def train_job(data_root, split, output_directory, use_peak_features, seed, device="cpu", epochs=12, batch_size=8, resume=True):
+def _validation_prediction_records(model, validation_rows, device):
+    """Collect validation-only scores used later for threshold/temperature fitting."""
+    records = []
+    model.eval()
+    with torch.no_grad():
+        for row in validation_rows:
+            left = TRANSFORM(Image.open(row["left"]).convert("RGB")).unsqueeze(0).to(device)
+            right = TRANSFORM(Image.open(row["right"]).convert("RGB")).unsqueeze(0).to(device)
+            type_index = TYPE_INDEX[row["reconstruction_type"]]
+            left_rewards, right_rewards = model(left), model(right)
+            margin = float((left_rewards[0, type_index] - right_rewards[0, type_index]).cpu())
+            strength = float(torch.maximum(left_rewards[0, type_index], right_rewards[0, type_index]).cpu())
+            records.append({"pair_id": row["pair_id"], "winner": row["winner"],
+                            "reconstruction_type": row["reconstruction_type"],
+                            "margin": margin, "reward_strength": strength})
+    return records
+
+
+def train_job(data_root, split, output_directory, use_peak_features, seed, device="cpu", epochs=12, batch_size=8,
+              resume=True, checkpoint_heartbeat_minutes=30):
     torch.manual_seed(seed)
     output = Path(output_directory); output.mkdir(parents=True, exist_ok=True)
     rows = load_pairwise_rows(data_root)
@@ -47,7 +66,13 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
     train_rows = [row for row in rows if row["left"] in train_images and row["right"] in train_images]
     if not train_rows: raise ValueError("Image-disjoint split left no train-only pairs; adjust the split before training.")
     loader = DataLoader(PairDataset(train_rows), batch_size=batch_size, shuffle=True, num_workers=0)
-    anchors = [anchor for anchor in load_absolute_and_ideal_anchors(data_root) if anchor["path"] not in test_images]
+    def is_sealed_anchor(anchor):
+        if anchor["path"] in test_images: return True
+        held_out_session = split.get("held_out_test_session")
+        if not held_out_session: return False
+        try: return session_id_for_image(anchor["path"]) == held_out_session
+        except ValueError: return False  # ideal references are external anchors, not video/session frames.
+    anchors = [anchor for anchor in load_absolute_and_ideal_anchors(data_root) if not is_sealed_anchor(anchor)]
     model = PeakAwareStaticRHEEDRewardModel(use_peak_features=use_peak_features).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
     checkpoint = output / "resumable_training_checkpoint.pth"
@@ -55,6 +80,7 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
     if resume and checkpoint.exists():
         state = torch.load(checkpoint, map_location=device); model.load_state_dict(state["model"]); optimizer.load_state_dict(state["optimizer"]); start = state["epoch"] + 1
     history = []
+    started_at = time.time()
     for epoch in range(start, epochs):
         model.train(); losses = []
         for left, right, indices, winners in tqdm(loader, desc=f"seed {seed} epoch {epoch + 1}/{epochs}", leave=False):
@@ -72,21 +98,25 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
                 class_indices = torch.tensor([TYPE_INDEX[item[1]["reconstruction_type"]] for item in labelled], device=device)
                 anchor_loss = anchor_loss + F.binary_cross_entropy_with_logits(rewards[row_indices, class_indices], torch.ones(len(labelled), device=device))
             anchor_loss.backward(); optimizer.step(); losses.append(float(anchor_loss.detach().cpu()))
-        progress = {"status": "running", "seed": seed, "epoch": epoch + 1, "epochs": epochs, "mean_loss": sum(losses)/len(losses), "elapsed_seconds": time.time()}
+        elapsed_seconds = time.time() - started_at
+        average_epoch_seconds = elapsed_seconds / (epoch - start + 1)
+        progress = {"status": "running", "seed": seed, "epoch": epoch + 1, "epochs": epochs,
+                    "mean_loss": sum(losses)/len(losses), "elapsed_seconds": elapsed_seconds,
+                    "estimated_seconds_remaining": max(0., average_epoch_seconds * (epochs - epoch - 1)),
+                    "checkpoint_heartbeat_minutes": checkpoint_heartbeat_minutes}
         history.append(progress)
         (output / "training_progress.json").write_text(json.dumps({"history": history, "latest": progress}, indent=2), encoding="utf-8")
         torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(), "epoch": epoch}, checkpoint)
     validation_images = set(split["images"]["validation"])
     validation_rows = [row for row in rows if row["left"] in validation_images and row["right"] in validation_images and row["winner"] in {"1", "2"}]
-    model.eval(); correct = 0
-    with torch.no_grad():
-        for row in validation_rows:
-            left = TRANSFORM(Image.open(row["left"]).convert("RGB")).unsqueeze(0).to(device)
-            right = TRANSFORM(Image.open(row["right"]).convert("RGB")).unsqueeze(0).to(device)
-            probability = float(model.pairwise_probability(left, right, TYPE_INDEX.get(row["reconstruction_type"], 0)).cpu())
-            correct += ("1" if probability > .5 else "2") == row["winner"]
+    validation_all_rows = [row for row in rows if row["left"] in validation_images and row["right"] in validation_images]
+    validation_records = _validation_prediction_records(model, validation_all_rows, device)
+    decisive_records = [record for record in validation_records if record["winner"] in {"1", "2"}]
+    correct = sum(("1" if record["margin"] > 0 else "2") == record["winner"] for record in decisive_records)
     final_weights = output / "final_model_weights.pth"; torch.save(model.state_dict(), final_weights)
-    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "encoder_provenance": model.encoder_provenance, "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_decisive_pairs": len(validation_rows), "validation_pairwise_winner_accuracy": correct / len(validation_rows) if validation_rows else None, "epochs": epochs}
+    validation_predictions_path = output / "validation_prediction_records.json"
+    validation_predictions_path.write_text(json.dumps(validation_records, indent=2), encoding="utf-8")
+    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "encoder_provenance": model.encoder_provenance, "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_pair_count": len(validation_all_rows), "validation_decisive_pairs": len(decisive_records), "validation_pairwise_winner_accuracy": correct / len(decisive_records) if decisive_records else None, "validation_prediction_records": str(validation_predictions_path), "epochs": epochs, "elapsed_seconds": time.time() - started_at}
     (output / "completed_task_result.json").write_text(json.dumps(final, indent=2), encoding="utf-8")
     checkpoint.unlink(missing_ok=True)
     return final

@@ -88,3 +88,73 @@ def create_image_disjoint_split(pair_rows: list[dict], output_path: str | Path, 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(value, indent=2), encoding="utf-8")
     return value
+
+
+def session_id_for_image(path: str | Path) -> str:
+    """Return the acquisition-session directory below ``Trajectories``.
+
+    A dated acquisition session is deliberately the unit held out in the
+    definitive study.  Adjacent frames in one growth run are visually similar,
+    so holding out only image filenames can make a model look better than it
+    will be on a later experiment.
+    """
+    image_path = Path(path)
+    parts = image_path.parts
+    try:
+        return parts[parts.index("Trajectories") + 1]
+    except (ValueError, IndexError) as error:
+        raise ValueError(f"Cannot infer an acquisition session from {image_path}") from error
+
+
+def session_held_out_audit(pair_rows: list[dict], minimum_decisive_pairs: int = 50) -> dict:
+    """Count only within-session pairs that can be used as a sealed test fold."""
+    sessions = sorted({session_id_for_image(row["left"]) for row in pair_rows} |
+                      {session_id_for_image(row["right"]) for row in pair_rows})
+    folds = []
+    for session in sessions:
+        rows = [row for row in pair_rows
+                if session_id_for_image(row["left"]) == session
+                and session_id_for_image(row["right"]) == session]
+        decisive = [row for row in rows if row["winner"] in {"1", "2"}]
+        by_label = {label: sum(row["winner"] == label for row in rows)
+                    for label in ("1", "2", "tie", "not_apply")}
+        folds.append({"held_out_session": session, "all_pair_count": len(rows),
+                      "decisive_pair_count": len(decisive), "labels": by_label,
+                      "minimum_decisive_pairs": minimum_decisive_pairs,
+                      "additional_decisive_pairs_needed": max(0, minimum_decisive_pairs - len(decisive)),
+                      "eligible": len(decisive) >= minimum_decisive_pairs})
+    return {"protocol": "session_held_out", "minimum_decisive_pairs_per_outer_test_fold": minimum_decisive_pairs,
+            "folds": folds, "eligible_to_train": bool(folds) and all(fold["eligible"] for fold in folds),
+            "interpretation": "A fold is eligible only when its untouched acquisition session has enough decisive expert comparisons to estimate accuracy."}
+
+
+def create_session_held_out_split(pair_rows: list[dict], held_out_session: str,
+                                  output_path: str | Path, seed: int = 42,
+                                  validation_fraction: float = .20) -> dict:
+    """Seal one acquisition session and create image-disjoint validation data from the others."""
+    output_path = Path(output_path)
+    if output_path.exists():
+        return json.loads(output_path.read_text(encoding="utf-8"))
+    test_images = sorted({image for row in pair_rows for image in (row["left"], row["right"])
+                          if session_id_for_image(image) == held_out_session})
+    candidate_images = sorted({image for row in pair_rows for image in (row["left"], row["right"])
+                               if session_id_for_image(image) != held_out_session})
+    random.Random(seed).shuffle(candidate_images)
+    validation_size = max(1, round(len(candidate_images) * validation_fraction))
+    groups = {"test": test_images, "validation": sorted(candidate_images[:validation_size]),
+              "train": sorted(candidate_images[validation_size:])}
+    membership = {image: group for group, images in groups.items() for image in images}
+    within_group_pairs = {
+        group: [row["pair_id"] for row in pair_rows
+                if membership.get(row["left"]) == group and membership.get(row["right"]) == group]
+        for group in groups
+    }
+    value = {
+        "seed": seed, "protocol": "session_held_out_outer_fold",
+        "held_out_test_session": held_out_session,
+        "test_image_policy": "All images from the held-out acquisition session are excluded from training, validation, augmentation, calibration, feature fitting, and architecture selection.",
+        "images": groups, "pair_ids_within_group": within_group_pairs,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(value, indent=2), encoding="utf-8")
+    return value
