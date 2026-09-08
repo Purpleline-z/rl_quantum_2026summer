@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 from torchvision import models
+from pathlib import Path
 
 RECONSTRUCTION_TYPES = ("(1 x 1)", "Twinned(2 x 1)", "c(6 x 2)", "(√13 x √13)", "HTR")
 
@@ -36,7 +37,7 @@ class PeakAwareImageEncoder(nn.Module):
     """ResNet-18 vision features fused with low-dimensional peak-profile features."""
     output_dim = 512
 
-    def __init__(self, use_peak_features: bool = True) -> None:
+    def __init__(self, use_peak_features: bool = True, simclr_checkpoint: str | Path | None = None) -> None:
         super().__init__()
         backbone = models.resnet18(weights=None)
         self.vision = nn.Sequential(*list(backbone.children())[:-1])
@@ -44,6 +45,21 @@ class PeakAwareImageEncoder(nn.Module):
         self.peaks = RHEEDPeakFeatureExtractor()
         self.peak_projection = nn.Sequential(nn.Linear(self.peaks.output_dim, 128), nn.ReLU(), nn.Linear(128, 512))
         self.fusion = nn.Sequential(nn.Linear(1024, 512), nn.ReLU(), nn.Dropout(0.10))
+        checkpoint = Path(simclr_checkpoint) if simclr_checkpoint else Path(__file__).resolve().parents[1] / "code" / "classifier2" / "simclr_encoder_checkpoint" / "simclr_resnet18_encoder.pth"
+        if not checkpoint.exists():
+            raise FileNotFoundError(f"The required RHEED SimCLR checkpoint is missing: {checkpoint}")
+        state = torch.load(checkpoint, map_location="cpu", weights_only=False)
+        if isinstance(state, dict) and "state_dict" in state:
+            state = state["state_dict"]
+        if not isinstance(state, dict):
+            raise ValueError("The RHEED SimCLR checkpoint is not a state dictionary.")
+        cleaned = {key.replace("encoder.", ""): value for key, value in state.items() if not key.startswith("projector.")}
+        target = self.vision.state_dict()
+        compatible = {key: value for key, value in cleaned.items() if key in target and target[key].shape == value.shape}
+        if not compatible:
+            raise ValueError("No compatible RHEED SimCLR tensors were loaded into the ResNet-18 encoder.")
+        self.vision.load_state_dict(compatible, strict=False)
+        self.encoder_provenance = {"name": "rheed_simclr_resnet18", "checkpoint": str(checkpoint), "loaded_tensors": len(compatible), "expected_tensors": len(target)}
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         vision = self.vision(images).flatten(1)
@@ -54,9 +70,9 @@ class PeakAwareImageEncoder(nn.Module):
 
 class PeakAwareStaticRHEEDRewardModel(nn.Module):
     """Five Bradley--Terry reconstruction rewards plus a separate image-quality score."""
-    def __init__(self, use_peak_features: bool = True, hidden_dim: int = 256) -> None:
+    def __init__(self, use_peak_features: bool = True, hidden_dim: int = 256, simclr_checkpoint: str | Path | None = None) -> None:
         super().__init__()
-        self.encoder = PeakAwareImageEncoder(use_peak_features=use_peak_features)
+        self.encoder = PeakAwareImageEncoder(use_peak_features=use_peak_features, simclr_checkpoint=simclr_checkpoint)
         self.reward_head = nn.Sequential(nn.Linear(512, hidden_dim), nn.ReLU(), nn.Dropout(0.10), nn.Linear(hidden_dim, 5))
         self.quality_head = nn.Sequential(nn.Linear(512, hidden_dim // 2), nn.ReLU(), nn.Linear(hidden_dim // 2, 1))
 
@@ -72,6 +88,10 @@ class PeakAwareStaticRHEEDRewardModel(nn.Module):
 
     def quality_score(self, images: torch.Tensor) -> torch.Tensor:
         return self.quality_head(self.encode(images)).squeeze(1)
+
+    @property
+    def encoder_provenance(self) -> dict:
+        return self.encoder.encoder_provenance
 
     def pairwise_probability(self, left: torch.Tensor, right: torch.Tensor, reconstruction_index: int) -> torch.Tensor:
         return torch.sigmoid(self(left)[:, reconstruction_index] - self(right)[:, reconstruction_index])

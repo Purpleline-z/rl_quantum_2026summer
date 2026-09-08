@@ -30,6 +30,8 @@ The sealed evaluation reports pairwise winner accuracy for decisive test pairs a
 
 No result table is included yet because no completed experiment output has been committed. When Drive results are uploaded, add the measured architecture comparison, explain whether peak features changed reconstruction preference performance, and state the resulting data-collection implication (for example, whether more labels or a better peak extractor is the useful next investment).
 
+The comparison queue requires the repository's shipped RHEED SimCLR ResNet-18 checkpoint. Each completed training JSON records its checkpoint path and the count of loaded tensors. Results without `encoder_provenance.name = rheed_simclr_resnet18` are queue-protocol smoke tests from the earlier random-encoder implementation and must be replaced by rerunning the same queue command with `--resume`; the runner detects that missing provenance and retrains the affected job.
+
 Committed experiment evidence belongs in `paper_replicate/results/<self_explanatory_run_name>/`. The publication command copies compact tables, JSON records, plots, and written interpretations from Drive while excluding raw images, temporary checkpoints, optimizer state, model weights, and files larger than 15 MB. Each published run contains a SHA-256 manifest so a later reader can identify exactly which Drive outputs support the reported result.
 
 ## Layout

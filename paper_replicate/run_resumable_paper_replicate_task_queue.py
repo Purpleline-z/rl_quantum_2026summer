@@ -27,7 +27,10 @@ def train_comparison(args, root, task_name, seeds, variants):
         for variant in variants:
             directory = task_directory(root, task_name, seed, variant)
             durable = directory / "completed_task_result.json"
-            if args.resume and durable.exists(): completed.append(json.loads(durable.read_text())); continue
+            if args.resume and durable.exists():
+                previous = json.loads(durable.read_text())
+                if previous.get("encoder_provenance", {}).get("name") == "rheed_simclr_resnet18":
+                    completed.append(previous); continue
             completed.append(train_job(args.data_root, split, directory, variant == "image_encoder_plus_peak_features", seed, args.device, resume=args.resume))
     write_json(root / task_name / "completed_task_result.json", {"status": "completed", "jobs": completed})
 

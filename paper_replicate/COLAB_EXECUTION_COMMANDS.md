@@ -30,13 +30,13 @@ All following cells use `RHEED_DATA_ROOT=/content/rl_quantum_2026summer/data` an
 cd /content/rl_quantum_2026summer && python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name verify_input_data_and_create_image_disjoint_split --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cpu --resume
 ```
 
-## GPU account A: architecture comparison (50--90 minutes total)
+## GPU account A: architecture comparison (4--12 minutes total on a T4)
 
 ```bash
 cd /content/rl_quantum_2026summer && python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name compare_image_encoder_with_peak_aware_encoder --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --seeds 42,79 --model-variants image_encoder_only,image_encoder_plus_peak_features --device cuda --checkpoint-heartbeat-minutes 30 --resume
 ```
 
-## GPU account B: independent repeat (30--60 minutes)
+## GPU account B: independent repeat (5--15 minutes on a T4)
 
 ```bash
 cd /content/rl_quantum_2026summer && python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name independently_repeat_peak_aware_model_comparison --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --seeds 123,202,303 --model-variants image_encoder_only,image_encoder_plus_peak_features --device cuda --checkpoint-heartbeat-minutes 30 --resume

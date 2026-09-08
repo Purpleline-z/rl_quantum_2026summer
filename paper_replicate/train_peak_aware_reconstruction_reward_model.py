@@ -86,7 +86,7 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
             probability = float(model.pairwise_probability(left, right, TYPE_INDEX.get(row["reconstruction_type"], 0)).cpu())
             correct += ("1" if probability > .5 else "2") == row["winner"]
     final_weights = output / "final_model_weights.pth"; torch.save(model.state_dict(), final_weights)
-    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_decisive_pairs": len(validation_rows), "validation_pairwise_winner_accuracy": correct / len(validation_rows) if validation_rows else None, "epochs": epochs}
+    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "encoder_provenance": model.encoder_provenance, "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_decisive_pairs": len(validation_rows), "validation_pairwise_winner_accuracy": correct / len(validation_rows) if validation_rows else None, "epochs": epochs}
     (output / "completed_task_result.json").write_text(json.dumps(final, indent=2), encoding="utf-8")
     checkpoint.unlink(missing_ok=True)
     return final
