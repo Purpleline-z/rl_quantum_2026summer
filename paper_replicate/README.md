@@ -45,3 +45,5 @@ Committed experiment evidence belongs in `paper_replicate/results/<self_explanat
 - `publish_drive_results_to_github.py`: filtered Drive-to-GitHub result publication.
 
 See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for exact commands and time estimates.
+
+When Colab accounts mount different Google Drives, their result queues are independent. Run the final sealed evaluation in account A, which owns the architecture-comparison JSON. Account B supplies a separately published replication result; compare the two accounts only after their compact JSON records have been uploaded to GitHub.

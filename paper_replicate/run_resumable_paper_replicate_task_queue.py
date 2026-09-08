@@ -66,7 +66,12 @@ def main():
         train_comparison(args, root, result_name, [int(x) for x in args.seeds.split(",")], args.model_variants.split(","))
     elif task == "train_selected_model_and_evaluate_sealed_image_disjoint_test_set":
         split = load_split(root); comparison = root / "image_encoder_and_peak_feature_comparison" / "completed_task_result.json"
-        if not comparison.exists(): raise FileNotFoundError("Start this command after the comparison queue writes its completed_task_result.json.")
+        if not comparison.exists():
+            raise FileNotFoundError(
+                "This Drive does not contain GPU account A's comparison result. "
+                "Run sealed evaluation in account A, where image_encoder_and_peak_feature_comparison/"
+                "completed_task_result.json exists. Account B is reserved for independent repetition."
+            )
         jobs = json.loads(comparison.read_text())["jobs"]
         repeated = root / "independent_peak_aware_model_repetition" / "completed_task_result.json"
         if repeated.exists(): jobs += json.loads(repeated.read_text())["jobs"]

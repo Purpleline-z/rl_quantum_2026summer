@@ -44,9 +44,9 @@ cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_r
 cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name independently_repeat_peak_aware_model_comparison --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --seeds 123,202,303 --model-variants image_encoder_only,image_encoder_plus_peak_features --device cuda --checkpoint-heartbeat-minutes 30 --resume
 ```
 
-## GPU account B: sealed test and active-learning export (10--20 minutes)
+## GPU account A: sealed test and active-learning export (10--20 minutes)
 
-Run after account A has created its comparison completion JSON.
+Run this in the same Google Drive account used for GPU account A. It selects the best validation result from GPU A's comparison, retrains the chosen architecture, evaluates the sealed test images, and exports active-learning features. GPU account B has a separate Drive and is reserved for independent repetition; it cannot read account A's comparison JSON.
 
 ```bash
 cd /content/rl_quantum_2026summer && PYTHONDONTWRITEBYTECODE=1 python -m paper_replicate.run_resumable_paper_replicate_task_queue --task-name train_selected_model_and_evaluate_sealed_image_disjoint_test_set --data-root /content/rl_quantum_2026summer/data --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate --device cuda --checkpoint-heartbeat-minutes 30 --resume
