@@ -70,6 +70,8 @@ Run this only after the experiment queue has written its completion JSON. It cop
 set -euo pipefail
 cd /content/rl_quantum_2026summer
 git pull --rebase origin main
+git config user.name "Purpleline-z"
+git config user.email "purpleline@uchicago.edu"
 python -m paper_replicate.publish_drive_results_to_github \
   --drive-results-root /content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate \
   --repository-root /content/rl_quantum_2026summer \
@@ -81,3 +83,5 @@ git push origin main
 ```
 
 Use a different self-explanatory `--run-name` for each distinct experiment. If Git reports that the remote changed between `pull` and `push`, run the same cell again; it rebases the local result commit before retrying the push.
+
+`git config user.name` and `git config user.email` identify the author of the commit in this Colab clone; they do not authenticate GitHub access. The final `git push` uses the GitHub credential stored in the runtime. If it requests credentials, use a GitHub personal access token with repository write permission as the password; never place a token in this notebook or commit it to the repository.
