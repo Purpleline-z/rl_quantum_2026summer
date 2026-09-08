@@ -26,19 +26,19 @@ The study is designed to answer a useful local question: do peak-aware image mea
 
 Each trained model returns five reconstruction rewards in this order: `(1 x 1)`, `Twinned(2 x 1)`, `c(6 x 2)`, `(√13 x √13)`, and `HTR`; a separate quality score; and a 512-dimensional image embedding. For a candidate pair it exports reward margins, per-type preference probabilities, mean entropy, and concatenated embeddings. Existing uncertainty, diversity, hybrid, cluster, core-set, and MC-dropout selectors can use these values without changing their acquisition rule.
 
-The definitive evaluation is session-held-out rather than merely image-held-out: all images from one dated acquisition session are sealed away while the model is trained and selected from the other sessions. This protects against accidentally learning near-adjacent frames from the same growth run. Before training, the protocol requires at least 50 decisive (`1` or `2`) expert comparisons in every held-out session. Test images and labels do not participate in training, validation, augmentation, calibration, feature fitting, or architecture selection.
+The definitive study uses five fixed image-identity folds. In each fold, reward-model fine-tuning sees only pairs with two training images. Validation pairs contain at least one validation image and no test image. Test pairs contain at least one held-out image, giving a useful sample of predictions involving a new RHEED pattern while preserving an unseen endpoint in every test comparison. Test images and labels do not participate in reward-head fine-tuning, validation, calibration, or architecture selection.
 
-For each outer held-out session, both architectures are trained with five seeds. The chosen architecture is the one with the highest **mean validation** decisive-pair accuracy across those seeds. The sealed session is then evaluated once per selected seed. Reports include decisive-pair accuracy, all-label macro-F1 (which includes `tie` and `not_apply`), calibrated preference probabilities, per-reconstruction-type counts, and active-learning embeddings/reward margins/entropy. Temperature and tie/not-applicable thresholds are fitted using validation predictions only.
+The laboratory RHEED-SimCLR ResNet-18 is frozen and supplies an in-domain representation learned without pairwise preference labels. It may have self-supervised exposure to the image corpus, which is appropriate for active-learning representation pretraining but is not a fully inductive unseen-pixel benchmark. Both image-only and image-plus-peak heads are trained over three seeds in every outer fold. Reports include decisive-pair accuracy, all-label macro-F1 (including `tie` and `not_apply`), calibration, per-reconstruction-type counts, and active-learning embeddings/reward margins/entropy. Temperature and tie/not-applicable thresholds are fitted with validation predictions only.
 
-## Latest session-held-out result
+## Latest five-fold unseen-image result
 
-<!-- SESSION_HELD_OUT_RESULTS_START -->
+<!-- FIVE_FOLD_UNSEEN_IMAGE_RESULTS_START -->
 
-No classifier result is reported for this run. The data-readiness audit stopped before training because one or more sealed sessions had fewer than 50 decisive pairs. The published audit identifies the exact label gap; collecting those comparisons is the next research action.
+No five-fold classifier result has been published yet. The earlier session-held-out audit and random image-identity artifacts remain implementation records only; they are excluded from architecture selection and from this result section.
 
-<!-- SESSION_HELD_OUT_RESULTS_END -->
+<!-- FIVE_FOLD_UNSEEN_IMAGE_RESULTS_END -->
 
-The comparison queue requires the repository's shipped RHEED SimCLR ResNet-18 checkpoint. Each completed training JSON records its checkpoint path and the count of loaded tensors. Results without `encoder_provenance.name = rheed_simclr_resnet18` are queue-protocol smoke tests from the earlier random-encoder implementation and must be replaced by rerunning the same queue command with `--resume`; the runner detects that missing provenance and retrains the affected job.
+Each completed training JSON records the RHEED-SimCLR checkpoint SHA-256, 120 loaded tensors, frozen-backbone policy, and the fact that pairwise preference labels were not used for pretraining.
 
 Committed experiment evidence belongs in `paper_replicate/results/<self_explanatory_run_name>/`. The publication command copies compact tables, JSON records, plots, and written interpretations from Drive while excluding raw images, temporary checkpoints, optimizer state, model weights, and files larger than 15 MB. Each published run contains a SHA-256 manifest so a later reader can identify exactly which Drive outputs support the reported result.
 
@@ -49,10 +49,8 @@ Committed experiment evidence belongs in `paper_replicate/results/<self_explanat
 - `train_peak_aware_reconstruction_reward_model.py`: checkpointed Bradley--Terry training.
 - `evaluate_image_disjoint_reconstruction_reward_model.py`: sealed test-pair evaluation.
 - `export_active_learning_pair_selection_features.py`: selector-ready reward, uncertainty, and embedding export.
-- `run_single_t4_session_held_out_study.py`: one-T4 session-held-out audit, training, selection, and sealed evaluation.
+- `run_five_fold_unseen_image_reward_classifier_study.py`: one-T4 five-fold unseen-image training, evaluation, aggregation, and deployment export.
 - `run_resumable_paper_replicate_task_queue.py`: legacy image-identity task queue retained only for earlier run reproducibility.
 - `publish_drive_results_to_github.py`: filtered Drive-to-GitHub result publication.
-
-See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for exact commands and time estimates.
 
 See [COLAB_EXECUTION_COMMANDS.md](COLAB_EXECUTION_COMMANDS.md) for the one-T4 command, Drive output path, resume behavior, and publication procedure.

@@ -65,7 +65,10 @@ def evaluate_sealed_test_set(data_root, split, weights_path, output_directory, u
     """Read held-out session images only after architecture and calibration are fixed."""
     output = Path(output_directory); output.mkdir(parents=True, exist_ok=True)
     test_images = set(split["images"]["test"])
-    rows = [row for row in load_pairwise_rows(data_root) if row["left"] in test_images and row["right"] in test_images]
+    all_rows = load_pairwise_rows(data_root)
+    role_pair_ids = split.get("pair_ids_by_role")
+    rows = ([row for row in all_rows if row["pair_id"] in set(role_pair_ids["test"])] if role_pair_ids
+            else [row for row in all_rows if row["left"] in test_images and row["right"] in test_images])
     model = PeakAwareStaticRHEEDRewardModel(use_peak_features=use_peak_features).to(device)
     model.load_state_dict(torch.load(weights_path, map_location=device)); model.eval()
     calibration = calibration or {"temperature": 1., "not_apply_reward_strength_threshold": float("-inf"), "tie_reward_margin_threshold": 0.}
@@ -82,7 +85,7 @@ def evaluate_sealed_test_set(data_root, split, weights_path, output_directory, u
             record = {"pair_id": row["pair_id"], "reconstruction_type": row["reconstruction_type"], "winner": row["winner"], "predicted_label": _label_for_record(margin, strength, calibration), "probability_left_wins": probability, "reward_margin": margin, "reward_strength": strength, "entropy": -(probability * math.log(max(probability, 1e-8)) + (1 - probability) * math.log(max(1 - probability, 1e-8)))}
             if include_embeddings: record["pair_embedding"] = torch.cat((model.encode(left).squeeze(0), model.encode(right).squeeze(0))).cpu().tolist()
             details.append(record)
-    result = {"status": "completed", "sealed_test_pairs": len(rows), "held_out_test_session": split.get("held_out_test_session"), "test_image_policy": split["test_image_policy"], "calibration": calibration, "metrics": _metrics(details), "results": details}
+    result = {"status": "completed", "sealed_test_pairs": len(rows), "held_out_test_session": split.get("held_out_test_session"), "test_image_count": len(test_images), "test_image_manifest": sorted(test_images), "test_image_policy": split["test_image_policy"], "encoder_provenance": model.encoder_provenance, "calibration": calibration, "metrics": _metrics(details), "results": details}
     (output / "sealed_session_held_out_evaluation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     (output / "completed_task_result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result

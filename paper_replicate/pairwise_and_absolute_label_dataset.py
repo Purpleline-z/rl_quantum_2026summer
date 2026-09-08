@@ -158,3 +158,53 @@ def create_session_held_out_split(pair_rows: list[dict], held_out_session: str,
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(value, indent=2), encoding="utf-8")
     return value
+
+
+def create_fixed_five_fold_unseen_image_splits(pair_rows: list[dict], output_path: str | Path,
+                                               seed: int = 42) -> dict:
+    """Create five deterministic folds with an unseen image endpoint in every test pair.
+
+    This is an image-generalisation protocol, not a session-generalisation
+    protocol.  A test pair is retained whenever at least one endpoint is a
+    held-out image.  That endpoint is never used by pairwise fine-tuning,
+    validation calibration, or architecture selection.
+    """
+    output_path = Path(output_path)
+    if output_path.exists():
+        return json.loads(output_path.read_text(encoding="utf-8"))
+    images = sorted({image for row in pair_rows for image in (row["left"], row["right"])})
+    shuffled = images[:]
+    random.Random(seed).shuffle(shuffled)
+    groups = [set(shuffled[index::5]) for index in range(5)]
+    folds = []
+    for fold_index in range(5):
+        test_images = groups[fold_index]
+        validation_images = groups[(fold_index + 1) % 5]
+        train_images = set(images) - test_images - validation_images
+        roles = {
+            "train": [row["pair_id"] for row in pair_rows
+                      if row["left"] in train_images and row["right"] in train_images],
+            "validation": [row["pair_id"] for row in pair_rows
+                           if row["left"] not in test_images and row["right"] not in test_images
+                           and (row["left"] in validation_images or row["right"] in validation_images)],
+            "test": [row["pair_id"] for row in pair_rows
+                     if row["left"] in test_images or row["right"] in test_images],
+        }
+        folds.append({
+            "fold_index": fold_index,
+            "test_image_policy": "Every test pair contains at least one image absent from pairwise fine-tuning, validation, calibration, and architecture selection.",
+            "images": {"train": sorted(train_images), "validation": sorted(validation_images), "test": sorted(test_images)},
+            "pair_ids_by_role": roles,
+            "pair_counts": {role: len(pair_ids) for role, pair_ids in roles.items()},
+            "decisive_pair_counts": {role: sum(row["pair_id"] in set(pair_ids) and row["winner"] in {"1", "2"} for row in pair_rows)
+                                      for role, pair_ids in roles.items()},
+        })
+    value = {
+        "protocol": "fixed_five_fold_unseen_image_endpoint",
+        "split_seed": seed,
+        "pretraining_policy": "The frozen laboratory RHEED-SimCLR encoder may have self-supervised exposure to all RHEED images, but never uses pairwise preference labels. Image exclusion applies to pairwise reward-model fine-tuning and model selection.",
+        "folds": folds,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(value, indent=2), encoding="utf-8")
+    return value

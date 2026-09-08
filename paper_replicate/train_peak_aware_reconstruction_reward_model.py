@@ -62,19 +62,23 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
     output = Path(output_directory); output.mkdir(parents=True, exist_ok=True)
     rows = load_pairwise_rows(data_root)
     train_images = set(split["images"]["train"])
+    validation_images = set(split["images"]["validation"])
     test_images = set(split["images"]["test"])
-    train_rows = [row for row in rows if row["left"] in train_images and row["right"] in train_images]
+    role_pair_ids = split.get("pair_ids_by_role")
+    train_rows = ([row for row in rows if row["pair_id"] in set(role_pair_ids["train"])] if role_pair_ids
+                  else [row for row in rows if row["left"] in train_images and row["right"] in train_images])
     if not train_rows: raise ValueError("Image-disjoint split left no train-only pairs; adjust the split before training.")
     loader = DataLoader(PairDataset(train_rows), batch_size=batch_size, shuffle=True, num_workers=0)
     def is_sealed_anchor(anchor):
-        if anchor["path"] in test_images: return True
-        held_out_session = split.get("held_out_test_session")
-        if not held_out_session: return False
-        try: return session_id_for_image(anchor["path"]) == held_out_session
-        except ValueError: return False  # ideal references are external anchors, not video/session frames.
+        if anchor["path"] in test_images or anchor["path"] in validation_images: return True
+        try:
+            session_id_for_image(anchor["path"])
+            return anchor["path"] not in train_images
+        except ValueError:
+            return False  # ideal references are external anchors, not trajectory frames.
     anchors = [anchor for anchor in load_absolute_and_ideal_anchors(data_root) if not is_sealed_anchor(anchor)]
     model = PeakAwareStaticRHEEDRewardModel(use_peak_features=use_peak_features).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
+    optimizer = torch.optim.AdamW([parameter for parameter in model.parameters() if parameter.requires_grad], lr=1e-4, weight_decay=1e-4)
     checkpoint = output / "resumable_training_checkpoint.pth"
     start = 0
     if resume and checkpoint.exists():
@@ -107,16 +111,15 @@ def train_job(data_root, split, output_directory, use_peak_features, seed, devic
         history.append(progress)
         (output / "training_progress.json").write_text(json.dumps({"history": history, "latest": progress}, indent=2), encoding="utf-8")
         torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict(), "epoch": epoch}, checkpoint)
-    validation_images = set(split["images"]["validation"])
-    validation_rows = [row for row in rows if row["left"] in validation_images and row["right"] in validation_images and row["winner"] in {"1", "2"}]
-    validation_all_rows = [row for row in rows if row["left"] in validation_images and row["right"] in validation_images]
+    validation_all_rows = ([row for row in rows if row["pair_id"] in set(role_pair_ids["validation"])] if role_pair_ids
+                           else [row for row in rows if row["left"] in validation_images and row["right"] in validation_images])
     validation_records = _validation_prediction_records(model, validation_all_rows, device)
     decisive_records = [record for record in validation_records if record["winner"] in {"1", "2"}]
     correct = sum(("1" if record["margin"] > 0 else "2") == record["winner"] for record in decisive_records)
     final_weights = output / "final_model_weights.pth"; torch.save(model.state_dict(), final_weights)
     validation_predictions_path = output / "validation_prediction_records.json"
     validation_predictions_path.write_text(json.dumps(validation_records, indent=2), encoding="utf-8")
-    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "encoder_provenance": model.encoder_provenance, "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_pair_count": len(validation_all_rows), "validation_decisive_pairs": len(decisive_records), "validation_pairwise_winner_accuracy": correct / len(decisive_records) if decisive_records else None, "validation_prediction_records": str(validation_predictions_path), "epochs": epochs, "elapsed_seconds": time.time() - started_at}
+    final = {"status": "completed", "seed": seed, "variant": "image_encoder_plus_peak_features" if use_peak_features else "image_encoder_only", "encoder_provenance": model.encoder_provenance, "final_model_weights": str(final_weights), "train_pairs": len(train_rows), "direct_label_anchor_count": len(anchors), "validation_pair_count": len(validation_all_rows), "validation_decisive_pairs": len(decisive_records), "validation_pairwise_winner_accuracy": correct / len(decisive_records) if decisive_records else None, "validation_prediction_records": str(validation_predictions_path), "epochs": epochs, "elapsed_seconds": time.time() - started_at, "test_images_used_in_pairwise_fine_tuning": False, "validation_images_used_in_pairwise_fine_tuning": False}
     (output / "completed_task_result.json").write_text(json.dumps(final, indent=2), encoding="utf-8")
     checkpoint.unlink(missing_ok=True)
     return final

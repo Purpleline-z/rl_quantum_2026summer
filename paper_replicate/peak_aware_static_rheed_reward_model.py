@@ -2,12 +2,26 @@
 from __future__ import annotations
 
 import torch
+import hashlib
 from torch import nn
 from torch.nn import functional as F
 from torchvision import models
 from pathlib import Path
 
 RECONSTRUCTION_TYPES = ("(1 x 1)", "Twinned(2 x 1)", "c(6 x 2)", "(√13 x √13)", "HTR")
+_CHECKPOINT_HASHES: dict[str, str] = {}
+
+
+def checkpoint_sha256(path: Path) -> str:
+    """Hash the fixed laboratory checkpoint once per Python process for provenance."""
+    key = str(path.resolve())
+    if key not in _CHECKPOINT_HASHES:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        _CHECKPOINT_HASHES[key] = digest.hexdigest()
+    return _CHECKPOINT_HASHES[key]
 
 
 class RHEEDPeakFeatureExtractor(nn.Module):
@@ -59,13 +73,27 @@ class PeakAwareImageEncoder(nn.Module):
         if not compatible:
             raise ValueError("No compatible RHEED SimCLR tensors were loaded into the ResNet-18 encoder.")
         self.vision.load_state_dict(compatible, strict=False)
-        self.encoder_provenance = {"name": "rheed_simclr_resnet18", "checkpoint": str(checkpoint), "loaded_tensors": len(compatible), "expected_tensors": len(target)}
+        for parameter in self.vision.parameters():
+            parameter.requires_grad = False
+        self.vision.eval()
+        self.encoder_provenance = {
+            "name": "laboratory_rheed_simclr_resnet18", "checkpoint": str(checkpoint),
+            "checkpoint_sha256": checkpoint_sha256(checkpoint), "loaded_tensor_count": len(compatible),
+            "expected_tensor_count": len(target), "pairwise_preference_labels_used_in_pretraining": False,
+            "fine_tuning_policy": "ResNet-18 SimCLR vision backbone frozen; peak projection, fusion, reward, and quality heads trainable.",
+        }
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         vision = self.vision(images).flatten(1)
         if not self.use_peak_features:
             return vision
         return self.fusion(torch.cat((vision, self.peak_projection(self.peaks(images))), dim=1))
+
+    def train(self, mode: bool = True):
+        """Keep frozen SimCLR batch-normalisation statistics fixed during head training."""
+        super().train(mode)
+        self.vision.eval()
+        return self
 
 
 class PeakAwareStaticRHEEDRewardModel(nn.Module):
