@@ -5,44 +5,68 @@
       "status": "completed",
       "seed": 42,
       "variant": "image_encoder_only",
+      "encoder_provenance": {
+        "name": "rheed_simclr_resnet18",
+        "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+        "loaded_tensors": 120,
+        "expected_tensors": 120
+      },
       "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/final_model_weights.pth",
       "train_pairs": 241,
       "direct_label_anchor_count": 172,
       "validation_decisive_pairs": 16,
-      "validation_pairwise_winner_accuracy": 0.9375,
+      "validation_pairwise_winner_accuracy": 0.6875,
       "epochs": 12
     },
     {
       "status": "completed",
       "seed": 42,
       "variant": "image_encoder_plus_peak_features",
+      "encoder_provenance": {
+        "name": "rheed_simclr_resnet18",
+        "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+        "loaded_tensors": 120,
+        "expected_tensors": 120
+      },
       "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/final_model_weights.pth",
       "train_pairs": 241,
       "direct_label_anchor_count": 172,
       "validation_decisive_pairs": 16,
-      "validation_pairwise_winner_accuracy": 0.8125,
+      "validation_pairwise_winner_accuracy": 0.6875,
       "epochs": 12
     },
     {
       "status": "completed",
       "seed": 79,
       "variant": "image_encoder_only",
+      "encoder_provenance": {
+        "name": "rheed_simclr_resnet18",
+        "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+        "loaded_tensors": 120,
+        "expected_tensors": 120
+      },
       "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/final_model_weights.pth",
       "train_pairs": 241,
       "direct_label_anchor_count": 172,
       "validation_decisive_pairs": 16,
-      "validation_pairwise_winner_accuracy": 0.9375,
+      "validation_pairwise_winner_accuracy": 0.875,
       "epochs": 12
     },
     {
       "status": "completed",
       "seed": 79,
       "variant": "image_encoder_plus_peak_features",
+      "encoder_provenance": {
+        "name": "rheed_simclr_resnet18",
+        "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+        "loaded_tensors": 120,
+        "expected_tensors": 120
+      },
       "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/final_model_weights.pth",
       "train_pairs": 241,
       "direct_label_anchor_count": 172,
       "validation_decisive_pairs": 16,
-      "validation_pairwise_winner_accuracy": 0.9375,
+      "validation_pairwise_winner_accuracy": 0.8125,
       "epochs": 12
     }
   ]

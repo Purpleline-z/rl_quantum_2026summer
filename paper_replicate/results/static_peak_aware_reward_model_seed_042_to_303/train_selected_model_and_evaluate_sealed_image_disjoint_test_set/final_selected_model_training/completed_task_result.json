@@ -1,14 +1,14 @@
 {
   "status": "completed",
-  "seed": 79,
-  "variant": "image_encoder_plus_peak_features",
+  "seed": 909,
+  "variant": "image_encoder_only",
   "encoder_provenance": {
     "name": "rheed_simclr_resnet18",
     "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
     "loaded_tensors": 120,
     "expected_tensors": 120
   },
-  "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/final_model_weights.pth",
+  "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/final_model_weights.pth",
   "train_pairs": 241,
   "direct_label_anchor_count": 172,
   "validation_decisive_pairs": 16,

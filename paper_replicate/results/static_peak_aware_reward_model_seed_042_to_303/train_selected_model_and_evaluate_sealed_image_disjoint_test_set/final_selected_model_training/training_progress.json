@@ -1,0 +1,108 @@
+{
+  "history": [
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 1,
+      "epochs": 12,
+      "mean_loss": 0.28796642378438264,
+      "elapsed_seconds": 1788908003.2098887
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 2,
+      "epochs": 12,
+      "mean_loss": 0.2694157556106802,
+      "elapsed_seconds": 1788908008.5658119
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 3,
+      "epochs": 12,
+      "mean_loss": 0.2726352051831782,
+      "elapsed_seconds": 1788908013.1358643
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 4,
+      "epochs": 12,
+      "mean_loss": 0.23841238531531417,
+      "elapsed_seconds": 1788908018.0077658
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 5,
+      "epochs": 12,
+      "mean_loss": 0.22865458071464673,
+      "elapsed_seconds": 1788908023.0966966
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 6,
+      "epochs": 12,
+      "mean_loss": 0.25071303080767393,
+      "elapsed_seconds": 1788908027.7253494
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 7,
+      "epochs": 12,
+      "mean_loss": 0.2621979049872607,
+      "elapsed_seconds": 1788908032.8993363
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 8,
+      "epochs": 12,
+      "mean_loss": 0.22172007205153932,
+      "elapsed_seconds": 1788908037.7471719
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 9,
+      "epochs": 12,
+      "mean_loss": 0.21611046674661338,
+      "elapsed_seconds": 1788908042.3243551
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 10,
+      "epochs": 12,
+      "mean_loss": 0.227479804540053,
+      "elapsed_seconds": 1788908047.8986557
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 11,
+      "epochs": 12,
+      "mean_loss": 0.2306829048320651,
+      "elapsed_seconds": 1788908052.7648458
+    },
+    {
+      "status": "running",
+      "seed": 909,
+      "epoch": 12,
+      "epochs": 12,
+      "mean_loss": 0.21058103907853365,
+      "elapsed_seconds": 1788908057.5700097
+    }
+  ],
+  "latest": {
+    "status": "running",
+    "seed": 909,
+    "epoch": 12,
+    "epochs": 12,
+    "mean_loss": 0.21058103907853365,
+    "elapsed_seconds": 1788908057.5700097
+  }
+}

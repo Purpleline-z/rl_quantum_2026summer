@@ -1,0 +1,18 @@
+{
+  "status": "completed",
+  "completed_task_json_paths": [
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/protocol/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/audit_pairwise_absolute_and_ideal_label_coverage/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/validate_peak_feature_extraction_on_training_and_validation_images/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/run_model_and_data_protocol_tests/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/summarize_completed_gpu_tasks_and_prepare_active_learning_features/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/train_selected_model_and_evaluate_sealed_image_disjoint_test_set/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/train_selected_model_and_evaluate_sealed_image_disjoint_test_set/active_learning_features/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/completed_task_result.json",
+    "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/completed_task_result.json"
+  ]
+}

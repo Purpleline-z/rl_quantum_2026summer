@@ -23,49 +23,54 @@
   },
   "copied_files": [
     {
+      "path": "audit_pairwise_absolute_and_ideal_label_coverage/completed_task_result.json",
+      "bytes": 206,
+      "sha256": "967ad350d6efe022a74e86a16b7543e5f753c9c358c69bf1d18b876bedcfaf49"
+    },
+    {
       "path": "image_encoder_and_peak_feature_comparison/completed_task_result.json",
-      "bytes": 1983,
-      "sha256": "5791ae516abff9f7a5836c4cb62fff9ad2e945ba618714bc95a45ce9eca40fd1"
+      "bytes": 3062,
+      "sha256": "b405e1101d89615c76a418d76cc808d229adff9080dfbc526f1eee0e9465c9d9"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/completed_task_result.json",
-      "bytes": 425,
-      "sha256": "3e5f5e58cf90c6a29e5b7f6eecc30f7863c983e25e623b1f5cb758bd8aa2dc4a"
+      "bytes": 671,
+      "sha256": "b09b5b9667a88daff0a8db4e581d12b2e1a724aa78d93dab818d00b6447cb3dd"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/training_progress.json",
-      "bytes": 2347,
-      "sha256": "8c90cd1895944a533a32bbddf4c0d49bb3a1ab3d3678458af76e51fc29baffa0"
+      "bytes": 2348,
+      "sha256": "8590b6fbbfae4c5168d207d0f651b13ffde6d2a2daf21ab765af8a9e4c760cff"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/completed_task_result.json",
-      "bytes": 453,
-      "sha256": "e5739d8ce8c897f85700f0af25350f4203b5bc037d69725686fbdf15060893b0"
+      "bytes": 699,
+      "sha256": "f4d4757d4b164fc924cd7e5a555eea5c3634fc1c010dac8257f9ecffd90b0239"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/training_progress.json",
-      "bytes": 2352,
-      "sha256": "831575b6a410f2ad2640a7b00408a6d606f3d7be03cb059a2f5f21c7f2fec4ce"
+      "bytes": 2345,
+      "sha256": "4b85e272f3d6487ddff1099e3a0c46b6c3c3a2c5efcecc4d4597588f5b64592e"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/completed_task_result.json",
-      "bytes": 425,
-      "sha256": "f17911a7e874117a5c8bd5f6ce20a5ff4487fdb5d08746946f2cbdf41448297c"
+      "bytes": 670,
+      "sha256": "10b52499794c63f1cec8e37e8da04d7525df1b8eba6f784dacbebd788d9fc059"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/training_progress.json",
-      "bytes": 2354,
-      "sha256": "04b8567b52fef32220910c18401c557813aee92f73e7b272851f8d8492ea274d"
+      "bytes": 2348,
+      "sha256": "f60b26261cd40dfeca17eb6fab3ebe6e120a835c3cb194d5dd8895135c7d9219"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/completed_task_result.json",
-      "bytes": 453,
-      "sha256": "86b2be4ac41950e9e0aec6ddb6c60ed60dbdfa81fcbc46283d15796bf466421a"
+      "bytes": 699,
+      "sha256": "350b20712445acbf1c099c4442b0bab7a096682914806ac244d88ac67bbd74ca"
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/training_progress.json",
-      "bytes": 2349,
-      "sha256": "3bcda16314f9ba4ff4bb514d0edfcbd2ec08015d50bbce8526cc27dea07c9f02"
+      "bytes": 2343,
+      "sha256": "7fe179ef579d0ae4ad3a5a9985d61739e001dffb9f5e249323eb9058aa014a4a"
     },
     {
       "path": "protocol/completed_task_result.json",
@@ -76,6 +81,56 @@
       "path": "protocol/image_disjoint_test_split.json",
       "bytes": 39192,
       "sha256": "7106e3bc0e0ca63aad25d53d9a49ae96e0cbc36675b94c7749420d011930f171"
+    },
+    {
+      "path": "run_model_and_data_protocol_tests/completed_task_result.json",
+      "bytes": 164,
+      "sha256": "3d1f5769ec6cd052d8ab92301dfbc946913254bf0cd82a6c4ff7a66c54b3f018"
+    },
+    {
+      "path": "summarize_completed_gpu_tasks_and_prepare_active_learning_features/completed_task_result.json",
+      "bytes": 2229,
+      "sha256": "315d13bb2252833c0d335afbfccd9b3d1a12944fbbd61caa79442a5c0bd500f2"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/active_learning_features/active_learning_pair_selection_features.json",
+      "bytes": 14043668,
+      "sha256": "d4b49623facc933361c4169cdfefdf7df7eab66c9d11a26e77fc102b19d96c0e"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/active_learning_features/completed_task_result.json",
+      "bytes": 50,
+      "sha256": "f3234dd4f72d307114a9987dd9f4548af816f9d06762b64186af802c20bd8f82"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/completed_task_result.json",
+      "bytes": 1728,
+      "sha256": "832a3673c89c43e6659c577f5656d294e54b3300a9f9064a1d8fb95b9d9c39e8"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/completed_task_result.json",
+      "bytes": 697,
+      "sha256": "a12416469b67e49432da18c3f7af9ee4477a559d7e4f33c22d9591db77d01997"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/training_progress.json",
+      "bytes": 2366,
+      "sha256": "b1d15f697cd18858bfc5a1c3e1b9454291fb47ea98f1c5b984fe603bef1354cb"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/sealed_test_pairwise_evaluation.json",
+      "bytes": 1728,
+      "sha256": "832a3673c89c43e6659c577f5656d294e54b3300a9f9064a1d8fb95b9d9c39e8"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/selected_architecture.json",
+      "bytes": 3571,
+      "sha256": "af58bf9ff1eae11e73fc04e44f5fc01b47956f06c736b56975d256f5c792c584"
+    },
+    {
+      "path": "validate_peak_feature_extraction_on_training_and_validation_images/completed_task_result.json",
+      "bytes": 85,
+      "sha256": "54f4a970f0561ff2482d5767bf41a1d9ffa64ed6e870d02984abeb5bcbaa512e"
     }
   ],
   "skipped_files": [
@@ -93,6 +148,10 @@
     },
     {
       "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/final_model_weights.pth",
+      "reason": "unsupported_type_or_large_or_checkpoint"
+    },
+    {
+      "path": "train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/final_model_weights.pth",
       "reason": "unsupported_type_or_large_or_checkpoint"
     }
   ]

@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "pair_count": 669,
+  "pairs_by_reconstruction_type": {
+    "Twinned(2 x 1)": 115,
+    "(\u221a13 x \u221a13)": 157,
+    "(1 x 1)": 140,
+    "HTR": 137,
+    "c(6 x 2)": 120
+  }
+}

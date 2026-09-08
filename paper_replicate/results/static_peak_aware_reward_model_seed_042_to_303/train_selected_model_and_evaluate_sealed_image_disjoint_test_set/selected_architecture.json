@@ -1,0 +1,103 @@
+{
+  "selected_variant": "image_encoder_only",
+  "validation_selection_record": {
+    "status": "completed",
+    "seed": 79,
+    "variant": "image_encoder_only",
+    "encoder_provenance": {
+      "name": "rheed_simclr_resnet18",
+      "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+      "loaded_tensors": 120,
+      "expected_tensors": 120
+    },
+    "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/final_model_weights.pth",
+    "train_pairs": 241,
+    "direct_label_anchor_count": 172,
+    "validation_decisive_pairs": 16,
+    "validation_pairwise_winner_accuracy": 0.875,
+    "epochs": 12
+  },
+  "final_training": {
+    "status": "completed",
+    "seed": 909,
+    "variant": "image_encoder_only",
+    "encoder_provenance": {
+      "name": "rheed_simclr_resnet18",
+      "checkpoint": "/content/rl_quantum_2026summer/code/classifier2/simclr_encoder_checkpoint/simclr_resnet18_encoder.pth",
+      "loaded_tensors": 120,
+      "expected_tensors": 120
+    },
+    "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/train_selected_model_and_evaluate_sealed_image_disjoint_test_set/final_selected_model_training/final_model_weights.pth",
+    "train_pairs": 241,
+    "direct_label_anchor_count": 172,
+    "validation_decisive_pairs": 16,
+    "validation_pairwise_winner_accuracy": 0.8125,
+    "epochs": 12
+  },
+  "selection_source": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/completed_task_result.json",
+  "evaluation": {
+    "status": "completed",
+    "sealed_test_pairs": 8,
+    "decisive_test_pairs": 5,
+    "pairwise_winner_accuracy": 1.0,
+    "test_image_policy": "Test image identities are excluded from all training, validation, augmentation and feature fitting.",
+    "results": [
+      {
+        "pair_id": "pair_0099",
+        "winner": "2",
+        "predicted_winner": "2",
+        "probability_left_wins": 0.4280591309070587,
+        "entropy": 0.6827601899600291
+      },
+      {
+        "pair_id": "pair_0100",
+        "winner": "1",
+        "predicted_winner": "1",
+        "probability_left_wins": 0.573921263217926,
+        "entropy": 0.6821783098325123
+      },
+      {
+        "pair_id": "pair_0105",
+        "winner": "tie",
+        "predicted_winner": "2",
+        "probability_left_wins": 0.4489437937736511,
+        "entropy": 0.6879246100732623
+      },
+      {
+        "pair_id": "pair_0225",
+        "winner": "2",
+        "predicted_winner": "2",
+        "probability_left_wins": 0.4601842761039734,
+        "entropy": 0.6899732374257836
+      },
+      {
+        "pair_id": "pair_0226",
+        "winner": "not_apply",
+        "predicted_winner": "2",
+        "probability_left_wins": 0.47866642475128174,
+        "entropy": 0.6922366613121588
+      },
+      {
+        "pair_id": "pair_0227",
+        "winner": "tie",
+        "predicted_winner": "2",
+        "probability_left_wins": 0.4638514518737793,
+        "entropy": 0.6905314640423965
+      },
+      {
+        "pair_id": "pair_0228",
+        "winner": "1",
+        "predicted_winner": "1",
+        "probability_left_wins": 0.562893807888031,
+        "entropy": 0.6852149225585531
+      },
+      {
+        "pair_id": "pair_0230",
+        "winner": "1",
+        "predicted_winner": "1",
+        "probability_left_wins": 0.5260881185531616,
+        "entropy": 0.6917853824236031
+      }
+    ]
+  }
+}
