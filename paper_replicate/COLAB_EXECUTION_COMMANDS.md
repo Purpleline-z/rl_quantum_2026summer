@@ -85,3 +85,35 @@ git push origin main
 Use a different self-explanatory `--run-name` for each distinct experiment. If Git reports that the remote changed between `pull` and `push`, run the same cell again; it rebases the local result commit before retrying the push.
 
 `git config user.name` and `git config user.email` identify the author of the commit in this Colab clone; they do not authenticate GitHub access. The final `git push` uses the GitHub credential stored in the runtime. If it requests credentials, use a GitHub personal access token with repository write permission as the password; never place a token in this notebook or commit it to the repository.
+
+### Colab PAT setup for a non-interactive `%%bash` push
+
+`%%bash` cannot answer Git's interactive username/password prompts. In Colab's left sidebar, open **Secrets**, add a secret named `GITHUB_PAT`, paste a fine-grained token that can write to this repository, and enable notebook access. Then run this Python cell after the result commit and rebase; it supplies the token only to the `git push` subprocess and deletes its temporary askpass helper immediately afterward.
+
+```python
+from google.colab import userdata
+import os
+from pathlib import Path
+import subprocess
+
+repository_directory = Path("/content/rl_quantum_2026summer")
+askpass_script = Path("/tmp/paper_replicate_git_askpass.sh")
+askpass_script.write_text(
+    "#!/bin/sh\n"
+    "case \"$1\" in\n"
+    "  *Username*) echo 'Purpleline-z' ;;\n"
+    "  *Password*) echo \"$GITHUB_PAT\" ;;\n"
+    "esac\n",
+    encoding="utf-8",
+)
+askpass_script.chmod(0o700)
+push_environment = os.environ.copy()
+push_environment["GITHUB_PAT"] = userdata.get("GITHUB_PAT")
+push_environment["GIT_ASKPASS"] = str(askpass_script)
+push_environment["GIT_TERMINAL_PROMPT"] = "0"
+try:
+    subprocess.run(["git", "push", "origin", "main"], cwd=repository_directory, env=push_environment, check=True)
+finally:
+    askpass_script.unlink(missing_ok=True)
+    push_environment.pop("GITHUB_PAT", None)
+```
