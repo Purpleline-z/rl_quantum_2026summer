@@ -34,7 +34,7 @@ For each outer held-out session, both architectures are trained with five seeds.
 
 <!-- SESSION_HELD_OUT_RESULTS_START -->
 
-No session-held-out classifier result has been published yet. The older random image-identity split artifacts under `results/static_peak_aware_reward_model_seed_042_to_303/` remain an implementation record only; they are excluded from architecture selection and from this result section.
+No classifier result is reported for this run. The data-readiness audit stopped before training because one or more sealed sessions had fewer than 50 decisive pairs. The published audit identifies the exact label gap; collecting those comparisons is the next research action.
 
 <!-- SESSION_HELD_OUT_RESULTS_END -->
 

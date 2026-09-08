@@ -1,0 +1,37 @@
+{
+  "source_drive_results_root": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/session_held_out_static_rheed_classifier_t4",
+  "published_run_name": "session_held_out_static_rheed_classifier_t4",
+  "policy": {
+    "allowed_suffixes": [
+      ".csv",
+      ".json",
+      ".md",
+      ".pdf",
+      ".png",
+      ".txt",
+      ".yaml",
+      ".yml"
+    ],
+    "maximum_file_bytes": 15728640,
+    "excluded_name_terms": [
+      "checkpoint",
+      "weights",
+      "weight",
+      "resumable",
+      "optimizer"
+    ]
+  },
+  "copied_files": [
+    {
+      "path": "completed_task_result.json",
+      "bytes": 543,
+      "sha256": "7d2970bd1859ca8342582277bb643a37f029360c8abb349cb48137eec2b0e88a"
+    },
+    {
+      "path": "protocol/session_held_out_data_readiness_audit.json",
+      "bytes": 1409,
+      "sha256": "2dd278061ba0a17f3d08f3ceb79da7a2ec3780ae960a01a9574ededdf42c0b18"
+    }
+  ],
+  "skipped_files": []
+}

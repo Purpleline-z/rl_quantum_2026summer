@@ -1,0 +1,54 @@
+{
+  "protocol": "session_held_out",
+  "minimum_decisive_pairs_per_outer_test_fold": 50,
+  "folds": [
+    {
+      "held_out_session": "2022-02-04",
+      "all_pair_count": 97,
+      "decisive_pair_count": 16,
+      "labels": {
+        "1": 10,
+        "2": 6,
+        "tie": 38,
+        "not_apply": 43
+      },
+      "minimum_decisive_pairs": 50,
+      "additional_decisive_pairs_needed": 34,
+      "eligible": false
+    },
+    {
+      "held_out_session": "2022-02-06",
+      "all_pair_count": 27,
+      "decisive_pair_count": 13,
+      "labels": {
+        "1": 6,
+        "2": 7,
+        "tie": 1,
+        "not_apply": 13
+      },
+      "minimum_decisive_pairs": 50,
+      "additional_decisive_pairs_needed": 37,
+      "eligible": false
+    },
+    {
+      "held_out_session": "2022-04-11",
+      "all_pair_count": 118,
+      "decisive_pair_count": 31,
+      "labels": {
+        "1": 12,
+        "2": 19,
+        "tie": 28,
+        "not_apply": 59
+      },
+      "minimum_decisive_pairs": 50,
+      "additional_decisive_pairs_needed": 19,
+      "eligible": false
+    }
+  ],
+  "eligible_to_train": false,
+  "interpretation": "A fold is eligible only when its untouched acquisition session has enough decisive expert comparisons to estimate accuracy.",
+  "status": "completed",
+  "source_commit": "97bec41172dc995e42fb7980b0c3de9c22f91b0c",
+  "created_at_unix_seconds": 1788909418.1187449,
+  "pair_count": 669
+}

@@ -1,0 +1,7 @@
+{
+  "status": "stopped_insufficient_sealed_test_labels",
+  "run_name": "session_held_out_static_rheed_classifier_t4",
+  "reason": "At least one untouched acquisition session has fewer than 50 decisive pairs.",
+  "audit_path": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/session_held_out_static_rheed_classifier_t4/protocol/session_held_out_data_readiness_audit.json",
+  "next_research_step": "Label the reported number of additional decisive comparisons in every under-sized session, then rerun this exact command."
+}
