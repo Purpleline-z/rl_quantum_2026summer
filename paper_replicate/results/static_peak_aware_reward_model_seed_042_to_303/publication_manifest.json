@@ -1,0 +1,99 @@
+{
+  "source_drive_results_root": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate",
+  "published_run_name": "static_peak_aware_reward_model_seed_042_to_303",
+  "policy": {
+    "allowed_suffixes": [
+      ".csv",
+      ".json",
+      ".md",
+      ".pdf",
+      ".png",
+      ".txt",
+      ".yaml",
+      ".yml"
+    ],
+    "maximum_file_bytes": 15728640,
+    "excluded_name_terms": [
+      "checkpoint",
+      "weights",
+      "weight",
+      "resumable",
+      "optimizer"
+    ]
+  },
+  "copied_files": [
+    {
+      "path": "image_encoder_and_peak_feature_comparison/completed_task_result.json",
+      "bytes": 1983,
+      "sha256": "5791ae516abff9f7a5836c4cb62fff9ad2e945ba618714bc95a45ce9eca40fd1"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/completed_task_result.json",
+      "bytes": 425,
+      "sha256": "3e5f5e58cf90c6a29e5b7f6eecc30f7863c983e25e623b1f5cb758bd8aa2dc4a"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/training_progress.json",
+      "bytes": 2347,
+      "sha256": "8c90cd1895944a533a32bbddf4c0d49bb3a1ab3d3678458af76e51fc29baffa0"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/completed_task_result.json",
+      "bytes": 453,
+      "sha256": "e5739d8ce8c897f85700f0af25350f4203b5bc037d69725686fbdf15060893b0"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/training_progress.json",
+      "bytes": 2352,
+      "sha256": "831575b6a410f2ad2640a7b00408a6d606f3d7be03cb059a2f5f21c7f2fec4ce"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/completed_task_result.json",
+      "bytes": 425,
+      "sha256": "f17911a7e874117a5c8bd5f6ce20a5ff4487fdb5d08746946f2cbdf41448297c"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/training_progress.json",
+      "bytes": 2354,
+      "sha256": "04b8567b52fef32220910c18401c557813aee92f73e7b272851f8d8492ea274d"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/completed_task_result.json",
+      "bytes": 453,
+      "sha256": "86b2be4ac41950e9e0aec6ddb6c60ed60dbdfa81fcbc46283d15796bf466421a"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/training_progress.json",
+      "bytes": 2349,
+      "sha256": "3bcda16314f9ba4ff4bb514d0edfcbd2ec08015d50bbce8526cc27dea07c9f02"
+    },
+    {
+      "path": "protocol/completed_task_result.json",
+      "bytes": 49,
+      "sha256": "67386a2617011c222b90a807c7a112b2245064ebecafa654c2a186b5342ace3e"
+    },
+    {
+      "path": "protocol/image_disjoint_test_split.json",
+      "bytes": 39192,
+      "sha256": "7106e3bc0e0ca63aad25d53d9a49ae96e0cbc36675b94c7749420d011930f171"
+    }
+  ],
+  "skipped_files": [
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/final_model_weights.pth",
+      "reason": "unsupported_type_or_large_or_checkpoint"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_042/image_encoder_plus_peak_features/final_model_weights.pth",
+      "reason": "unsupported_type_or_large_or_checkpoint"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_only/final_model_weights.pth",
+      "reason": "unsupported_type_or_large_or_checkpoint"
+    },
+    {
+      "path": "image_encoder_and_peak_feature_comparison/seed_079/image_encoder_plus_peak_features/final_model_weights.pth",
+      "reason": "unsupported_type_or_large_or_checkpoint"
+    }
+  ]
+}

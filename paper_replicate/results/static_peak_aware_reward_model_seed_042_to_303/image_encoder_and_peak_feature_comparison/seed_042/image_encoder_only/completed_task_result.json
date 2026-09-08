@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "seed": 42,
+  "variant": "image_encoder_only",
+  "final_model_weights": "/content/drive/MyDrive/rl_quantum_2026summer_results/paper_replicate/image_encoder_and_peak_feature_comparison/seed_042/image_encoder_only/final_model_weights.pth",
+  "train_pairs": 241,
+  "direct_label_anchor_count": 172,
+  "validation_decisive_pairs": 16,
+  "validation_pairwise_winner_accuracy": 0.9375,
+  "epochs": 12
+}

@@ -1,0 +1,108 @@
+{
+  "history": [
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 1,
+      "epochs": 12,
+      "mean_loss": 0.3058853035327047,
+      "elapsed_seconds": 1788905162.3134413
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 2,
+      "epochs": 12,
+      "mean_loss": 0.288001989829354,
+      "elapsed_seconds": 1788905167.0684338
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 3,
+      "epochs": 12,
+      "mean_loss": 0.2737410361878574,
+      "elapsed_seconds": 1788905171.5582485
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 4,
+      "epochs": 12,
+      "mean_loss": 0.23684328826493584,
+      "elapsed_seconds": 1788905176.869859
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 5,
+      "epochs": 12,
+      "mean_loss": 0.23849976601195522,
+      "elapsed_seconds": 1788905181.3743088
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 6,
+      "epochs": 12,
+      "mean_loss": 0.2341598195489496,
+      "elapsed_seconds": 1788905186.3256707
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 7,
+      "epochs": 12,
+      "mean_loss": 0.2488262434490025,
+      "elapsed_seconds": 1788905191.6983035
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 8,
+      "epochs": 12,
+      "mean_loss": 0.23924012598581612,
+      "elapsed_seconds": 1788905196.1665008
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 9,
+      "epochs": 12,
+      "mean_loss": 0.2544759928714484,
+      "elapsed_seconds": 1788905200.6682558
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 10,
+      "epochs": 12,
+      "mean_loss": 0.25348988827317953,
+      "elapsed_seconds": 1788905206.1265852
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 11,
+      "epochs": 12,
+      "mean_loss": 0.23037978000502335,
+      "elapsed_seconds": 1788905210.6374757
+    },
+    {
+      "status": "running",
+      "seed": 42,
+      "epoch": 12,
+      "epochs": 12,
+      "mean_loss": 0.22135406610323116,
+      "elapsed_seconds": 1788905215.19641
+    }
+  ],
+  "latest": {
+    "status": "running",
+    "seed": 42,
+    "epoch": 12,
+    "epochs": 12,
+    "mean_loss": 0.22135406610323116,
+    "elapsed_seconds": 1788905215.19641
+  }
+}
