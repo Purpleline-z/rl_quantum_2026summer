@@ -134,7 +134,7 @@ def _evaluate(
     taus = []
     for k in range(K):
         tau, _ = kendalltau(pred_rewards[:, k], ground_truth[k])
-        taus.append(tau)
+        taus.append(0.0 if np.isnan(tau) else tau)
     mean_tau = float(np.mean(taus))
 
     if len(test_indices) == 0:
@@ -416,10 +416,10 @@ def run_multiple_seeds(
         accs = np.array([[c[s][2] for s in range(n_steps)] for c in curves])
         summary[name] = {
             "budgets": budgets_out,
-            "kendall_tau_mean": taus.mean(axis=0).tolist(),
-            "kendall_tau_std": taus.std(axis=0).tolist(),
-            "accuracy_mean": accs.mean(axis=0).tolist(),
-            "accuracy_std": accs.std(axis=0).tolist(),
+            "kendall_tau_mean": np.nanmean(taus, axis=0).tolist(),
+            "kendall_tau_std": np.nanstd(taus, axis=0).tolist(),
+            "accuracy_mean": np.nanmean(accs, axis=0).tolist(),
+            "accuracy_std": np.nanstd(accs, axis=0).tolist(),
         }
 
     return summary
