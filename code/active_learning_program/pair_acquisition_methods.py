@@ -73,10 +73,16 @@ def build_embedding_cache(candidates, model, device, symmetry_mode="none") -> di
 
 
 def score_uncertainty(candidates, model, device, embedding_cache=None, symmetry_mode="none") -> list[dict]:
-    """Mean Bernoulli entropy across all Bradley--Terry heads; streamed in batches of 32."""
+    """Bernoulli entropy acquisition score per candidate pair.
+
+    When candidates carry a ``type_idx`` key (the reconstruction-type index),
+    entropy is computed only on that head — the one relevant to each pair.
+    Without ``type_idx`` the score falls back to the mean over all five heads.
+    """
     model = model.to(device).eval()
     if embedding_cache is not None:
         scored = []
+        type_aware = "type_idx" in candidates[0] if candidates else False
         with torch.no_grad():
             for start in range(0, len(candidates), BATCH_SIZE):
                 batch = candidates[start:start + BATCH_SIZE]
@@ -86,22 +92,35 @@ def score_uncertainty(candidates, model, device, embedding_cache=None, symmetry_
                 if getattr(model, "metadata_dim", 0):
                     left_metadata = torch.tensor([pair["metadata1"] for pair in batch], dtype=torch.float32, device=device)
                     right_metadata = torch.tensor([pair["metadata2"] for pair in batch], dtype=torch.float32, device=device)
-                probabilities = torch.sigmoid(_rewards(model, left, left_metadata) - _rewards(model, right, right_metadata)).clamp(1e-7, 1 - 1e-7)
-                entropy = -(probabilities * probabilities.log() + (1 - probabilities) * (1 - probabilities).log()).mean(1)
-                scored.extend({**pair, "uncertainty": float(value)} for pair, value in zip(batch, entropy.cpu().tolist()))
-                del left, right, probabilities, entropy
+                logits = _rewards(model, left, left_metadata) - _rewards(model, right, right_metadata)
+                if type_aware:
+                    tidx = torch.tensor([pair["type_idx"] for pair in batch], device=device)
+                    p = torch.sigmoid(logits[torch.arange(len(batch), device=device), tidx]).clamp(1e-7, 1 - 1e-7)
+                    entropy = -(p * p.log() + (1 - p) * (1 - p).log())
+                else:
+                    p = torch.sigmoid(logits).clamp(1e-7, 1 - 1e-7)
+                    entropy = -(p * p.log() + (1 - p) * (1 - p).log()).mean(1)
+                scored.extend({**pair, "uncertainty": float(v)} for pair, v in zip(batch, entropy.cpu().tolist()))
+                del left, right, logits, p, entropy
         return scored
     loader = DataLoader(_CandidateDataset(candidates, symmetry_mode), batch_size=BATCH_SIZE, shuffle=False, num_workers=0,
                         pin_memory=torch.device(device).type == "cuda")
     scored = []
+    type_aware = "type_idx" in candidates[0] if candidates else False
     with torch.no_grad():
         for left, right, indices in loader:
             left, right = left.to(device), right.to(device)
-            probabilities = torch.sigmoid(model(left) - model(right)).clamp(1e-7, 1 - 1e-7)
-            entropy = -(probabilities * probabilities.log() + (1 - probabilities) * (1 - probabilities).log()).mean(1)
+            logits = model(left) - model(right)
+            if type_aware:
+                tidx = torch.tensor([candidates[i]["type_idx"] for i in indices.tolist()], device=device)
+                p = torch.sigmoid(logits[torch.arange(len(indices), device=device), tidx]).clamp(1e-7, 1 - 1e-7)
+                entropy = -(p * p.log() + (1 - p) * (1 - p).log())
+            else:
+                p = torch.sigmoid(logits).clamp(1e-7, 1 - 1e-7)
+                entropy = -(p * p.log() + (1 - p) * (1 - p).log()).mean(1)
             for index, value in zip(indices.tolist(), entropy.cpu().tolist()):
                 scored.append({**candidates[index], "uncertainty": float(value)})
-            del left, right, probabilities, entropy
+            del left, right, logits, p, entropy
     del loader
     gc.collect()
     return scored
@@ -143,12 +162,16 @@ def cluster_quota_uncertainty_sampling(candidates, current_model, budget, device
 
 
 def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="cpu", seed=42, embedding_cache=None) -> list[dict]:
-    """Low-budget Cluster-Margin adaptation with auditable round-robin selection."""
+    """Cluster-Margin: margin-prefiltered, cluster-round-robin pair selection.
+
+    Follows Citovsky et al. (2021): keep the 2×budget lowest-margin candidates,
+    then pick one from each cluster in round-robin until the budget is filled.
+    """
     del seed
-    scored = score_uncertainty(candidates, current_model, device, embedding_cache)
-    # Entropy is retained for comparability; margin drives this selector.
     if embedding_cache is None:
         raise ValueError("cluster_margin_pairwise_sampling requires an embedding cache.")
+    # Work on shallow copies so the original candidate dicts are not mutated.
+    scored = [dict(c) for c in candidates]
     margins = []
     current_model.eval()
     with torch.no_grad():
@@ -160,9 +183,14 @@ def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="
                 ma = torch.tensor(pair["metadata1"], dtype=torch.float32, device=device).unsqueeze(0)
                 mb = torch.tensor(pair["metadata2"], dtype=torch.float32, device=device).unsqueeze(0)
             probability = torch.sigmoid(_rewards(current_model, left, ma) - _rewards(current_model, right, mb))
-            margins.append(float(torch.abs(probability - .5).mean().cpu()))
+            if "type_idx" in pair:
+                margin = float(torch.abs(probability[0, pair["type_idx"]] - .5).cpu())
+            else:
+                margin = float(torch.abs(probability - .5).mean().cpu())
+            margins.append(margin)
     for pair, margin in zip(scored, margins): pair["margin"] = margin
-    prefilter_size = min(max(1, 10 * budget), len(scored))
+    # Prefilter: keep the 2×budget lowest-margin (most uncertain) candidates.
+    prefilter_size = min(max(1, 2 * budget), len(scored))
     prefiltered = sorted(scored, key=lambda item: item["margin"])[:prefilter_size]
     full_cluster_sizes = defaultdict(int)
     for pair in scored:

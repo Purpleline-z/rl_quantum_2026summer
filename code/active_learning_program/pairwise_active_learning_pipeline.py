@@ -126,7 +126,10 @@ class BTModel(nn.Module):
             if isinstance(state, dict) and "state_dict" in state: state = state["state_dict"]
             cleaned = {k.replace("encoder.", ""): v for k, v in state.items() if not k.startswith("projector.")}
             missing, unexpected = self.encoder.load_state_dict(cleaned, strict=False)
-            print(f"Loaded SimCLR encoder ({len(missing)} missing, {len(unexpected)} unexpected keys).", flush=True)
+            if missing:
+                print(f"WARNING: SimCLR checkpoint missing {len(missing)} encoder keys — those layers stay random: {missing[:8]}", flush=True)
+            else:
+                print(f"Loaded SimCLR encoder fully (0 missing, {len(unexpected)} unexpected keys).", flush=True)
         self.metadata_dim = metadata_dim
         if metadata_dim:
             self.metadata_branch = nn.Sequential(nn.Linear(metadata_dim, 64), nn.ReLU(inplace=True), nn.Linear(64, 64), nn.ReLU(inplace=True))
@@ -499,10 +502,12 @@ class Experiment:
         candidates = []
         for pair_id in ids:
             item = dict(self.candidate_metadata.get(pair_id, {}))
-            if not item:
-                row = self.groups[pair_id].iloc[0]
-                item = {"pair_id": pair_id, "img1": row.resolved_img1, "img2": row.resolved_img2}
             row = self.groups[pair_id].iloc[0]
+            if not item:
+                item = {"pair_id": pair_id, "img1": row.resolved_img1, "img2": row.resolved_img2}
+            # Reconstruction type is observable metadata (not a label); expose it so
+            # acquisition functions can condition uncertainty on the correct BT head.
+            item["type_idx"] = int(row.type_idx)
             if self.metadata_dim: item.update(metadata1=self.metadata_vector(row.resolved_img1).tolist(), metadata2=self.metadata_vector(row.resolved_img2).tolist())
             candidates.append(item)
         cache = build_embedding_cache(candidates, model, self.device, self.cfg.symmetry_mode)

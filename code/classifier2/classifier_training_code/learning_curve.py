@@ -25,7 +25,7 @@ import torchvision.models as models
 
 # Import from train_unified
 from train_unified import (
-    PROJECT_ROOT, DATA_ROOT, CLASSIFIER2_ROOT, CLASSIFIER1_ROOT,
+    DATA_ROOT, CLASSIFIER2_ROOT,
     PAIRWISE_CSV, ABSOLUTE_CSV, IDEAL_HTR_DIR, IDEAL_RT13_DIR, TRAJECTORY_DIR,
     PRETRAINED_ENCODER, RECONSTRUCTION_TYPES, NUM_TYPES, TYPE_TO_IDX, WINNER_MAP,
     get_transform, UnifiedDataset, BradleyTerryModel, compute_loss

@@ -51,18 +51,31 @@ def score_mc_dropout(
         torch.cuda.manual_seed_all(seed)
     started = time.perf_counter()
     model = model.to(device)
+    type_aware = "type_idx" in candidates[0] if candidates else False
     scored: list[dict[str, Any]] = []
     with torch.no_grad(), dropout_only_inference(model):
         for start in range(0, len(candidates), batch_size):
             batch = candidates[start:start + batch_size]
             left = torch.stack([embedding_cache[x["img1"]] for x in batch]).to(device)
             right = torch.stack([embedding_cache[x["img2"]] for x in batch]).to(device)
+            # differences: [mc_samples, batch, num_heads]
             differences = torch.stack([model.reward_head(left) - model.reward_head(right) for _ in range(mc_samples)])
             probabilities = torch.sigmoid(differences)
-            probability_variance = probabilities.var(dim=0, unbiased=False).mean(dim=1)
-            reward_variance = differences.var(dim=0, unbiased=False).mean(dim=1)
-            mean_probability = probabilities.mean(dim=0)
-            mutual_information = (_entropy(mean_probability) - _entropy(probabilities).mean(dim=0)).mean(dim=1)
+            if type_aware:
+                # Use only the head corresponding to each pair's reconstruction type.
+                tidx = torch.tensor([x["type_idx"] for x in batch], device=device)
+                arange = torch.arange(len(batch), device=device)
+                diffs_t = differences[:, arange, tidx]        # [mc_samples, batch]
+                probs_t = probabilities[:, arange, tidx]      # [mc_samples, batch]
+                probability_variance = probs_t.var(dim=0, unbiased=False)
+                reward_variance = diffs_t.var(dim=0, unbiased=False)
+                mean_prob_t = probs_t.mean(dim=0)             # [batch]
+                mutual_information = _entropy(mean_prob_t) - _entropy(probs_t).mean(dim=0)
+            else:
+                probability_variance = probabilities.var(dim=0, unbiased=False).mean(dim=1)
+                reward_variance = differences.var(dim=0, unbiased=False).mean(dim=1)
+                mean_probability = probabilities.mean(dim=0)
+                mutual_information = (_entropy(mean_probability) - _entropy(probabilities).mean(dim=0)).mean(dim=1)
             for item, pvar, mi, rvar in zip(batch, probability_variance.cpu().tolist(), mutual_information.cpu().tolist(), reward_variance.cpu().tolist()):
                 scored.append({
                     **item,
