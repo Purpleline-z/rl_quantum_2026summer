@@ -21,37 +21,55 @@ import matplotlib.ticker as ticker
 
 # ── color palette (colorblind-safe) ─────────────────────────────────────────
 PALETTE = {
-    "random":                   "#999999",
-    "uncertainty_type_aware":   "#E69F00",
-    "uncertainty_avg":          "#56B4E9",
-    "cluster_margin":           "#009E73",
-    "coreset":                  "#F0E442",
-    "mc_bald_type_aware":       "#0072B2",
-    "fisher_information":       "#D55E00",
-    "uncertainty":              "#56B4E9",
-    "cluster_quota_uncertainty":"#CC79A7",
+    "random":                        "#999999",
+    "uncertainty":                   "#56B4E9",
+    "cluster_quota_uncertainty":     "#CC79A7",
+    "cluster_margin_pairwise":       "#009E73",
+    "core_set":                      "#F0E442",
+    "mc_dropout_mutual_information": "#0072B2",
+    "mc_dropout_probability_variance":"#D55E00",
+    "mc_dropout_reward_variance":    "#E69F00",
+    # legacy names kept for backward compatibility with older result files
+    "uncertainty_type_aware":        "#E69F00",
+    "uncertainty_avg":               "#56B4E9",
+    "cluster_margin":                "#009E73",
+    "coreset":                       "#F0E442",
+    "mc_bald_type_aware":            "#0072B2",
+    "fisher_information":            "#D55E00",
 }
 MARKERS = {
-    "random":                   "o",
-    "uncertainty_type_aware":   "s",
-    "uncertainty_avg":          "^",
-    "cluster_margin":           "D",
-    "coreset":                  "v",
-    "mc_bald_type_aware":       "P",
-    "fisher_information":       "X",
-    "uncertainty":              "^",
-    "cluster_quota_uncertainty":"*",
+    "random":                        "o",
+    "uncertainty":                   "^",
+    "cluster_quota_uncertainty":     "*",
+    "cluster_margin_pairwise":       "D",
+    "core_set":                      "v",
+    "mc_dropout_mutual_information": "P",
+    "mc_dropout_probability_variance":"X",
+    "mc_dropout_reward_variance":    "s",
+    # legacy
+    "uncertainty_type_aware":        "s",
+    "uncertainty_avg":               "^",
+    "cluster_margin":                "D",
+    "coreset":                       "v",
+    "mc_bald_type_aware":            "P",
+    "fisher_information":            "X",
 }
 LABELS = {
-    "random":                   "Random",
-    "uncertainty_type_aware":   "Uncertainty (type-cond.) [ours]",
-    "uncertainty_avg":          "Uncertainty (avg. heads)",
-    "cluster_margin":           "Cluster-Margin",
-    "coreset":                  "Core-Set",
-    "mc_bald_type_aware":       "MC-BALD (type-cond.) [ours]",
-    "fisher_information":       "Fisher Info (type-cond.) [ours]",
-    "uncertainty":              "Uncertainty",
-    "cluster_quota_uncertainty":"Cluster-Quota Uncertainty",
+    "random":                        "Random",
+    "uncertainty":                   "Uncertainty",
+    "cluster_quota_uncertainty":     "Cluster-Quota Uncertainty [ours]",
+    "cluster_margin_pairwise":       "Cluster-Margin",
+    "core_set":                      "Core-Set",
+    "mc_dropout_mutual_information": "MC-BALD [ours]",
+    "mc_dropout_probability_variance":"MC Prob-Variance",
+    "mc_dropout_reward_variance":    "MC Reward-Variance",
+    # legacy
+    "uncertainty_type_aware":        "Uncertainty (type-cond.) [ours]",
+    "uncertainty_avg":               "Uncertainty (avg. heads)",
+    "cluster_margin":                "Cluster-Margin",
+    "coreset":                       "Core-Set",
+    "mc_bald_type_aware":            "MC-BALD (type-cond.) [ours]",
+    "fisher_information":            "Fisher Info (type-cond.) [ours]",
 }
 
 
@@ -245,8 +263,8 @@ def _load_jsonl(path: Path) -> list[dict]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Plot active learning results")
     parser.add_argument("results_file", help="Path to results JSON or JSONL file")
-    parser.add_argument("--metric", default="holdout_accuracy",
-                        help="Metric column to plot (default: holdout_accuracy)")
+    parser.add_argument("--metric", default="test_accuracy",
+                        help="Metric column to plot (default: test_accuracy)")
     parser.add_argument("--ylabel", default=None)
     parser.add_argument("--budget", type=int, default=None,
                         help="Fixed budget for bar chart; if not given, uses maximum")
