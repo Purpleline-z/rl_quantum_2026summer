@@ -1,0 +1,173 @@
+{
+  "_comment": "Canonical hyperparameter record for the final strategy-comparison experiments. Values marked fixed_a_priori=true were registered before any outer-test results were seen. Values marked validated=true were selected by utility-validation performance in the literature-backed calibration study. Do not change any fixed_a_priori value without a pre-registered amendment.",
+
+  "data": {
+    "dataset_version": {"value": "v1.8", "fixed_a_priori": true, "validated": false,
+      "note": "Pairwise CSV filename suffix; governs locate_input() lookup."},
+    "included_reconstruction_classes": {"value": ["(1 x 1)", "c(6 x 2)", "(√13 x √13)", "HTR"],
+      "fixed_a_priori": true, "validated": false,
+      "note": "Twinned(2 x 1) excluded globally via include_twinned=False."},
+    "excluded_reconstruction_classes": {"value": ["Twinned(2 x 1)"],
+      "fixed_a_priori": true, "validated": false},
+    "seeds": {"value": [42, 79, 123, 202, 303], "fixed_a_priori": true, "validated": false,
+      "note": "Seeds 42/79/123 validated identity-safe (strict_identity_audit_by_seed.csv); 202/303 to be verified before use."}
+  },
+
+  "split": {
+    "unit": {"value": "pair_group", "fixed_a_priori": true, "validated": false,
+      "note": "canonical_pair(a,b) = ' || '.join(sorted(...)). Reversed pairs share pair_id and always land in the same partition."},
+    "initial_pair_groups": {"value": 10, "fixed_a_priori": true, "validated": false,
+      "file": "simclr_three_seed_identity_safe_task3_settings.json"},
+    "maximum_acquired_pair_groups": {"value": 100, "fixed_a_priori": true, "validated": false,
+      "file": "simclr_three_seed_identity_safe_task3_settings.json"},
+    "pair_group_fractions": {
+      "reference_anchors": {"value": 0.60, "fixed_a_priori": true, "validated": false},
+      "utility_validation": {"value": 0.20, "fixed_a_priori": true, "validated": false},
+      "outer_test": {"value": 0.20, "fixed_a_priori": true, "validated": false}
+    },
+    "exclude_all_ideal_identities_from_pairwise": {
+      "fixed_epoch_study": {"value": true, "fixed_a_priori": true, "validated": false},
+      "literature_backed_study": {"value": false, "fixed_a_priori": true, "validated": false,
+        "note": "By design: the fixed-epoch study uses the stricter exclusion; lit-backed uses the standard protocol."}
+    },
+    "identity_enforcement": {"value": "sha256_content_hash", "fixed_a_priori": true, "validated": false,
+      "note": "_content_identity() hashes raw file bytes; cached in _content_hash_cache."}
+  },
+
+  "model": {
+    "architecture": {"value": "BTModel (Bradley-Terry)", "fixed_a_priori": true, "validated": false},
+    "encoder": {"value": "ResNet-18", "fixed_a_priori": true, "validated": false},
+    "encoder_feature_dim": {"value": 512, "fixed_a_priori": true, "validated": false},
+    "reward_head": {
+      "value": "Linear(512→256) → ReLU → Dropout(dropout_p) → Linear(256→5)",
+      "fixed_a_priori": true, "validated": false,
+      "note": "Always 5 outputs (one per TYPE_ORDER entry). Evaluation uses only indices for active classes; no index-shift risk when Twinned excluded."
+    },
+    "num_reward_heads": {"value": 5, "fixed_a_priori": true, "validated": false,
+      "note": "Matches len(TYPE_ORDER). Twinned head (index 1) is trained but excluded from evaluation metrics."},
+    "dropout_probability": {"value": 0.2, "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"},
+    "encoder_initializations": {"value": ["simclr", "imagenet"],
+      "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"}
+  },
+
+  "preprocessing": {
+    "image_resize": {"value": [224, 224], "fixed_a_priori": true, "validated": false},
+    "normalization_mean": {"value": [0.5, 0.5, 0.5], "fixed_a_priori": true, "validated": false},
+    "normalization_std": {"value": [0.25, 0.25, 0.25], "fixed_a_priori": true, "validated": false},
+    "grayscale_to_rgb": {"value": "repeat channel", "fixed_a_priori": true, "validated": false,
+      "note": "x.repeat(3,1,1) when x.shape[0]==1"},
+    "symmetry_mode": {"value": "none", "fixed_a_priori": true, "validated": false,
+      "note": "No symmetry augmentation in the final comparison. symmetry_image() is called but with mode='none'."}
+  },
+
+  "optimizer": {
+    "algorithm": {"value": "AdamW", "fixed_a_priori": true, "validated": false},
+    "train_batch_size": {"value": 16, "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"}
+  },
+
+  "hyperparameters_fixed_epoch_study": {
+    "_note": "These values were fixed a priori for the 3-vs-30 epoch single-shot comparison and must not be changed using outer-test results.",
+    "learning_rate": {"value": 0.0001, "fixed_a_priori": true, "validated": false,
+      "file": "fixed_3_epoch_vs_30_epoch_single_shot_settings.json"},
+    "weight_decay": {"value": 0.0001, "fixed_a_priori": true, "validated": false,
+      "file": "fixed_3_epoch_vs_30_epoch_single_shot_settings.json"},
+    "epochs": {"value": [3, 30], "fixed_a_priori": true, "validated": false,
+      "note": "Both epoch counts pre-registered; comparison is the scientific question."},
+    "early_stopping_patience": {"value": null, "fixed_a_priori": true, "validated": false,
+      "note": "No early stopping in the fixed-epoch study."},
+    "fixed_total_optimizer_updates": {"value": 30, "fixed_a_priori": true, "validated": false}
+  },
+
+  "hyperparameters_literature_backed_study": {
+    "_note": "Values selected by utility-validation performance; outer-test results never seen during selection.",
+    "learning_rates_grid": {"value": [0.00001, 0.00003, 0.0001, 0.0003],
+      "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"},
+    "epochs_grid": {"value": [3, 10, 30], "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"},
+    "weight_decay_values_grid": {"value": [0.00001, 0.0001, 0.001],
+      "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"},
+    "default_weight_decay": {"value": 0.0001, "fixed_a_priori": true, "validated": false},
+    "early_stopping_patience": {"value": 5, "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"},
+    "maximum_epochs_per_gpu_segment": {"value": 10, "fixed_a_priori": true, "validated": false}
+  },
+
+  "acquisition": {
+    "budgets": {"value": [10, 25, 50, 75, 100], "fixed_a_priori": true, "validated": false,
+      "note": "Pair-group counts per acquisition round."},
+    "strategies": {
+      "random_sampling": {"file": "pair_acquisition_methods.py"},
+      "uncertainty_sampling": {"file": "pair_acquisition_methods.py"},
+      "cluster_quota_uncertainty_sampling": {"file": "pair_acquisition_methods.py"},
+      "cluster_margin_pairwise_sampling": {"file": "pair_acquisition_methods.py"}
+    },
+    "uncertainty_computation": {
+      "method": "Bernoulli entropy",
+      "formula": "-(p*log(p) + (1-p)*log(1-p))",
+      "type_aware": false,
+      "fallback": "mean over all 5 heads when type_idx absent",
+      "fixed_a_priori": true, "validated": false
+    },
+    "cluster_margin_prefilter_multiplier": {"value": 10, "fixed_a_priori": true, "validated": false,
+      "note": "min(10×budget, |C|) — follows Citovsky et al. (2021)",
+      "file": "pair_acquisition_methods.py:194"},
+    "embedding_batch_size": {"value": 32, "fixed_a_priori": true, "validated": false,
+      "file": "pair_acquisition_methods.py:BATCH_SIZE"},
+    "clusters": {"value": 20, "fixed_a_priori": true, "validated": false,
+      "file": "pairwise_active_learning_pipeline.py:Config.clusters"},
+    "mc_dropout": {
+      "mc_samples": {"value": 20, "fixed_a_priori": true, "validated": false},
+      "activation": "reward_head Dropout only; encoder stays in eval()",
+      "fixed_a_priori": true, "validated": false
+    },
+    "type_aware_acquisition": {"value": false, "fixed_a_priori": true, "validated": false,
+      "note": "type_idx is present in candidate dicts but acquisition strategies use mean-head entropy fallback."}
+  },
+
+  "evaluation": {
+    "primary_split": {"value": "utility_validation", "fixed_a_priori": true, "validated": false,
+      "note": "controlled_utility() always evaluates on split='utility_validation'. Outer-test is never queried during hyperparameter selection."},
+    "outer_test_access": {"value": "deferred until protocol is frozen",
+      "fixed_a_priori": true, "validated": false},
+    "confidence_weighting": {
+      "Confident": {"value": 1.0},
+      "Somewhat sure": {"value": 0.7},
+      "default": {"value": 1.0},
+      "fixed_a_priori": true, "validated": false,
+      "file": "pairwise_active_learning_pipeline.py:load_and_split"
+    },
+    "tie_handling": {"value": "included with Winner in {1,2,tie,not_apply}",
+      "fixed_a_priori": true, "validated": false}
+  },
+
+  "checkpointing": {
+    "checkpoint_heartbeat_seconds": {"value": 1800, "fixed_a_priori": true, "validated": false,
+      "file": "literature_backed_pair_disjoint_budget_curve_settings.json"}
+  },
+
+  "known_inconsistencies": [
+    {
+      "parameter": "early_stopping_patience",
+      "fixed_epoch_value": null,
+      "literature_backed_value": 5,
+      "resolution": "By design — different study phases with different stopping rules."
+    },
+    {
+      "parameter": "initial_pairs / candidate_pairs",
+      "active_value": "10 / 100",
+      "legacy_fixed_settings_value": "50 / 120",
+      "resolution": "fixed_settings.json is stale; authoritative values are in simclr_three_seed_identity_safe_task3_settings.json."
+    },
+    {
+      "parameter": "exclude_all_ideal_identities_from_pairwise",
+      "fixed_epoch_value": true,
+      "other_studies_value": false,
+      "resolution": "By design — fixed-epoch study uses stricter exclusion protocol."
+    }
+  ]
+}

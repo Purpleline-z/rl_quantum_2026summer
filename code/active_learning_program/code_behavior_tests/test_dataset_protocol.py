@@ -60,6 +60,42 @@ class DatasetProtocolTests(unittest.TestCase):
             self.assertEqual(audit["pairwise_image_identity_overlap_reference"], 0)
             self.assertEqual(audit["pairwise_image_identity_overlap_utility_validation"], 0)
 
+    def test_twinned_is_excluded_from_all_partitions_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); data = root / "original data"; data.mkdir()
+            folders = {"(1 x 1)": "STO_ideal_1x1", "c(6 x 2)": "STO_ideal_c6x2",
+                       "HTR": "STO_ideal_HTR", "(√13 x √13)": "STO_ideal_RT13",
+                       "Twinned(2 x 1)": "STO_ideal_Twinned2x1"}
+            rows = []
+            for index, (label, folder) in enumerate(folders.items()):
+                target = data / folder; target.mkdir()
+                for image_index in range(3):
+                    Image.new("L", (8, 8), 20 + 10 * index + image_index).save(target / f"{index}_{image_index}.png")
+                trajectory = data / "Trajectories" / str(index); trajectory.mkdir(parents=True)
+                for image_index in range(3):
+                    Image.new("L", (8, 8), 100 + 10 * index + image_index).save(trajectory / f"{index}_{image_index}.png")
+                rows.append({"Image1_Path": f"Trajectories/{index}/{index}_0.png",
+                             "Image2_Path": f"Trajectories/{index}/{index}_1.png",
+                             "Reconstruction_Type": label, "Winner": "1"})
+                rows.append({"Image1_Path": f"Trajectories/{index}/{index}_1.png",
+                             "Image2_Path": f"Trajectories/{index}/{index}_2.png",
+                             "Reconstruction_Type": label, "Winner": "2"})
+            pd.DataFrame(rows).to_csv(data / "Quantum Label Data - Pairwise_Comparisonv1.8.csv", index=False)
+            pd.DataFrame(columns=["Reconstruction", "Image_Path"]).to_csv(
+                data / "Quantum Label Data - Absolute_Scoringv1.8 (1).csv", index=False)
+            exp = Experiment(Config(data_root=str(root), initial_pairs=4, candidate_pairs=4,
+                                    dataset_version="v1.8"))
+            # include_twinned defaults to False; Twinned must be absent everywhere.
+            self.assertFalse(exp.cfg.include_twinned)
+            initial, pool = exp.load_and_split()
+            all_pairwise_types = set()
+            for pair_id in initial + pool:
+                for row in exp.groups[pair_id].itertuples():
+                    all_pairwise_types.add(row.canonical_type)
+            self.assertNotIn("Twinned(2 x 1)", all_pairwise_types)
+            for split_dict in (exp.test_images, exp.utility_images, exp.references):
+                self.assertNotIn("Twinned(2 x 1)", split_dict)
+
     def test_controlled_utility_never_queries_outer_test(self):
         with tempfile.TemporaryDirectory() as tmp:
             exp = Experiment(Config(data_root=tmp))

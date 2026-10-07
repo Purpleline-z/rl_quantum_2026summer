@@ -215,6 +215,11 @@ class Experiment:
         if not required <= set(df): raise ValueError(f"CSV misses {required - set(df)}")
         df["canonical_type"] = df.Reconstruction_Type.map(canonical_type)
         df = df[df.canonical_type.notna() & df.Winner.astype(str).isin(["1", "2", "tie", "not_apply"])].copy()
+        if not self.cfg.include_twinned:
+            _dropped = int((df.canonical_type == "Twinned(2 x 1)").sum())
+            if _dropped:
+                print(f"Excluding {_dropped} Twinned(2 x 1) pairwise rows (include_twinned=False).", flush=True)
+            df = df[df.canonical_type != "Twinned(2 x 1)"].copy()
         df["pair_id"] = [canonical_pair(a, b) for a, b in zip(df.Image1_Path, df.Image2_Path)]
         df["resolved_img1"] = [str((self.data_root / p).resolve()) for p in df.Image1_Path]
         df["resolved_img2"] = [str((self.data_root / p).resolve()) for p in df.Image2_Path]
@@ -268,7 +273,8 @@ class Experiment:
             pd.DataFrame([{"matched_rows": len(self.metadata), "training_rows": len(train_meta), "numeric_columns": ",".join(self.metadata_columns)}]).to_csv(self.output / "metadata_coverage.csv", index=False)
         overlap = self._image_overlap(selected, candidates)
         print(f"Validated {len(df)} rows / {len(self.groups)} pairs. Pretrain={len(selected)}, candidate={len(candidates)}, pairwise image overlap={len(overlap)}.", flush=True)
-        if set(TYPE_ORDER) - covered: print(f"WARNING: missing initial coverage for {set(TYPE_ORDER) - covered}", flush=True)
+        active_types = set(TYPE_ORDER) if self.cfg.include_twinned else set(TYPE_ORDER) - {"Twinned(2 x 1)"}
+        if active_types - covered: print(f"WARNING: missing initial coverage for {active_types - covered}", flush=True)
         return selected, candidates
 
     def _split_ideals(self) -> None:
