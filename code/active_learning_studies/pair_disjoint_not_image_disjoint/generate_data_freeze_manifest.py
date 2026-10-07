@@ -83,6 +83,9 @@ def generate(settings_path: Path, seed: int, data_root: str,
         candidate_pairs=settings.get("maximum_acquired_pair_groups", 100),
         dataset_version=settings.get("dataset_version", "v1.8"),
         include_twinned=False,
+        exclude_all_ideal_identities_from_pairwise=settings.get(
+            "exclude_all_ideal_identities_from_pairwise", False
+        ),
     )
     exp = Experiment(cfg)
     initial, pool = exp.load_and_split()
