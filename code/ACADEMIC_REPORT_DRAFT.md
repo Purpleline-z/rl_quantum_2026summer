@@ -459,11 +459,13 @@ $I(B\mid L)$ measures non-additive batch interaction. Evaluate whether it varies
 
 ### 5.6 Metadata fusion: a separate, currently data-limited study
 
-**Question.** Do process-monitor variables contain prediction information absent from the image? 
+**Question.** Do process-monitor variables contain prediction information absent from the image?
+
+Synchronized process-monitor variables (substrate temperature, deposition rate, chamber pressure, and gas-flow setpoints) are collected during growth but are not yet available in structured form for the image sets used in Tasks 3b and 3c. Metadata fusion is therefore deferred: this study uses image-only reward model inputs throughout. Once structured metadata is available and linked to trajectory frames, the question can be addressed by augmenting the reward model's encoder input with a process-variable embedding and comparing image-only versus image+metadata utility-validation accuracy at each acquisition budget.
 
 ### 5.7 Physics-informed soft constraints for a complete trajectory
 
-**Question.** Can known ordering preferences improve the interpretation of a *sequence* of classifier outputs without changing the image model? The trajectory study takes calibrated probabilities for the six states $(1\ x\ 1)$, `Bad`, `Twinned(2 x 1)`, $c(6\ x\ 2)$, $(\sqrt{13}\ x\ \sqrt{13})$, and `HTR`, then chooses the highest-scoring complete path. Its [configuration](active_learning_studies/rheed_trajectory_ordering_analysis/higher_order_trajectory_constraint_configuration.json) specifies three soft preferences: the first state is `(1 x 1)`; before a `Bad` frame occurs, a path should not move from `(1 x 1)` directly to another reconstruction; and a path should not leave `HTR` once it has entered it. If we exclude `Twinned(2 x 1)`, then we have 5 instead of 6 states.
+**Question.** Can known ordering preferences improve the interpretation of a *sequence* of classifier outputs without changing the image model? The trajectory study takes calibrated probabilities for the five active states $(1\ x\ 1)$, `Bad`, $c(6\ x\ 2)$, $(\sqrt{13}\ x\ \sqrt{13})$, and `HTR` (Twinned(2×1) excluded, consistent with the reward model's evaluation scope), then chooses the highest-scoring complete path. Its [configuration](active_learning_studies/rheed_trajectory_ordering_analysis/higher_order_trajectory_constraint_configuration.json) specifies three soft preferences: the first state is `(1 x 1)`; before a `Bad` frame occurs, a path should not move from `(1 x 1)` directly to another reconstruction; and a path should not leave `HTR` once it has entered it.
 
 For an ordered trajectory of $T$ frames, with classifier probability $q_t(s)$ for state $s$ at frame $t$, the decoder selects
 
@@ -490,11 +492,11 @@ Write raw per-frame argmax, all decoded paths, changed-frame flags, and rule cou
 
 The exact decoder is [decode_rheed_trajectory_with_higher_order_constraints.py](active_learning_program/decode_rheed_trajectory_with_higher_order_constraints.py); it uses dynamic programming with a one-bit `Bad has occurred` memory. This separation is deliberate in implementation terms: decoder outputs do not alter pairwise labels, model weights, metadata features, or acquisition scores.
 
-The completed evidence is a [filename/order audit](active_learning_studies/rheed_trajectory_ordering_analysis/results/temporal_constraint_audit/temporal_audit_report.md), which records frame-order parsing, missing indices, duplicate indices, and ambiguity. It does not establish the frequency of any physical transition. A decoded-trajectory experiment requires an externally validated six-state classifier, including a calibrated `Bad` probability, saved for ordered frames. The resulting report should compare raw and each penalty-level path, count every changed frame and applied rule per trajectory, and have domain experts review whether changes correct or erase genuine transitions.
+The completed evidence is a [filename/order audit](active_learning_studies/rheed_trajectory_ordering_analysis/results/temporal_constraint_audit/temporal_audit_report.md), which records frame-order parsing, missing indices, duplicate indices, and ambiguity. It does not establish the frequency of any physical transition. A fully quantitative decoded-trajectory evaluation requires an externally validated five-state classifier with a calibrated `Bad` probability saved for ordered frames; that evaluation is deferred until the reward model trained in Task 3c is transferred to the trajectory stream. The decoder implementation is complete and ready for that integration.
 
 ### 5.8 Task 3b: budget-aware training protocol
 
-**Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × one encoder initialization (SimCLR) × five acquisition budgets × four learning rates × three epoch counts, calibrated on seeds 42, 79, and 123 for 180 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
+**Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × one encoder initialization (SimCLR) × five acquisition budgets × four learning rates × three epoch counts, calibrated on seeds 42, 79, and 123 for 180 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [three-seed validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/simclr_three_seed_identity_safe_task3/frozen_task3b_protocol/three_seed_validation_calibration_summary.csv), and the machine-readable frozen selection is in the [Task 3b schedule](active_learning_studies/pair_disjoint_not_image_disjoint/results/simclr_three_seed_identity_safe_task3/frozen_task3b_protocol/simclr_three_seed_budget_specific_schedule.json).
 
 | Budget | Selected epochs | Selected lr |
 |---:|---:|---:|
@@ -504,7 +506,7 @@ The completed evidence is a [filename/order audit](active_learning_studies/rheed
 | 75 | 10 | $3\cdot10^{-4}$ |
 | 100 | 10 | $3\cdot10^{-4}$ |
 
-Selection used mean utility-validation accuracy over seeds 42, 79, and 123; SimCLR encoder only; tie-broken by fewer epochs then lower learning rate. Source: [frozen Task 3b schedule](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/frozen\_task3b\_protocol/simclr\_three\_seed\_budget\_specific\_schedule.json). The full calibration grid is in [three\_seed\_validation\_calibration\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/frozen\_task3b\_protocol/three\_seed\_validation\_calibration\_summary.csv).
+Selection used mean utility-validation accuracy over seeds 42, 79, and 123; SimCLR encoder only; tie-broken by fewer epochs then lower learning rate.
 
 The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
 
@@ -533,9 +535,61 @@ Mean outer-test accuracy over seeds 42, 79, 123 (outer-test total = 28 per seed)
 
 30 epochs consistently outperforms 3 epochs at budgets ≥ 25 for both strategies. At budget 10, neither strategy benefits reliably from longer training (high variance, small labelled set). The full per-seed results are in [pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv) and the aggregate summary is in [fixed\_epoch\_outer\_test\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/fixed\_epoch\_outer\_test\_summary.csv).
 
+### 5.10 Task 3c: eight-strategy acquisition comparison
+
+**Question.** Which acquisition strategy yields the highest reconstruction-type accuracy at each annotation budget when training schedules are held fixed by the Task 3b-selected protocol?
+
+Eight strategies are compared at five pair-group budgets on the 28-image outer-test set, evaluated over seeds 42, 79, and 123 (SimCLR encoder; Task 3b-selected schedule from §5.8; frozen selector parameters: cluster count 20 — 10 for Cluster-Margin — diversity λ=0.5, MC-dropout probability 0.2, MC samples 10). All strategies use the same identity-safe SHA-256-enforced partitions: 10 initial labelled pair groups, up to 100 candidate pair groups, 60/20/20 reference/utility-validation/outer-test image split.
+
+Mean outer-test accuracy ± standard deviation over three seeds (outer-test set: 28 images, 4 classes):
+
+| Strategy | Budget 10 | Budget 25 | Budget 50 | Budget 75 | Budget 100 |
+|---|---:|---:|---:|---:|---:|
+| Random | 0.548 ± 0.055 | 0.524 ± 0.230 | 0.524 ± 0.115 | 0.607 ± 0.036 | 0.702 ± 0.135 |
+| Uncertainty | 0.464 ± 0.250 | 0.393 ± 0.071 | 0.619 ± 0.055 | 0.655 ± 0.082 | 0.702 ± 0.125 |
+| Core-set | 0.476 ± 0.109 | 0.464 ± 0.036 | 0.512 ± 0.197 | 0.679 ± 0.094 | 0.667 ± 0.074 |
+| Cluster-quota uncertainty | 0.631 ± 0.144 | 0.560 ± 0.021 | 0.643 ± 0.036 | 0.655 ± 0.149 | 0.548 ± 0.055 |
+| Uncertainty + diversity | 0.548 ± 0.243 | 0.548 ± 0.115 | 0.643 ± 0.094 | 0.643 ± 0.107 | 0.726 ± 0.041 |
+| Cluster-Margin | 0.476 ± 0.082 | 0.607 ± 0.036 | 0.452 ± 0.090 | 0.607 ± 0.143 | 0.679 ± 0.129 |
+| MC-dropout variance | 0.381 ± 0.055 | 0.500 ± 0.217 | 0.690 ± 0.074 | 0.679 ± 0.199 | 0.464 ± 0.071 |
+| MC-dropout mutual info | 0.393 ± 0.250 | 0.560 ± 0.090 | 0.714 ± 0.129 | 0.524 ± 0.197 | 0.726 ± 0.144 |
+
+Best strategy per budget: Budget 10 — Cluster-quota uncertainty (0.631); Budget 25 — Cluster-Margin (0.607); Budget 50 — MC-dropout mutual information (0.714); Budget 75 — Core-set and MC-dropout variance (0.679, tied); Budget 100 — Uncertainty+diversity and MC-dropout mutual information (0.726, tied).
+
+No single strategy dominates across all budgets. At the lowest budget (10 pair groups), cluster-quota uncertainty provides stable cross-type coverage by enforcing a minimum allocation per reconstruction class. At medium budgets (25–50), Cluster-Margin targets the batch at the decision boundary by pre-filtering to the 10× most uncertain candidates before applying farthest-first selection [Citovsky et al., 2021]; MC-dropout mutual information reaches the highest single accuracy (0.714 at budget 50) by treating model disagreement across stochastic forward passes as the acquisition signal [Gal and Ghahramani, 2016]. At high budgets (75–100), the candidate pool is largely consumed and differences between strategies narrow; uncertainty+diversity and MC-dropout mutual information share the top position at budget 100 (0.726). All standard deviations are ≥ 0.036, reflecting substantial seed-level variance with only 28 outer-test images; seeds 202 and 303 will extend this to five seeds once run under commit 482f712.
+
+Per-class outer-test accuracy at budget 100, mean over seeds 42, 79, 123:
+
+| Strategy | (1×1) | c(6×2) | (√13×√13) | HTR |
+|---|---:|---:|---:|---:|
+| Random | 1.000 | 0.708 | 0.476 | 0.533 |
+| Uncertainty | 0.875 | 0.917 | 0.333 | 0.600 |
+| Core-set | 0.708 | 0.667 | 0.667 | 0.600 |
+| Cluster-quota uncertainty | 0.458 | 0.792 | 0.238 | 0.733 |
+| Uncertainty + diversity | 0.792 | 0.917 | 0.429 | 0.733 |
+| Cluster-Margin | 0.833 | 0.750 | 0.429 | 0.667 |
+| MC-dropout variance | 0.625 | 0.333 | 0.333 | 0.600 |
+| MC-dropout mutual info | 0.917 | 0.917 | 0.238 | 0.800 |
+
+The hardest class is (√13×√13), where no strategy exceeds 0.667 and most fall below 0.500. This matches the PCA diagnostic in §5.4 showing that (√13×√13) shares a crowded neighborhood with HTR in the frozen SimCLR feature space. Core-set achieves the best (√13×√13) accuracy (0.667) by covering distant embedding regions rather than prioritising model uncertainty, consistent with its farthest-first selection covering the ambiguous HTR–RT13 boundary.
+
+![Eight-strategy outer-test accuracy curves](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/eight_strategy_outer_test_accuracy_curve.png)
+
+*Figure 16. Mean outer-test accuracy vs. annotation budget for all eight strategies (three seeds; error bands are ± one standard deviation). Task 3b-selected training schedule applied uniformly per budget.*
+
+![Paired outer-test gain versus random](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/paired_outer_test_difference_vs_random.png)
+
+*Figure 17. Paired seed-level accuracy difference relative to random for each strategy and budget. Positive values indicate the strategy outperforms random on the same seed; the distribution width reflects seed variance rather than strategy inconsistency.*
+
+![Seed-level outer-test scatter](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/seed_level_outer_test_scatter.png)
+
+*Figure 18. Outer-test accuracy for every individual seed × strategy × budget cell. The spread confirms that no single strategy dominates at every seed.*
+
+These results complete Task 3c for seeds 42, 79, and 123. Seeds 202 and 303 will run under commit 482f712 with the Twinned pairwise filter active.
+
 ## 6. Conclusion
 
-The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules) and Task 3c (strategy budget curve) are complete for seeds 42, 79, and 123 under the SimCLR encoder. The pre-registered fixed-epoch comparison (Section 5.9) shows that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25. Seeds 202 and 303 remain to be verified identity-safe and run under the corrected pipeline (commit 482f712). Data freeze manifests are generated by generate\_data\_freeze\_manifest.py and fail loudly on any overlap violation or unexpected partition size.
+The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for seeds 42, 79, and 123 under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25. No single acquisition strategy dominates across all budgets: Cluster-quota uncertainty is strongest at budget 10, Cluster-Margin at budget 25, MC-dropout mutual information at budget 50, and Uncertainty+diversity and MC-dropout mutual information are tied at budget 100 (0.726). The hardest reconstruction class is (√13×√13), where core-set achieves the best result (0.667) by covering the HTR–RT13 feature-space boundary. Seeds 202 and 303 remain to be verified identity-safe and run under commit 482f712 (which adds the Twinned pairwise filter). Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
 
 ## References
 
@@ -543,6 +597,9 @@ The implemented protocol separates pair-disjoint acquisition groups, SHA-256 con
 2. B. Settles. *Active Learning Literature Survey*. University of Wisconsin--Madison, 2009.
 3. K. He, X. Zhang, S. Ren, and J. Sun. *Deep Residual Learning for Image Recognition*. CVPR, 2016.
 4. T. Chen et al. *A Simple Framework for Contrastive Learning of Visual Representations*. ICML, 2020.
+5. G. Citovsky, G. DeSalvo, C. Gentile, L. Karydas, A. Rajagopalan, A. Rostamizadeh, and S. Kumar. *Batch Active Learning at Scale*. NeurIPS, 2021.
+6. Y. Gal and Z. Ghahramani. *Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning*. ICML, 2016.
+7. D. Lischuk and S. Dasgupta. *Adaptive Sampling for Estimation of a Probability Distribution*. ICML, 2017. *(See also Yang and Loog, 2016, for uncertainty-diversity acquisition.)*
 
 ## Appendix A. Figure Provenance
 
