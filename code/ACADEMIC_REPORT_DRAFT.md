@@ -311,7 +311,19 @@ For the default identity-safe configuration, `Twinned(2 x 1)` is excluded and 14
 | `HTR` | 29 | 26 | 5 | 5 | 16 |
 | **Total** | **150** | **144** | **28** | **28** | **88** |
 
-### 3.2 Identity-safe split contract
+### 3.2 Pairwise CSV cleaning: removal of trajectory images identical to ideal images
+
+During the identity audit for seeds 202 and 303, the SHA-256 audit reported non-zero values for two fields that must be zero: `pairwise_image_identity_overlap_reference` (3) and `pairwise_image_identity_overlap_utility_validation` (2). These fields count the number of pairwise training rows in which at least one trajectory image is content-identical (same SHA-256 hash) to an image assigned to the reference-anchor or utility-validation partition.
+
+The root cause was that 8 trajectory image files in `Trajectories/` had identical byte content to ideal image files in `STO_ideal_*/` folders. These 8 trajectory images appeared in 40 rows of the v1.8 pairwise CSV (`Quantum Label Data - Pairwise_Comparisonv1.8.csv`). If any of those rows entered the training or candidate pool, the model would be trained on preference comparisons containing images that are byte-for-byte identical to held-out evaluation images—a form of label-free test-set leakage.
+
+Seeds 42, 79, and 123 did not trigger this violation because, for those random seeds, the affected ideal images were assigned to the outer-test partition, where the pipeline's `pairwise_image_identity_overlap_outer_test` filter removes overlapping pairs from the training pool automatically. Seeds 202 and 303 assigned some of those same ideal images to the reference and utility-validation partitions instead, where no analogous runtime filter was active, causing the audit to fail.
+
+The fix was applied directly to the source CSV rather than adding a runtime workaround: the 40 affected rows were deleted from `Quantum Label Data - Pairwise_Comparisonv1.8.csv`, reducing the row count from 678 to 638. The 8 trajectory images involved span the `(1 x 1)` and `c(6 x 2)` reconstruction classes. After this removal, all seven forbidden-overlap audit fields are zero for seeds 202, 303, and all previously passing seeds. The cleaned CSV is committed at git SHA `5ca1bb4` and all subsequent runs use it.
+
+This cleaning has no effect on seeds 42, 79, and 123 results reported in §5.8–5.10: those runs predate the cleaning but the removed pairs were already excluded from their training pools by the outer-test filter, so no training set changes for those seeds.
+
+### 3.3 Identity-safe split contract
 
 ![Leakage-safe split protocol](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/leakage_safe_split_protocol.svg)
 
