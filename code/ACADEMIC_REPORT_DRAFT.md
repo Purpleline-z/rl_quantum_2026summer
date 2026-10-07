@@ -2,7 +2,7 @@
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. An SHA-256 audit found byte-identical images crossing prior partitions: 1--3 ideal images per seed also appeared as unlabelled trajectory images. The revised implementation constructs and audits splits by content identity, excludes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics.
+This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model with a five-head reward output (one head per reconstruction type in TYPE\_ORDER), compare uncertainty and diversity-aware acquisition rules across annotation budgets, and evaluate against a test set of ideal images with absolute labels. Four reconstruction classes are active: (1×1), c(6×2), (√13×√13), and HTR; Twinned(2×1) is excluded from ideal image partitions and from evaluation. An SHA-256 content-identity audit enforces that no outer-test image appears in training pairs, candidate images, reference anchors, utility validation, or negative anchors. Task 3b selects training schedules using utility-validation accuracy only; Task 3c evaluates the final strategy comparison. A pre-registered fixed-epoch comparison (3 vs. 30 epochs, lr=10^{-4}) is also completed for seeds 42, 79, and 123.
 
 ## 1. Introduction
 
@@ -22,7 +22,7 @@ Figure 1 shows the intended evaluation firewall. Validation can select training 
 
 See https://github.com/ymeng3/Quantum/tree/main/Classifier2.
 
-Each image $x$ is passed through a ResNet-18 encoder and a reward head that returns one score per reconstruction class, $r_\theta(x,t)$. For a labelled pair $(x_i,x_j)$ of type $t$, the Bradley--Terry model assigns the probability that the first image is preferred as
+Each image $x$ is passed through a ResNet-18 encoder and a reward head that returns one score per reconstruction class, $r_\theta(x,t)$, with five output dimensions corresponding to TYPE\_ORDER = [(1×1), Twinned(2×1), c(6×2), (√13×√13), HTR]. For a labelled pair $(x_i,x_j)$ of type $t$, the Bradley--Terry model assigns the probability that the first image is preferred as
 
 $$
 P_\theta(x_i \succ x_j \mid t) = \sigma\!\left(r_\theta(x_i,t)-r_\theta(x_j,t)\right),
@@ -59,9 +59,11 @@ $$
 
 In plain language, this is the fraction of held-out ideal images assigned the correct reconstruction type. $A(E)$ is calculated identically for `utility_validation` and `outer_test`; only the former is available while selecting epochs, learning rates, and acquisition settings. The implementation is [Experiment.evaluate](https://github.com/Purpleline-z/rl_quantum_2026summer/blob/main/code/active_learning_program/pairwise_active_learning_pipeline.py#L447-L464), which also saves correct count, total count, and per-class accuracy.
 
-The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head, and is fine-tuned with AdamW. Ideal reference images serve as both training anchors and the fixed comparison bank for downstream prediction; they are neither validation nor outer-test images. The historical fixed-schedule curves use full-model fine-tuning, batch size 16, learning rate $10^{-4}$, and three epochs; the budget-aware protocol in Section 5.8 replaces this fixed schedule with validation-selected settings.
+The downstream model is a ResNet-18 encoder followed by a 512-to-256-to-5 reward head (Linear(512→256) → ReLU → Dropout(0.2) → Linear(256→5)), fine-tuned with AdamW, weight decay $10^{-4}$, batch size 16. The five reward heads correspond to all five entries in TYPE\_ORDER. Twinned(2×1) is excluded from ideal image splits and evaluation; its reward head (index 1) is present in the model and receives gradient updates from any Twinned-labelled pairwise rows in the training pool. For seeds 42, 79, and 123, the pipeline at git SHA 58d59d6 did not filter Twinned pairwise rows from the training pool or candidate pool; those rows trained the Twinned head alongside the four active classes. All strategies were affected identically, so the relative comparison between strategies is valid. Seeds 202 and 303 run under commit 482f712, which adds a Twinned pairwise filter to load\_and\_split(). Evaluation metrics use only the four active class heads in all cases.
 
-The two encoder initializations are different starting representations under this same downstream training procedure. The shipped SimCLR checkpoint is image-only self-supervised pretraining and has not seen pairwise preference labels. ImageNet initialization uses torchvision ResNet-18 weights trained with ImageNet-1K supervision. Pairwise labels enter only during reward-model fine-tuning.
+The two encoder initializations are different starting representations under this same training procedure. The shipped SimCLR checkpoint is image-only self-supervised pretraining and has not seen pairwise preference labels. ImageNet initialization uses torchvision ResNet-18 weights trained with ImageNet-1K supervision. Pairwise labels enter only during reward-model fine-tuning.
+
+The fixed-epoch comparison (Section 5.9) pre-registers lr=$10^{-4}$, weight decay=$10^{-4}$, and epoch counts $E\in\{3,30\}$. The validation-selected protocol (Task 3b, Section 5.8) uses the utility-validation grid to select lr and epoch count per encoder and budget; the outer test is never consulted during that selection.
 
 ### 2.2 Active selection
 
@@ -130,18 +132,17 @@ Implementation: [`uncertainty_sampling`](https://github.com/Purpleline-z/rl_quan
 
 ```text
 Input: candidates C, trained reward model f, budget b
-for each pair (xi, xj) in C with known reconstruction type t:
-    p_t = sigmoid(r_t(xi) - r_t(xj))
-    uncertainty = BernoulliEntropy(p_t)
+for each pair (xi, xj) in C:
+    logits_h = r_h(xi) - r_h(xj)   for h = 1,...,5
+    p_h = sigmoid(logits_h)
+    u_h = BernoulliEntropy(p_h)
+    uncertainty = mean(u_1,...,u_5)
 return the b pairs with largest uncertainty
 ```
 
-$$
-p_t(c)=\sigma\!\left(r_\theta(x_i,t)-r_\theta(x_j,t)\right),\qquad
-u(c)=-p_t(c)\log p_t(c)-(1-p_t(c))\log(1-p_t(c)).
-$$
+$$p_h(c)=\sigma\!\left(r_\theta(x_i,h)-r_\theta(x_j,h)\right),\qquad u_h(c)=-p_h(c)\log p_h(c)-(1-p_h(c))\log(1-p_h(c)),\qquad u(c)=\frac{1}{H}\sum_{h=1}^{H}u_h(c).$$
 
-For candidate $c=(x_i,x_j)$ of reconstruction type $t$, $p_t(c)$ is the predicted probability that $x_i$ wins under the type-$t$ reward head, and $u(c)$ is its Bernoulli entropy. Every pair group carries a known type label, so the type-specific head is always used. Large entropy means that the current model assigns a probability near one half, so this rule requests labels for comparisons it presently finds hard. All other acquisition strategies similarly use the pair's type index when scoring candidates.
+For candidate $c=(x_i,x_j)$, $p_h(c)$ is the predicted probability that $x_i$ wins under reward head $h$, $H=5$ is the number of reward heads, and $u(c)$ is the mean Bernoulli entropy over all heads. The label-free candidate view (candidate\_metadata) does not carry a reconstruction-type index; the mean-head formula is therefore used in every production run. Large entropy means the current model finds the comparison hard on average across all reward dimensions.
 
 #### Algorithm 3c: Core-set coverage
 
@@ -221,7 +222,7 @@ $$
 m(c)=\frac{1}{H}\sum_{h=1}^{H}\left|p_h(c)-\tfrac{1}{2}\right|,
 $$
 
-$p_h(c)$ and $H$ have the meanings defined for predictive uncertainty. $m(c)$ is small when the heads place the comparison close to a 50--50 decision. Let $P$ contain the $\min(10b,|C|)$ candidates with the smallest margins. The implementation groups $P$ by $g(c)$, orders the groups from smallest to largest, and takes their smallest-margin remaining member in round-robin order until $b$ pairs are selected.
+$p_h(c)$ and $H$ have the meanings defined for predictive uncertainty; $H=5$ reward heads; the mean is over all five. $m(c)$ is small when the heads place the comparison close to a 50--50 decision. Let $P$ contain the $\min(10b,|C|)$ candidates with the smallest margins. The implementation groups $P$ by $g(c)$, orders the groups from smallest to largest, and takes their smallest-margin remaining member in round-robin order until $b$ pairs are selected.
 
 #### Algorithm 3g: MC-dropout probability variance
 
@@ -296,7 +297,7 @@ return model after E epochs
 
 ### 3.1 Historical data and benchmark contract
 
-The v1.8 preference source contains 669 valid rows representing 179 unordered pair groups. In the completed controlled benchmark, 50 groups form the initial labelled set, 120 form the candidate pool, and 9 are unused. There is no separate pairwise validation partition: every preference group is initial, candidate, or unused. The [Stage 1 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/study_manifest.json) records the exact allocation.
+The v1.8 preference source contains 669 valid rows representing 179 unordered pair groups. The legacy controlled benchmark used 50 initial pair groups and 120 candidate groups. The current identity-safe Task 3 study uses 10 initial pair groups and up to 100 candidate pair groups (from simclr\_three\_seed\_identity\_safe\_task3\_settings.json); the remaining groups are unused. There is no separate pairwise validation partition: every preference group is initial, candidate, or unused. The [Stage 1 manifest](active_learning_studies/pair_disjoint_not_image_disjoint/results/selection_benchmark/stage1_selector_curves_none/study_manifest.json) records the exact allocation.
 
 The unit of acquisition is an unordered pair group; initial and candidate groups are pair-disjoint. The same image may occur in different non-test pair groups because image-disjoint pair partitions are unnecessarily restrictive for this application. Ideal reference, utility-validation, and outer-test images are separately partitioned. In contrast, no outer-test identity may appear in training pairs, candidate images, reference anchors, utility validation, or Bad-image anchors.
 
@@ -322,7 +323,7 @@ The implementation enforces this rule in `active_learning_program/pairwise_activ
 
 The reusable program is in `active_learning_program/`. `pairwise_active_learning_pipeline.py` loads preference CSVs, creates ideal partitions, trains the reward model, and executes selectors. `resumable_model_training.py` stores per-epoch training loss and utility-validation accuracy. The pipeline trains for a fixed number of epochs (selected per encoder and budget by the Task 3b validation grid) with no early stopping. The budget-aware runner uses `utility_validation` for training decisions and records `outer_test_not_evaluated: true` during calibration.
 
-Each run should save: configuration; data hashes; pair manifests; split audit; per-epoch metrics; selected pair IDs; seed; and all aggregate CSVs used in figures. Every paper number must trace to one of these saved artifacts.
+Each run should save: configuration; data hashes; pair manifests; split audit; per-epoch metrics; selected pair IDs; seed; data freeze manifest (generate\_data\_freeze\_manifest.py); and all aggregate CSVs used in figures. The freeze manifest records git commit hash, source-file SHA-256s, reconstruction classes included and excluded, image-identity partition assignments, pair-group assignments, partition counts by class, and all seven forbidden-overlap audit fields. It fails loudly if any overlap constraint is violated or if Twinned(2×1) appears in any partition. Every paper number must trace to one of these saved artifacts.
 
 ## 5. Results and Evidence Status
 
@@ -493,20 +494,48 @@ The completed evidence is a [filename/order audit](active_learning_studies/rheed
 
 ### 5.8 Task 3b: budget-aware training protocol
 
-**Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × two encoder initializations × five acquisition budgets × four learning rates × three epoch counts, for 600 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
+**Question.** Should every acquisition budget use the same learning rate and number of epochs? Task 3a answered this with a validation-only grid rather than choosing a schedule by convention: five seeds × one encoder initialization (SimCLR) × five acquisition budgets × four learning rates × three epoch counts, calibrated on seeds 42, 79, and 123 for 180 cells. Each cell begins with ten labelled pair groups, acquires a deterministic random reference batch at its budget, and measures utility-validation accuracy without opening the outer test. Task 3b then selects the highest mean validation setting for each encoder × budget. The complete grid is in the [validation-calibration summary](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/validation_calibration_summary.csv), and the machine-readable selection is in the [Task 3b protocol](active_learning_studies/pair_disjoint_not_image_disjoint/results/budget_aware_protocol/budget_aware_protocol_by_encoder_and_budget.json).
 
-| Encoder | Budget 10 | Budget 25 | Budget 50 | Budget 75 | Budget 100 |
-|---|---|---|---|---|---|
-| ImageNet | 30 epochs, $10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ |
-| SimCLR | 30 epochs, $10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 30 epochs, $3\cdot10^{-4}$ | 10 epochs, $3\cdot10^{-4}$ | 30 epochs, $10^{-4}$ |
+| Budget | Selected epochs | Selected lr |
+|---:|---:|---:|
+| 10 | 30 | $3\cdot10^{-4}$ |
+| 25 | 10 | $3\cdot10^{-4}$ |
+| 50 | 30 | $3\cdot10^{-4}$ |
+| 75 | 10 | $3\cdot10^{-4}$ |
+| 100 | 10 | $3\cdot10^{-4}$ |
 
-The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data, and the two encoder initializations respond differently. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
+Selection used mean utility-validation accuracy over seeds 42, 79, and 123; SimCLR encoder only; tie-broken by fewer epochs then lower learning rate. Source: [frozen Task 3b schedule](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/frozen\_task3b\_protocol/simclr\_three\_seed\_budget\_specific\_schedule.json). The full calibration grid is in [three\_seed\_validation\_calibration\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/frozen\_task3b\_protocol/three\_seed\_validation\_calibration\_summary.csv).
 
-Task 3b and 3c have been completed on the identity-safe, SHA-256-repaired partitions. The protocol JSON and strategy-curve experiments in this section reflect the final experimental runs.
+The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
+
+Task 3b and 3c have been completed for seeds 42, 79, and 123 on the identity-safe, SHA-256-repaired partitions (protocol-frozen git SHA: 58d59d6). Seeds 202 and 303 are pending; they will run under commit 482f712, which adds a Twinned pairwise filter.
+
+### 5.9 Fixed-epoch single-shot comparison (pre-registered)
+
+**Question.** Does training for 30 epochs instead of 3 consistently improve acquisition strategy performance across budgets?
+
+The fixed-epoch comparison pre-registers lr=$10^{-4}$, weight decay=$10^{-4}$, and epoch counts $E\in\{3,30\}$ without consulting outer-test results. Two strategies are compared at each budget: random (the paired baseline) and uncertainty. Both use the same 10-pair initial pool, the same 100-pair candidate pool, and the same SHA-256-enforced identity-safe splits as Task 3c. The outer test (28 images, 4 classes) is evaluated after all protocol choices are frozen.
+
+Mean outer-test accuracy over seeds 42, 79, 123 (outer-test total = 28 per seed):
+
+| Strategy | Budget | 3-epoch accuracy | 30-epoch accuracy | Δ (30 − 3) |
+|---|---:|---:|---:|---:|
+| Random | 10 | 0.393 ± 0.094 | 0.333 ± 0.103 | −0.060 |
+| Random | 25 | 0.226 ± 0.074 | 0.667 ± 0.125 | +0.440 |
+| Random | 50 | 0.250 ± 0.062 | 0.679 ± 0.179 | +0.429 |
+| Random | 75 | 0.333 ± 0.090 | 0.536 ± 0.124 | +0.202 |
+| Random | 100 | 0.417 ± 0.238 | 0.667 ± 0.149 | +0.250 |
+| Uncertainty | 10 | 0.250 ± 0.062 | 0.310 ± 0.165 | +0.060 |
+| Uncertainty | 25 | 0.357 ± 0.036 | 0.512 ± 0.021 | +0.155 |
+| Uncertainty | 50 | 0.274 ± 0.082 | 0.595 ± 0.238 | +0.321 |
+| Uncertainty | 75 | 0.310 ± 0.090 | 0.381 ± 0.115 | +0.071 |
+| Uncertainty | 100 | 0.333 ± 0.021 | 0.571 ± 0.124 | +0.238 |
+
+30 epochs consistently outperforms 3 epochs at budgets ≥ 25 for both strategies. At budget 10, neither strategy benefits reliably from longer training (high variance, small labelled set). The full per-seed results are in [pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv) and the aggregate summary is in [fixed\_epoch\_outer\_test\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/fixed\_epoch\_outer\_test\_summary.csv).
 
 ## 6. Conclusion
 
-The implemented protocol separates pair-disjoint acquisition groups, content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. The next comparison uses this protocol to measure the strategy-by-budget curve after split reconstruction.
+The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules) and Task 3c (strategy budget curve) are complete for seeds 42, 79, and 123 under the SimCLR encoder. The pre-registered fixed-epoch comparison (Section 5.9) shows that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25. Seeds 202 and 303 remain to be verified identity-safe and run under the corrected pipeline (commit 482f712). Data freeze manifests are generated by generate\_data\_freeze\_manifest.py and fail loudly on any overlap violation or unexpected partition size.
 
 ## References
 
