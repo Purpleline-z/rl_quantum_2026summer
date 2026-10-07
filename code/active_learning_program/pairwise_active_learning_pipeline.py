@@ -151,8 +151,7 @@ class BTModel(nn.Module):
 
 @dataclass
 class Config:
-    #initial_pairs: int = 70; candidate_pairs: int = 100; budget: int = 50; batch_size: int = 5
-    initial_pairs: int = 50; candidate_pairs: int = 120; budget: int = 50; batch_size: int = 5
+    initial_pairs: int = 10; candidate_pairs: int = 100; budget: int = 50; batch_size: int = 5
     epochs: int = 10; train_batch_size: int = 16; lr: float = 1e-4; weight_decay: float = 1e-4
     test_fraction: float = .2; clusters: int = 20; seed: int = 42; device: str = "auto"
     strategies: str = "random,uncertainty,cluster_quota_uncertainty"; include_twinned: bool = False
@@ -683,7 +682,7 @@ class Experiment:
 
 def parse_args() -> Config:
     p = argparse.ArgumentParser(description=__doc__)
-    for name, typ, default in [("initial-pairs", int, 70), ("candidate-pairs", int, 100), ("budget", int, 50), ("batch-size", int, 5), ("epochs", int, 10), ("train-batch-size", int, 16), ("lr", float, 1e-4), ("test-fraction", float, .2), ("clusters", int, 20), ("seed", int, 42)]: p.add_argument(f"--{name}", type=typ, default=default)
+    for name, typ, default in [("initial-pairs", int, 10), ("candidate-pairs", int, 100), ("budget", int, 50), ("batch-size", int, 5), ("epochs", int, 10), ("train-batch-size", int, 16), ("lr", float, 1e-4), ("test-fraction", float, .2), ("clusters", int, 20), ("seed", int, 42)]: p.add_argument(f"--{name}", type=typ, default=default)
     p.add_argument("--strategies", default="random,uncertainty,cluster_quota_uncertainty"); p.add_argument("--device", default="auto"); p.add_argument("--include-twinned", action="store_true"); p.add_argument("--no-utility-per-pair", dest="utility_per_pair", action="store_false"); p.add_argument("--utility-min-history", type=int, default=10); p.add_argument("--dropout-p", type=float, default=.2); p.add_argument("--mc-samples", type=int, default=20); p.add_argument("--acquisition-mode", choices=["sequential", "single-shot"], default="sequential"); p.add_argument("--diversity-lambda", type=float, default=.5); p.add_argument("--symmetry-mode", choices=SYMMETRY_MODES, default="none"); p.add_argument("--metadata-csv"); p.add_argument("--metadata-weight", type=float, default=.5); p.add_argument("--mixture-weight", type=float, default=.5); p.add_argument("--data-root"); p.add_argument("--dataset-version", choices=["v1.8", "v5.7"], default="v1.8"); p.add_argument("--utility-validation-fraction", type=float, default=.2); p.add_argument("--bad-anchor-weight", type=float, default=.10); p.add_argument("--smoke-test", action="store_true")
     a = p.parse_args(); cfg = Config(**{k.replace("_", "-").replace("-", "_"): v for k, v in vars(a).items() if k != "smoke_test"})
     if a.smoke_test: cfg.initial_pairs, cfg.candidate_pairs, cfg.budget, cfg.batch_size, cfg.epochs, cfg.strategies = 8, 8, 2, 1, 1, "random"

@@ -2,7 +2,7 @@
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. An SHA-256 audit found byte-identical images crossing prior partitions: 1--3 ideal images per seed also appeared as unlabelled trajectory images. The revised implementation constructs and audits splits by content identity, excludes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics for validation-only early stopping.
+This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model, compare uncertainty and diversity-aware acquisition rules, and evaluate against a test set of ideal images with absolute labels. An SHA-256 audit found byte-identical images crossing prior partitions: 1--3 ideal images per seed also appeared as unlabelled trajectory images. The revised implementation constructs and audits splits by content identity, excludes every outer-test identity from pairwise/unlabelled trajectory images and negative anchors, and records epoch-wise validation metrics.
 
 ## 1. Introduction
 
@@ -130,18 +130,18 @@ Implementation: [`uncertainty_sampling`](https://github.com/Purpleline-z/rl_quan
 
 ```text
 Input: candidates C, trained reward model f, budget b
-for each pair (xi, xj) in C:
-    p_h = sigmoid(r_h(xi) - r_h(xj)) for every reward head h
-    uncertainty = mean BernoulliEntropy(p_h) across reward heads
+for each pair (xi, xj) in C with known reconstruction type t:
+    p_t = sigmoid(r_t(xi) - r_t(xj))
+    uncertainty = BernoulliEntropy(p_t)
 return the b pairs with largest uncertainty
 ```
 
 $$
-p_h(c)=\sigma\!\left(r_\theta(x_i,h)-r_\theta(x_j,h)\right),\qquad
-u(c)=\frac{1}{H}\sum_{h=1}^{H}\left[-p_h(c)\log p_h(c)-(1-p_h(c))\log(1-p_h(c))\right].
+p_t(c)=\sigma\!\left(r_\theta(x_i,t)-r_\theta(x_j,t)\right),\qquad
+u(c)=-p_t(c)\log p_t(c)-(1-p_t(c))\log(1-p_t(c)).
 $$
 
-For candidate $c=(x_i,x_j)$, $p_h(c)$ is the predicted probability that $x_i$ wins under reward head $h$, $H$ is the number of heads, and $u(c)$ is their mean Bernoulli entropy. Large entropy means that the current model assigns a probability near one half, so this rule requests labels for comparisons it presently finds hard.
+For candidate $c=(x_i,x_j)$ of reconstruction type $t$, $p_t(c)$ is the predicted probability that $x_i$ wins under the type-$t$ reward head, and $u(c)$ is its Bernoulli entropy. Every pair group carries a known type label, so the type-specific head is always used. Large entropy means that the current model assigns a probability near one half, so this rule requests labels for comparisons it presently finds hard. All other acquisition strategies similarly use the pair's type index when scoring candidates.
 
 #### Algorithm 3c: Core-set coverage
 
@@ -281,18 +281,14 @@ Output: pair-disjoint training/candidate groups and identity-disjoint ideal part
 ```
 
 ```text
-Algorithm 2: Train with validation-only early stopping
-Input: labelled pairs, reference images, utility-validation set, maximum epochs E, patience p
-best_metric = -infinity; stale = 0
+Algorithm 2: Train for a fixed number of epochs
+Input: labelled pairs, reference images, utility-validation set, epoch count E
 for epoch = 1,...,E:
     optimize Bradley--Terry and permitted reference-anchor losses for one epoch
     record mean training loss
     metric = reconstruction_accuracy(utility-validation)
     record metric; never evaluate outer test here
-    if metric improves best_metric: save model; best_metric = metric; stale = 0
-    else: stale += 1
-    if stale >= p: stop
-return saved model with highest validation metric
+return model after E epochs
 ```
 
 
@@ -324,7 +320,7 @@ The implementation enforces this rule in `active_learning_program/pairwise_activ
 
 ## 4. Implementation and Reproducibility
 
-The reusable program is in `active_learning_program/`. `pairwise_active_learning_pipeline.py` loads preference CSVs, creates ideal partitions, trains the reward model, and executes selectors. `resumable_model_training.py` now stores per-epoch training loss and utility-validation accuracy and restores the best validation checkpoint. The budget-aware runner uses `utility_validation` for training decisions and records `outer_test_not_evaluated: true` during calibration.
+The reusable program is in `active_learning_program/`. `pairwise_active_learning_pipeline.py` loads preference CSVs, creates ideal partitions, trains the reward model, and executes selectors. `resumable_model_training.py` stores per-epoch training loss and utility-validation accuracy. The pipeline trains for a fixed number of epochs (selected per encoder and budget by the Task 3b validation grid) with no early stopping. The budget-aware runner uses `utility_validation` for training decisions and records `outer_test_not_evaluated: true` during calibration.
 
 Each run should save: configuration; data hashes; pair manifests; split audit; per-epoch metrics; selected pair IDs; seed; and all aggregate CSVs used in figures. Every paper number must trace to one of these saved artifacts.
 
@@ -506,7 +502,7 @@ The completed evidence is a [filename/order audit](active_learning_studies/rheed
 
 The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data, and the two encoder initializations respond differently. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
 
-The saved Task 3b table predates the SHA-256 image-identity repair. Rebuild the partitions by image identity, rerun Task 3a → Task 3b, and use the resulting per-encoder, per-budget table for the strategy curve.
+Task 3b and 3c have been completed on the identity-safe, SHA-256-repaired partitions. The protocol JSON and strategy-curve experiments in this section reflect the final experimental runs.
 
 ## 6. Conclusion
 
