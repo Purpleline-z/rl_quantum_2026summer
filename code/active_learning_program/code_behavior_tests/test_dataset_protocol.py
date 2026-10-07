@@ -52,9 +52,13 @@ class DatasetProtocolTests(unittest.TestCase):
             references = {p for values in exp.references.values() for p in values}
             self.assertFalse(test & utility); self.assertFalse(test & references); self.assertFalse(utility & references)
             audit = exp.protocol_audit(initial, pool)
+            self.assertEqual(audit["exact_pair_overlap"], 0)
             self.assertEqual(audit["reference_test_identity_overlap"], 0)
             self.assertEqual(audit["utility_test_identity_overlap"], 0)
+            self.assertEqual(audit["reference_utility_identity_overlap"], 0)
             self.assertEqual(audit["pairwise_image_identity_overlap_outer_test"], 0)
+            self.assertEqual(audit["pairwise_image_identity_overlap_reference"], 0)
+            self.assertEqual(audit["pairwise_image_identity_overlap_utility_validation"], 0)
 
     def test_controlled_utility_never_queries_outer_test(self):
         with tempfile.TemporaryDirectory() as tmp:
