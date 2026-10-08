@@ -68,7 +68,7 @@ def run(scratch, cache, schedule) -> None:
                 if name.startswith("random_r"):
                     import random as pyrandom
                     ids = [r["pair_id"] for r in pyrandom.Random(seed * 7919 + budget * 31 + int(name[8:])).sample(rows, budget)]
-                elif name in NEW_STRATEGIES: ids = [x["pair_id"] for x in NEW_STRATEGIES[name](rows, labeled, baseline, cache_, budget, seed)]
+                elif name in NEW_STRATEGIES: ids = [x["pair_id"] for x in NEW_STRATEGIES[name](rows, labeled, baseline, features.embedding_cache(rows + labeled), budget, seed)]
                 else: ids = [x["pair_id"] for x in exp.select(name, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)[0]]
                 model = frozen.train_model(exp, features, initial + ids, lr, steps)
                 target.write_text(json.dumps({"seed": seed, "budget": budget, "strategy": name, "pool": len(pool), "selected_pair_ids": sorted(ids),

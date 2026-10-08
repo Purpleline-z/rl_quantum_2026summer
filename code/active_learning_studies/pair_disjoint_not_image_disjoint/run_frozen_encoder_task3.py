@@ -85,7 +85,7 @@ def final(data_root, scratch, cache, schedule, strategies=STRATEGIES, folder="ce
                 started = time.monotonic()
                 if strategy in NEW_STRATEGIES:
                     labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2} for i in initial]
-                    selected = NEW_STRATEGIES[strategy](rows, labeled, baseline, cache_, budget, seed)
+                    selected = NEW_STRATEGIES[strategy](rows, labeled, baseline, features.embedding_cache(rows + labeled), budget, seed)
                 else:
                     selected, _, _ = exp.select(strategy, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)
                 ids = [item["pair_id"] for item in selected]
