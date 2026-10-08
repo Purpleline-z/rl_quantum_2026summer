@@ -97,24 +97,27 @@ with a confidence-aware response model (pairs of nearly identical or entirely di
 - Facility location as low-budget selection with no labels needed (Kaushal et al., WACV 2019, via search summary; not opened). Our `maxherding_pairs` and `graph_facility_location` are of this family.
 - No source compared pair-feature constructions (concatenate / difference / product) for active selection; our relation-aware representation is therefore tested only empirically (`core_set` vs `core_set_relation`).
 
-## Cold start: which 10 groups to start from (run_initial_set_study.py, five study seeds, held-out pair endpoint)
-Mean over seeds; "added" = random pool groups added after the 10 initial ones.
+## Cold start: which 10 groups to start from (run_initial_set_study.py, 35 seeds, held-out pair endpoint)
+**Correction.** A first version of this section, written from five seeds, claimed that the default initial set (random draw with greedy reconstruction-type coverage)
+was clearly better than label-free image-space selection and explained it by per-head type coverage. That did not replicate over 35 seeds and is withdrawn.
 
-| Initial set | AUC (0 added) | accuracy (0 added) | AUC (30 added) | calibrated log-loss (0 / 30 added) |
+Mean over 35 seeds; "added" = random pool groups added after the 10 initial ones.
+
+| Initial set | AUC (0 added) | log-loss (0 / 30 added) | calibrated log-loss (0 / 30 added) | accuracy (0 added) |
 |---|---:|---:|---:|---:|
-| default (random draw with greedy reconstruction-type coverage) | 0.896 | 0.856 | 0.936 | 0.476 / 0.354 |
-| farthest-first in relation-aware pair space | 0.911 | 0.852 | 0.922 | 0.499 / 0.460 |
-| k-means representatives | 0.861 | 0.777 | 0.912 | 0.627 / 0.430 |
-| random | 0.833 | 0.767 | 0.920 | 0.531 / 0.424 |
-| TypiClust on pair vectors | 0.835 | 0.758 | 0.928 | 0.609 / 0.424 |
+| default (random draw, greedy type coverage) | 0.872 | 0.715 / 0.429 | 0.482 / 0.403 | 0.813 |
+| farthest-first in relation-aware pair space | 0.884 | 0.567 / 0.410 | 0.488 / 0.466 | 0.818 |
+| k-means representatives | 0.882 | 0.599 / 0.399 | 0.503 / 0.392 | 0.805 |
+| random | 0.867 | 0.745 / 0.405 | 0.518 / 0.416 | 0.799 |
+| TypiClust on pair vectors | 0.873 | 0.656 / 0.411 | 0.506 / 0.416 | 0.804 |
 
-Reading: the default rule is the only one that guarantees every reconstruction type appears among the first groups (it reads the types of the judgments),
-and each type has its own reward head. Image-space representativeness alone (k-means, TypiClust) does not replace that and is no better than random here.
-Whether this is a fair comparison is debatable, since the default rule uses label-derived types; a deployable version would have to ask the annotator for the types
-or predict them. The effect fades with 30 more random groups. Five seeds only, no significance test.
+Paired over seeds, the default set's AUC minus the others' (0 added): farthest -0.011 (p = 0.25), k-means -0.009 (p = 0.50), random +0.005 (p = 1.0), TypiClust -0.001 (p = 0.81).
+Label-free representative sets give a lower raw log-loss with no initial acquisition (farthest-first 0.567 vs 0.715), but the calibrated log-loss is about the same for all
+sets, so the raw difference is mostly score scale. After 30 added groups all initial sets are within noise. Conclusion: with this endpoint and frozen features the first
+10 groups do not matter much; the type-coverage story is not supported.
 
 ## Sixth round: coverage across reward heads, domain context
-- Class coverage in active learning: [Active Learning for Imbalanced Datasets, Aggarwal et al., WACV 2020](https://openaccess.thecvf.com/content_WACV_2020/papers/Aggarwal_Active_Learning_for_Imbalanced_Datasets_WACV_2020_paper.pdf), [Learning on the Border, Ertekin et al.](https://clgiles.ist.psu.edu/pubs/CIKM-2007-learning-border.pdf) and VaB-AL address skewed class coverage in the acquisition step. Our setting is per-*head* rather than per-class coverage (each reconstruction type has its own reward head, and a pair group is judged for several types); the cold-start result above (type-covering initial set beats label-free image-space diversity) is consistent with this literature. No source treated multiple per-class reward heads; this is our own framing.
+- Class coverage in active learning: [Active Learning for Imbalanced Datasets, Aggarwal et al., WACV 2020](https://openaccess.thecvf.com/content_WACV_2020/papers/Aggarwal_Active_Learning_for_Imbalanced_Datasets_WACV_2020_paper.pdf), [Learning on the Border, Ertekin et al.](https://clgiles.ist.psu.edu/pubs/CIKM-2007-learning-border.pdf) and VaB-AL address skewed class coverage in the acquisition step. Our setting is per-*head* rather than per-class coverage (each reconstruction type has its own reward head, and a pair group is judged for several types); the initial-set study above found no clear advantage for type-covering initial sets over label-free ones over 35 seeds, so this is hypothesis, not finding. No source treated multiple per-class reward heads; this is our own framing.
 - [Batch Active Learning of Reward Functions from Human Preferences, Bıyık et al.](https://arxiv.org/html/2402.15757v1): the batch preference-query setting; closest prior art for the single-shot batch condition.
 - [Active Query Selection for Crowd-Based RL, 2025](https://arxiv.org/html/2508.19132) and Crowd-BT-style reliability weighting: judge reliability could matter if labels came from several people.
 - Domain: [RHEED pattern classification with a CNN](https://www.researchgate.net/publication/401711251_RHEED_pattern_classification_by_a_convolutional_neural_network_for_the_growth_of_chalcogenide_thin_films_and_nanostructures), [machine-learning on-the-fly RHEED analysis, JVST A 43 (2025)](https://pubs.aip.org/avs/jva/article/43/3/032702/3341018/Machine-learning-enabled-on-the-fly-analysis-of-RHEED-patterns-during-thin-film-deposition-by-molecular-beam-epitaxy), and a [Nano Letters study](https://pubs.acs.org/doi/10.1021/acs.nanolett.4c04500) that extracts RHEED features from ~10 expert-labelled examples. The search found no RHEED work on active selection of preference labels, so the question studied here appears unaddressed in that literature (search-based statement, not an exhaustive survey).
