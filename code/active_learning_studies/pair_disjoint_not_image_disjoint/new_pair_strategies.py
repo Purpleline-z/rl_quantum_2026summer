@@ -145,7 +145,69 @@ def graph_facility_location(candidates, labeled, model, cache, budget, seed=0, k
     return [candidates[i] for i in chosen]
 
 
+def dpp_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation"):
+    """Greedy MAP of a quality-diversity DPP (Bıyık et al., 2019): L_ij = q_i q_j S_ij, q = Bernoulli entropy, S = cosine kernel."""
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p, _ = _hidden_and_logit(model, candidates, cache)
+    q = _uncertainty(p) / np.log(2) + 1e-3; unit = allp / np.linalg.norm(allp, axis=1, keepdims=True)
+    S = (unit @ unit.T + 1) / 2; Q = np.concatenate([q, np.full(len(labeled), 1.0)]); L = Q[:, None] * S * Q[None, :]
+    chosen = list(range(n, len(allp))); picked = []  # labelled pairs are conditioned on (always in the set)
+    for _ in range(min(budget, n)):
+        best, best_gain = None, -np.inf
+        for i in range(n):
+            if i in picked: continue
+            idx = chosen + picked; sub = L[np.ix_(idx, idx)] + 1e-9 * np.eye(len(idx))
+            cross = L[i, idx]; gain = L[i, i] - cross @ np.linalg.solve(sub, cross) if len(idx) else L[i, i]  # Schur complement = marginal gain of det
+            if gain > best_gain: best, best_gain = i, gain
+        picked.append(best)
+    return [candidates[i] for i in picked]
+
+
+def probcover_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mean", purity=.9):
+    """ProbCover (Yehuda et al., 2022) on pairs: delta-balls cover the pair space.  delta is the largest radius at which a ball is
+    at least ``purity`` pure in the (observable) reconstruction type; each pick covers the most still-uncovered pairs."""
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); types = np.array([int(x["type_idx"]) for x in candidates + labeled])
+    d = np.sqrt(((allp[:, None] - allp[None]) ** 2).sum(2)); delta = np.median(d[d > 0])
+    for radius in np.quantile(d[d > 0], np.linspace(.02, .6, 30)):
+        inside = (d <= radius); pure = np.mean([(types[inside[i]] == types[i]).mean() for i in range(len(allp))])
+        if pure < purity: break
+        delta = radius
+    inside = d <= delta; covered = inside[n:].any(0) if len(labeled) else np.zeros(len(allp), bool); chosen = []
+    for _ in range(min(budget, n)):
+        gain = np.array([(inside[i] & ~covered).sum() if i not in chosen else -1 for i in range(n)]); pick = int(np.argmax(gain))
+        chosen.append(pick); covered |= inside[pick]
+    return [candidates[i] for i in chosen]
+
+
+def maxherding_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation"):
+    """MaxHerding (Bae et al., 2024): smooth kernel coverage = uncertainty-free facility location on the pair graph."""
+    return graph_facility_location(candidates, labeled, model, cache, budget, seed, kind=kind, neighbours=len(candidates), alpha=0.0)
+
+
+def laplace_bald(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, samples=64):
+    """BALD (Houlsby et al., 2011) for the Bradley--Terry head under a Laplace posterior on the last layer.
+
+    Per type head the weights are N(w_MAP, M^-1) with M = ridge*I + sum w_i phi_i phi_i^T over labelled pairs.  For a candidate
+    with latent d = w.phi ~ N(mu, s^2), s^2 = phi^T M^-1 phi, the mutual information between the (unseen) label and the weights is
+    H[E sigma(d)] - E H[sigma(d)].  Batches are built greedily and M is updated with each selected pair (fantasy update).
+    """
+    h, p, t = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); dim = h.shape[1]
+    logit = np.log(np.clip(p, 1e-7, 1 - 1e-7) / (1 - np.clip(p, 1e-7, 1 - 1e-7))); rng = np.random.default_rng(seed); z = rng.standard_normal(samples)
+    inverse = {k: np.eye(dim) / ridge for k in range(5)}
+    def update(i):
+        k = t[i]; v = inverse[k] @ h[i]; inverse[k] = inverse[k] - np.outer(v, v) * w[i] / (1 + w[i] * h[i] @ v)
+    for i in range(n, len(h)): update(i)
+    def bald(i):
+        s = np.sqrt(max(h[i] @ inverse[t[i]] @ h[i], 1e-12)); draws = 1 / (1 + np.exp(-(logit[i] + s * z)))
+        ent = lambda x: -(x * np.log(np.clip(x, 1e-9, 1)) + (1 - x) * np.log(np.clip(1 - x, 1e-9, 1)))
+        return ent(draws.mean()) - ent(draws).mean()
+    chosen = []; remaining = list(range(n))
+    for _ in range(min(budget, n)):
+        pick = remaining[int(np.argmax([bald(i) for i in remaining]))]; chosen.append(pick); remaining.remove(pick); update(pick)
+    return [candidates[i] for i in chosen]
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,
+    "dpp_pairs": dpp_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
 }

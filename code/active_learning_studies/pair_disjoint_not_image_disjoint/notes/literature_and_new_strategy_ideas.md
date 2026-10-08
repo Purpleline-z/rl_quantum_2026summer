@@ -28,3 +28,15 @@ The original core-set uses (a+b)/2. That is symmetric, but it throws away how th
 - `fisher_dopt`: greedy log-det (D-optimal) on the head's last-layer Fisher information, per reconstruction-type head.
 - `image_coverage_uncertainty`: graph view with images as nodes; uncertain pairs touching images that have no labelled edge are boosted.
 - `graph_facility_location`: kNN graph over pairs; greedy uncertainty-weighted facility location.
+
+## Second round of sources and strategies
+| Source | Idea | Strategy |
+|---|---|---|
+| [Batch AL with DPPs, Bıyık et al., 2019](https://arxiv.org/abs/1906.07975) | Kernel with diagonal = quality (uncertainty), off-diagonal = similarity; repulsive batches | `dpp_pairs` (greedy MAP via Schur complements) |
+| [BatchBALD, Kirsch et al., 2019](https://arxiv.org/abs/1906.08158) | Joint mutual information of a batch; independent top-k picks redundant points | Motivates the batch-aware update inside `laplace_bald` |
+| [ProbCover, Yehuda et al., NeurIPS 2022](https://arxiv.org/abs/2205.11320) | δ-ball coverage of self-supervised features, low-budget regime | `probcover_pairs` (δ = largest radius with ≥90% purity in the observable reconstruction type) |
+| [Generalized coverage / MaxHerding, ECCV 2024](https://arxiv.org/html/2407.12212v2) | ProbCover is sensitive to its radius; smooth kernel coverage is more robust | `maxherding_pairs` (kernel coverage on the pair graph) |
+| [BALD, Houlsby et al., 2011](https://arxiv.org/abs/1112.5745) and [GP preference learning, Chu & Ghahramani, ICML 2005](https://icml.cc/Conferences/2005/proceedings/papers/018_Preference_ChuGhahramani.pdf) | Information gain about the latent preference function | `laplace_bald`: BALD under a Laplace posterior on the linear last layer, with batch fantasy updates |
+| [Batch active learning of reward functions from human preferences, Bıyık et al.](https://liralab.usc.edu/pdfs/publications/biyik2024batch.pdf) | Batch preference queries | Closest prior art for the whole task; read in full before writing related work |
+
+No RHEED-specific active learning or contrastive-pretraining paper turned up in the search; the nearest are the Peak Sequence Transformer (already used in `paper_replicate`) and CNN pattern classifiers.
