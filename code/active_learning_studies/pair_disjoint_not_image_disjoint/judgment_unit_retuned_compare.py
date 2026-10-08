@@ -100,8 +100,21 @@ def build() -> tuple[str, dict]:
     return "\n".join(md), out
 
 
+def full_tables(table: pd.DataFrame) -> str:
+    """All 32 variants, log-loss and AUC gains under both schedules, one table per split/condition (ordered by the re-tuned log-loss gain)."""
+    md = []
+    for (split, condition), g in table.groupby(["split", "condition"], sort=False):
+        ll = g[g.metric == "log-loss"].set_index("family"); auc = g[g.metric == "AUC"].set_index("family")
+        md.append(f"\n#### {split}, {condition}: gain over Random, averaged over budgets (Holm p within the table of 32 in brackets)\n")
+        md.append("| Variant | log-loss gain, old | log-loss gain, re-tuned | AUC gain, old | AUC gain, re-tuned | seeds better (log-loss), old / re-tuned |"); md.append("|---|---:|---:|---:|---:|---:|")
+        for family in ll.sort_values("new_gain", ascending=False).index:
+            a = ll.loc[family]; b = auc.loc[family]
+            md.append(f"| {NAMES.get(family, family)} | {a.old_gain:+.3f} ({p(a.old_holm)}) | {a.new_gain:+.3f} ({p(a.new_holm)}) | {b.old_gain:+.3f} ({p(b.old_holm)}) | {b.new_gain:+.3f} ({p(b.new_holm)}) | {a.old_frac_better:.0%} / {a.new_frac_better:.0%} |")
+    return "\n".join(md)
+
+
 def main() -> None:
-    md, out = build(); folder = NEW / "comparison"; folder.mkdir(parents=True, exist_ok=True)
+    md, out = build(); (NEW / "comparison").mkdir(parents=True, exist_ok=True); (NEW / "comparison" / "full_tables.md").write_text(full_tables(out["side_by_side"])); folder = NEW / "comparison"; folder.mkdir(parents=True, exist_ok=True)
     for key, frame in out.items(): frame.to_csv(folder / f"{key}.csv", index=False)
     (folder / "comparison_tables.md").write_text(md); print(md)
 
