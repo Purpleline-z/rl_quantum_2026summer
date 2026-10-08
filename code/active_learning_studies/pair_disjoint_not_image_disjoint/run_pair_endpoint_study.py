@@ -59,7 +59,10 @@ def calibrate(scratch, cache) -> dict:
 
 
 def run(scratch, cache, schedule) -> None:
-    cells = OUT / "cells"; cells.mkdir(parents=True, exist_ok=True); lr, steps = schedule["learning_rate"], schedule["steps"]
+    # robustness runs: PAIR_STUDY_SCHEDULE="lr,steps" overrides the calibrated setting, PAIR_STUDY_CELLS names the output folder, PAIR_STUDY_ONLY lists strategies
+    cells = OUT / os.environ.get("PAIR_STUDY_CELLS", "cells"); cells.mkdir(parents=True, exist_ok=True); lr, steps = schedule["learning_rate"], schedule["steps"]
+    if os.environ.get("PAIR_STUDY_SCHEDULE"): lr, steps = float(os.environ["PAIR_STUDY_SCHEDULE"].split(",")[0]), int(os.environ["PAIR_STUDY_SCHEDULE"].split(",")[1])
+    only = set(os.environ["PAIR_STUDY_ONLY"].split(",")) if os.environ.get("PAIR_STUDY_ONLY") else None
     for seed in seeds():
         exp, features, initial, pool, validation, test = setup(seed, scratch, cache); started = time.monotonic()
         labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2,
@@ -72,6 +75,7 @@ def run(scratch, cache, schedule) -> None:
                                           "type_accuracy": frozen.evaluate_model(exp, features, baseline)["test_accuracy"]}, indent=1))
         ensemble = None
         names = list(ORIGINAL) + list(NEW_STRATEGIES) + LABEL_FREE + list(ENSEMBLE_STRATEGIES) + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
+        if only: names = [n for n in names if n in only or n.startswith("random_r")]
         for budget in BUDGETS:
             for name in names:
                 target = cells / f"seed{seed}_budget{budget}_{name}.json"

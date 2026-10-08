@@ -8,6 +8,7 @@ Wilcoxon signed-rank test against random with Holm correction over strategies.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def load(mode: str = "single", seeds: str = "all") -> pd.DataFrame:
     """mode: single (one batch chosen with the 10-group model) or sequential (rounds of 10).  seeds: study (5), extension (400-429), all."""
     rows = []
     if mode == "single":
-        rows = [json.loads(p.read_text()) for p in sorted((OUT / "cells").glob("*.json"))]
+        rows = [json.loads(p.read_text()) for p in sorted((OUT / os.environ.get("PAIR_STUDY_CELLS", "cells")).glob("*.json"))]
     else:
         for path in sorted((OUT / "sequential_cells").glob("*.json")):
             d = json.loads(path.read_text())
@@ -72,7 +73,7 @@ def analyse(cells: pd.DataFrame, metric: str, lower: bool, tag: str) -> None:
 
 
 def main() -> None:
-    mode = sys.argv[1] if len(sys.argv) > 1 else "single"; seeds = sys.argv[2] if len(sys.argv) > 2 else "all"; tag = f"{mode}_{seeds}"
+    mode = sys.argv[1] if len(sys.argv) > 1 else "single"; seeds = sys.argv[2] if len(sys.argv) > 2 else "all"; tag = f"{mode}_{seeds}" + (f"_{os.environ['PAIR_STUDY_CELLS']}" if os.environ.get("PAIR_STUDY_CELLS") else "")
     cells = load(mode, seeds); print(f"mode={mode} seeds={seeds}: {cells.seed.nunique()} seeds, {cells.family.nunique()} strategy families, {len(cells)} cells")
     for metric, (_, lower) in METRICS.items(): analyse(cells, metric, lower, tag)
     initial = cells[cells.strategy == "initial_only"]
