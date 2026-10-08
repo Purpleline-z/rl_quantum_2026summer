@@ -1,0 +1,48 @@
+# Context for the next Claude session (paste or point Claude at this file)
+
+Written at the end of a long session. The user (purpleline@uchicago.edu, writes in Chinese; reply in Chinese, plain language, no unexplained jargon) is a PhD student; their own earlier work is `code/classifier2/` (their advisor-level reference for data splitting). Repo: `Purpleline-z/rl_quantum_2026summer`. Nothing has been merged to `main` and no PR was opened.
+
+## Branches
+- `main` (b221537): untouched.
+- `claude/intelligent-franklin-a4xn5m`: merged `claude/determined-tesla-wawr1z` (seed 202/303 work); seed 202/303 Task 3c cells copied from Drive (via Colab cells the user ran, because the Drive MCP can only return base64 into the chat); report updated to five seeds.
+- `claude/frozen-encoder-strategies` (HEAD 31ddc46 at the time of writing): **all later work**, branched from the one above. Develop here.
+- `codex/protocol-diagnostics`: unrelated history (no merge base), not touched. `claude/determined-tesla-wawr1z`: merged, not touched further.
+- A Stop hook demands commit+push whenever the tree is dirty; background jobs write result files, so commit often.
+
+## Project in one paragraph
+RHEED reconstruction images (STO, four active types: (1x1), c(6x2), (√13x√13), HTR; Twinned(2x1) excluded). A Bradley–Terry reward model (ResNet-18, SimCLR init, one head per type, 5 outputs) is trained from expert pairwise judgments; classification of ideal images uses win-rate against reference ideal images. Question: which pair groups should be labelled next (acquisition strategy) at budgets of 10–100 pair groups. 168 usable pair groups (521 judgments, 284 images; 51% decisive, 14% tie, 35% not_apply; a group has 1–4 judgments, about 3.1 on average, one per type). Identity safety: SHA-256 content identity, no test image in training.
+
+## What was found (details in `code/ACADEMIC_REPORT_DRAFT.md` §5.10–5.13)
+1. **Fine-tuned model (§5.10)**: five-seed Task 3c accuracy 0.4–0.7 on 28 ideal test images. No bug found. Causes: tiny labelled sets for end-to-end fine-tuning (34–342 rows), training depends on the *order* of selected pairs (reordering the same 30 groups changed accuracy 0.357 -> 0.429), at budget 100 every strategy gets the identical 100 groups (candidate pool = 100), 28-image test. Five-seed rankings (Cluster-Margin/core-set) vanished with more seeds.
+2. **Frozen encoder (§5.11)**: cached SimCLR features, only the head is trained, full-batch on a sum of per-row losses => result depends on the *set* of pairs, not order (`frozen_encoder_reward_head.py`, tests). Type accuracy ~0.85, but reference anchors alone give 0.848 with zero pair groups; pair labels alone 0.37–0.55; frozen 1-NN to the references 0.871 ± 0.041. So type accuracy on ideal images cannot compare acquisition strategies.
+3. **Held-out preference endpoint (§5.12–5.13)**: decisive judgments of held-out pair groups (log-loss, AUC, calibrated log-loss, accuracy), 35 seeds (42, 79, 123, 202, 303, 400–429), 33 strategy variants (8 original, 17 new in `new_pair_strategies.py`, 6 "all-head" versions `_lf` of original rules, 2 deep-ensemble BALD) + Random (mean of 5 draws), two conditions: single-shot (one batch from the 10-group model) and sequential (rounds of 10). Statistics: per-seed gain over Random averaged over budgets {10,20,40,60}, Wilcoxon + Holm, Friedman omnibus.
+   - **Split A (§5.12; 10 initial / 20 validation / 40 test groups; pool 64–77)**: single-shot: Laplace BALD and BALD x P(decisive) significant on log-loss and AUC (about -0.04 log-loss, +0.01 AUC), original Cluster-quota and DPP on log-loss only, graph cut significantly worse; sequential: nothing beats Random, graph cut worse. Alternative schedule (lr 0.003, 300 steps): only Laplace BALD AUC survives.
+   - **Split B (§5.13; classifier2-style: 20% of pair groups = 34 test, no validation, image-disjoint; pool 99–113)**: only plain **core-set** is significant, on log-loss, in both conditions (+0.052 single-shot, +0.053 sequential); Laplace BALD / BALD x P(decisive) not significant. No rule is significant under both splits.
+   - Robust-ish statements: no uncertainty-driven rule (Uncertainty, MC-dropout, BADGE-style, DropQuery) is significantly better than Random in any split/condition; gains are small (log-loss 0.03–0.05, AUC <= 0.01); coverage-type rules lead at the smallest budgets (10–20) in both splits, but the leading rule differs. Per-budget tables are in §5.12/§5.13 with explicit multiple-comparison caveats.
+   - Withdrawn five-seed impressions (stated as non-replications): Cluster-Margin/core-set lead; type-covering initial set better (cold-start study over 35 seeds: no advantage).
+4. Other explorations (see `notes/literature_and_new_strategy_ideas.md`, six literature rounds): pair graph is almost a matching (284 images, 168 edges, max degree 3), so image-coverage rules cannot differ much; outcomes (decisive/tie/not_apply) are predictable from |a-b| features (AUC 0.79 / 0.87 for tie); mechanism checks (decisive share, coverage distance) did not explain rankings.
+
+## Decisions and statements by the user (follow these)
+- Data split reference is classifier2 (`classifier2/classifier_training_code/train_unified.py::load_data`: pair-level shuffle, hold out 20%). The user thinks 40 test / 20 val / 10 initial / 70 train (Split A) is unreasonable; keep §5.12 as the *very small budget* result and §5.13 as the standard split.
+- Labeling protocol: the **system selects a (pair, type) and the human judges only that type**. Therefore the original code's use of the first judgment row's type as the queried type is **not a leak** (an earlier version of the report said so; it was reworded). Remaining mismatch the report states: a selected group brings all its judgments (about 3.1) while the budget counts groups; a design with (pair, type) as the query unit and the budget in judgments has not been run.
+- The user wants conclusions about **best strategy per budget**; headline tables average over budgets, per-budget tables exist (`analyze_by_budget.py`).
+- Large GPU experiments are left for the user: second encoder (ImageNet/DINOv2 via `build_feature_cache.py`), end-to-end fine-tuning with order-independent (full-batch) training, strategy-specific hyper-parameters, larger candidate pool / (pair,type) query unit. See `code/active_learning_studies/pair_disjoint_not_image_disjoint/HANDOFF_frozen_encoder_and_strategies.md`.
+- The user prefers honest, hedged reporting; they asked for plain explanations when jargon was used ("Holm", "single-shot", "label-free" caused confusion). Do not overclaim; separate findings from hypotheses.
+
+## Where things are (all under `code/active_learning_studies/pair_disjoint_not_image_disjoint/` unless stated)
+- Report: `code/ACADEMIC_REPORT_DRAFT.md` (§5.8–5.10 fine-tuned, §5.11 frozen, §5.12 split A, §5.13 split B, abstract, conclusion rewritten). Tables in §5.12 are regenerated by `update_report_tables.py`; figure 19 by `plot_endpoint_forest.py` (`paper_assets/endpoint_gain_over_random.png`).
+- Code: `frozen_encoder_reward_head.py`, `pair_preference_endpoint.py` (splits and metrics), `new_pair_strategies.py`, `run_pair_endpoint_study.py` (single-shot), `run_pair_endpoint_sequential.py`, `aggregate_pair_endpoint.py`, `make_endpoint_report_tables.py`, `analyze_by_budget.py`. Tests: `code/active_learning_program/code_behavior_tests/test_frozen_encoder_order_invariance.py`, `test_new_pair_strategies.py`, `test_label_free_inputs.py` (56 pass).
+- Results (committed, ~130 MB): `results/pair_endpoint_study/` (`cells/`, `cells_alt_lr003_300steps/`, `cells_c2split/`, `sequential_cells/`, `sequential_cells_c2split/`, `*_report.txt`, aggregate CSVs), `results/frozen_encoder_task3/` (frozen type-accuracy study, `simclr_feature_cache.pt`).
+- Run recipes (env vars): `PAIR_STUDY_SEEDS="42,79,123,202,303,400-429"` (range or list), `PAIR_STUDY_SPLIT=classifier2` (Split B), `PAIR_STUDY_CELLS=<dir>` (single-shot output/input dir), `PAIR_STUDY_SEQ_CELLS=<dir>`, `PAIR_STUDY_SCHEDULE="lr,steps"`, `PAIR_STUDY_ONLY=<comma list>`; `PYTHONPATH=../../active_learning_program python3 run_pair_endpoint_study.py run`; aggregate with `python3 aggregate_pair_endpoint.py single|sequential all` (same env vars select the dir). Hyper-parameters (lr 0.01, 100 steps) come from `results/pair_endpoint_study/schedule.json`, calibrated once on Split A seeds 42/79/123 and reused for Split B.
+
+## Practical pitfalls learned
+- The machine has 4 cores: use `torch.set_num_threads(2)`; 8 threads made small matmuls ~50x slower. Do not run `pkill -f <pattern>` from the shell (it kills the calling shell); use a small Python script that matches /proc cmdlines.
+- The Drive MCP cannot write files; use Colab cells for Drive -> repo copies (`colab/copy_task3c_cells_from_drive.py`).
+- Scripts that call `Experiment.load_and_split()` rewrite `results/active_learning_v1.8_seed*/manifests` (side effects); the endpoint scripts redirect manifests to a temp dir.
+- When editing report tables, regenerate from CSVs (no hand-copied numbers); some old text (§5.9 fixed-epoch comparison) still reflects fine-tuned runs and budget-100 noise.
+- Candidate counts: 168 usable groups; Split A pool 64–77 (budget 60 = 78–94% of pool); Split B pool 99–113 (budget 60 = 53–61%).
+
+## Open questions worth raising with the user
+1. Is (pair, type) the real query unit, and should the budget count judgments rather than groups?
+2. Are held-out preference prediction metrics (log-loss, AUC) acceptable as the primary endpoint, given that ideal-image type accuracy is saturated by the reference anchors?
+3. Second encoder and a larger candidate pool before recommending any strategy; no PR or merge to `main` yet.
