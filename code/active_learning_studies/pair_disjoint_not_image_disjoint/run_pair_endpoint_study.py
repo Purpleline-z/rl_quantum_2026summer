@@ -39,7 +39,8 @@ GRID = list(itertools.product((1e-3, 3e-3, 1e-2), (100, 300, 1000)))
 
 def setup(seed, scratch, cache):
     exp = harness.make_experiment(seed, str(DATA), scratch); initial, candidates = exp.load_and_split(); features = frozen.FrozenFeatures(exp, cache); features.install()
-    return (exp, features, *endpoint.split_heldout(exp, initial, candidates))
+    split = endpoint.split_classifier2_style if os.environ.get("PAIR_STUDY_SPLIT") == "classifier2" else endpoint.split_heldout
+    return (exp, features, *split(exp, initial, candidates))
 
 
 def calibrate(scratch, cache) -> dict:

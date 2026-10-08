@@ -33,6 +33,27 @@ def split_heldout(exp: Experiment, initial: list[str], candidates: list[str], n_
     return initial, pool, validation, test
 
 
+def split_classifier2_style(exp: Experiment, initial: list[str], candidates: list[str], test_fraction: float = .2, salt: int = 29):
+    """Pair-level hold-out as in classifier2 (``train_unified.load_data``: shuffle the unique pairs, hold out 20%), keeping the identity-safe rule.
+
+    20% of all usable pair groups form the test set (every judgment of a pair stays on the same side).  Groups that share an image with a test group are
+    dropped from training, so no test image is seen in training.  The initial groups are re-chosen from what remains with the study's rule (a random draw
+    that covers every reconstruction type first); there is no validation set, which classifier2 did not have either.  Returns (initial, pool, [], test)."""
+    all_ids = list(dict.fromkeys(list(initial) + list(candidates))); images = {pid: {exp.groups[pid].iloc[0].resolved_img1, exp.groups[pid].iloc[0].resolved_img2} for pid in all_ids}
+    rng = random.Random(exp.cfg.seed * 1000 + salt); shuffled = all_ids[:]; rng.shuffle(shuffled)
+    test = shuffled[:int(round(test_fraction * len(all_ids)))]; test_images = set().union(*(images[i] for i in test))
+    remaining = [i for i in shuffled[len(test):] if not (images[i] & test_images)]
+    chosen, covered = [], set()
+    for pid in remaining:  # greedy reconstruction-type coverage, then fill with random groups (same rule as Experiment.load_and_split)
+        types = set(exp.groups[pid].canonical_type)
+        if types - covered: chosen.append(pid); covered |= types
+    for pid in remaining:
+        if len(chosen) >= len(initial): break
+        if pid not in chosen: chosen.append(pid)
+    chosen = chosen[:len(initial)]
+    return chosen, [i for i in remaining if i not in chosen], [], test
+
+
 @torch.no_grad()
 def evaluate_preferences(exp: Experiment, features, model, heldout: list[str]) -> dict:
     """Decisive-row accuracy and Bradley--Terry log-loss on the held-out groups, using each row's own reconstruction-type head."""
@@ -61,9 +82,13 @@ def _log_loss(d, sign, weight, temperature=1.0):
 
 def evaluate_full(exp: Experiment, features, model, validation: list[str], test: list[str]) -> dict:
     """Test metrics on the held-out groups: accuracy, log-loss, AUC (scale-free) and log-loss after fitting one temperature on the validation groups."""
-    dv, sv, wv = preference_scores(exp, features, model, validation); dt, st, wt = preference_scores(exp, features, model, test)
-    temperatures = np.exp(np.linspace(np.log(.05), np.log(20), 120)); best = temperatures[int(np.argmin([_log_loss(dv, sv, wv, t) for t in temperatures]))]
+    dt, st, wt = preference_scores(exp, features, model, test)
+    if validation:
+        dv, sv, wv = preference_scores(exp, features, model, validation)
+        temperatures = np.exp(np.linspace(np.log(.05), np.log(20), 120)); best = temperatures[int(np.argmin([_log_loss(dv, sv, wv, t) for t in temperatures]))]
+    else: dv = None; best = float("nan")
     return {"test_decisive_accuracy": float((wt * ((dt * st) > 0)).sum() / wt.sum()), "test_decisive_log_loss": _log_loss(dt, st, wt),
             "test_decisive_auc": float(roc_auc_score(st > 0, dt)) if len(set(st)) == 2 else float("nan"),
-            "test_calibrated_log_loss": _log_loss(dt, st, wt, best), "fitted_temperature": float(best), "test_decisive_rows": int(len(dt)),
-            "validation_decisive_log_loss": _log_loss(dv, sv, wv), "validation_decisive_accuracy": float((wv * ((dv * sv) > 0)).sum() / wv.sum())}
+            "test_calibrated_log_loss": _log_loss(dt, st, wt, best) if validation else float("nan"), "fitted_temperature": float(best), "test_decisive_rows": int(len(dt)),
+            "validation_decisive_log_loss": _log_loss(dv, sv, wv) if validation else float("nan"),
+            "validation_decisive_accuracy": float((wv * ((dv * sv) > 0)).sum() / wv.sum()) if validation else float("nan")}

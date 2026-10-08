@@ -8,6 +8,7 @@ so the two conditions are directly comparable.
 from __future__ import annotations
 
 import json
+import os
 import random as pyrandom
 import tempfile
 import time
@@ -21,7 +22,7 @@ import run_frozen_encoder_task3 as harness
 import run_pair_endpoint_study as single
 from new_pair_strategies import ENSEMBLE_SIZE, ENSEMBLE_STRATEGIES, NEW_STRATEGIES
 
-OUT = single.OUT / "sequential_cells"; ROUND = 10; CHECKPOINTS = (10, 20, 40, 60)
+OUT = single.OUT / os.environ.get("PAIR_STUDY_SEQ_CELLS", "sequential_cells"); ROUND = 10; CHECKPOINTS = (10, 20, 40, 60)
 
 
 def trajectory(exp, features, initial, pool, validation, test, name, seed, lr, steps) -> dict:

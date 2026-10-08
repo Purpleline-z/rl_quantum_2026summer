@@ -32,7 +32,7 @@ def load(mode: str = "single", seeds: str = "all") -> pd.DataFrame:
     if mode == "single":
         rows = [json.loads(p.read_text()) for p in sorted((OUT / os.environ.get("PAIR_STUDY_CELLS", "cells")).glob("*.json"))]
     else:
-        for path in sorted((OUT / "sequential_cells").glob("*.json")):
+        for path in sorted((OUT / os.environ.get("PAIR_STUDY_SEQ_CELLS", "sequential_cells")).glob("*.json")):
             d = json.loads(path.read_text())
             for budget, values in d["checkpoints"].items(): rows.append({"seed": d["seed"], "strategy": d["strategy"], "budget": int(budget), **{k: v for k, v in values.items() if k != "selected_pair_ids"}})
     frame = pd.DataFrame(rows)
@@ -73,7 +73,7 @@ def analyse(cells: pd.DataFrame, metric: str, lower: bool, tag: str) -> None:
 
 
 def main() -> None:
-    mode = sys.argv[1] if len(sys.argv) > 1 else "single"; seeds = sys.argv[2] if len(sys.argv) > 2 else "all"; tag = f"{mode}_{seeds}" + (f"_{os.environ['PAIR_STUDY_CELLS']}" if os.environ.get("PAIR_STUDY_CELLS") else "")
+    mode = sys.argv[1] if len(sys.argv) > 1 else "single"; seeds = sys.argv[2] if len(sys.argv) > 2 else "all"; tag = f"{mode}_{seeds}" + (f"_{os.environ['PAIR_STUDY_CELLS']}" if os.environ.get("PAIR_STUDY_CELLS") else "") + (f"_{os.environ['PAIR_STUDY_SEQ_CELLS']}" if os.environ.get("PAIR_STUDY_SEQ_CELLS") else "")
     cells = load(mode, seeds); print(f"mode={mode} seeds={seeds}: {cells.seed.nunique()} seeds, {cells.family.nunique()} strategy families, {len(cells)} cells")
     for metric, (_, lower) in METRICS.items(): analyse(cells, metric, lower, tag)
     initial = cells[cells.strategy == "initial_only"]
