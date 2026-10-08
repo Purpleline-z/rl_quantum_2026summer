@@ -39,8 +39,7 @@ def trajectory(exp, features, initial, pool, validation, test, name, seed, lr, s
         labeled_ids += picks; remaining = [r for r in remaining if r not in set(picks)]; acquired = (round_index + 1) * ROUND
         if acquired in CHECKPOINTS:
             final = frozen.train_model(exp, features, labeled_ids, lr, steps)
-            result[acquired] = {**{f"test_{k}": v for k, v in endpoint.evaluate_preferences(exp, features, final, test).items()},
-                                **{f"validation_{k}": v for k, v in endpoint.evaluate_preferences(exp, features, final, validation).items()},
+            result[acquired] = {**endpoint.evaluate_full(exp, features, final, validation, test),
                                 "type_accuracy": frozen.evaluate_model(exp, features, final)["test_accuracy"], "selected_pair_ids": sorted(labeled_ids[len(initial):])}
     return result
 
