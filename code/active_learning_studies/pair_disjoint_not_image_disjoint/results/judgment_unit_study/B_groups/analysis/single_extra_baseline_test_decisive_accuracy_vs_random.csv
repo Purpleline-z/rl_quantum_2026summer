@@ -1,0 +1,2 @@
+family,mean_gain,sd,n,frac_better,wilcoxon_p,holm_p
+random_pair_type,-0.0002161643138119697,0.014348888151934068,35,0.5428571428571428,1.0,1.0
