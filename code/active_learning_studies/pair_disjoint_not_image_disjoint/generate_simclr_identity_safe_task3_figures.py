@@ -37,24 +37,26 @@ def main() -> None:
         ax.set(xticks=range(len(pivot.columns)), xticklabels=[f"{x:.0e}" for x in pivot.columns], yticks=range(len(pivot.index)), yticklabels=pivot.index, xlabel="Learning rate", ylabel="Maximum epochs", title=f"Validation-only schedule calibration | budget {budget} | SimCLR | n=3")
         fig.colorbar(image, ax=ax, label="Mean utility-validation accuracy"); produced += save_all(fig, out, f"validation_schedule_heatmap_budget_{budget}")
     final = load_cells(root / "task3c_final_strategy_cells")
+    seed_count = final.seed.nunique()
     summary = final.groupby(["strategy", "budget"], as_index=False).agg(mean=("outer_test_accuracy", "mean"), sd=("outer_test_accuracy", "std"), n=("seed", "nunique"))
     fig, ax = plt.subplots(figsize=(8, 4.8))
     for strategy, group in summary.groupby("strategy"):
         ax.errorbar(group.budget, group["mean"], yerr=group.sd.fillna(0), marker="o", capsize=3, label=strategy)
-    ax.set(xlabel="Acquired pair-group budget", ylabel="Outer-test reconstruction accuracy", title="Identity-safe Task 3c | SimCLR | n=3 | validation-selected schedule")
+    ax.set(xlabel="Acquired pair-group budget", ylabel="Outer-test reconstruction accuracy", title=f"Identity-safe Task 3c | SimCLR | n={seed_count} | validation-selected schedule")
     ax.grid(alpha=.25); ax.legend(fontsize=7, ncol=2); produced += save_all(fig, out, "eight_strategy_outer_test_accuracy_curve")
+    summary.to_csv(out / "task3c_outer_test_summary_by_strategy_and_budget.csv", index=False)
     random = final[final.strategy.eq("random")][["seed", "budget", "outer_test_accuracy"]].rename(columns={"outer_test_accuracy": "random_accuracy"})
     paired = final.merge(random, on=["seed", "budget"]); paired["difference_vs_random"] = paired.outer_test_accuracy - paired.random_accuracy
     fig, ax = plt.subplots(figsize=(8, 4.8))
     for strategy, group in paired[~paired.strategy.eq("random")].groupby("strategy"):
         mean_difference = group.groupby("budget", as_index=False).difference_vs_random.mean().sort_values("budget")
         ax.plot(mean_difference.budget, mean_difference.difference_vs_random, marker="o", label=strategy)
-    ax.axhline(0, color="black", linewidth=.8); ax.set(xlabel="Budget", ylabel="Paired outer-test difference vs random", title="Per-seed paired strategy effect | SimCLR | n=3")
+    ax.axhline(0, color="black", linewidth=.8); ax.set(xlabel="Budget", ylabel="Paired outer-test difference vs random", title=f"Per-seed paired strategy effect | SimCLR | n={seed_count}")
     ax.grid(alpha=.25); ax.legend(fontsize=7, ncol=2); produced += save_all(fig, out, "paired_outer_test_difference_vs_random")
     fig, ax = plt.subplots(figsize=(9, 5))
     for strategy, group in final.groupby("strategy"):
         ax.scatter(group.budget, group.outer_test_accuracy, alpha=.7, label=strategy)
-    ax.set(xlabel="Budget", ylabel="Outer-test accuracy", title="Seed-level outer-test outcomes | SimCLR | n=3")
+    ax.set(xlabel="Budget", ylabel="Outer-test accuracy", title=f"Seed-level outer-test outcomes | SimCLR | n={seed_count}")
     ax.grid(alpha=.25); ax.legend(fontsize=7, ncol=2); produced += save_all(fig, out, "seed_level_outer_test_scatter")
     audit_rows = [{"seed": row.seed, **row.identity_audit} for row in final.itertuples()]
     audit = pd.DataFrame(audit_rows).groupby("seed", as_index=False).first(); audit.to_csv(out / "identity_safe_audit_summary.csv", index=False)

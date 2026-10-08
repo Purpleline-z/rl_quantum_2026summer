@@ -551,43 +551,43 @@ Over five seeds, 30 epochs consistently outperforms 3 epochs at budgets ≥ 25 f
 
 **Question.** Which acquisition strategy yields the highest reconstruction-type accuracy at each annotation budget when training schedules are held fixed by the Task 3b-selected protocol?
 
-Eight strategies are compared at five pair-group budgets on the 28-image outer-test set, evaluated over seeds 42, 79, and 123 (SimCLR encoder; Task 3b-selected schedule from §5.8; frozen selector parameters: cluster count 20 — 10 for Cluster-Margin — diversity λ=0.5, MC-dropout probability 0.2, MC samples 10). All strategies use the same identity-safe SHA-256-enforced partitions: 10 initial labelled pair groups, up to 100 candidate pair groups, 60/20/20 reference/utility-validation/outer-test image split.
+Eight strategies are compared at five pair-group budgets on the 28-image outer-test set, evaluated over five seeds, 42, 79, 123, 202, and 303 (SimCLR encoder; Task 3b-selected schedule from §5.8; frozen selector parameters: cluster count 20 — 10 for Cluster-Margin — diversity λ=0.5, MC-dropout probability 0.2, MC samples 10). All strategies use the same identity-safe SHA-256-enforced partitions: 10 initial labelled pair groups, up to 100 candidate pair groups, 60/20/20 reference/utility-validation/outer-test image split.
 
-Mean outer-test accuracy ± standard deviation over three seeds (outer-test set: 28 images, 4 classes):
+Mean outer-test accuracy ± standard deviation over five seeds (outer-test set: 28 images, 4 classes; 200 cells = 8 strategies × 5 budgets × 5 seeds; the table is also saved as `task3c_outer_test_summary_by_strategy_and_budget.csv`):
 
 | Strategy | Budget 10 | Budget 25 | Budget 50 | Budget 75 | Budget 100 |
 |---|---:|---:|---:|---:|---:|
-| Random | 0.548 ± 0.055 | 0.524 ± 0.230 | 0.524 ± 0.115 | 0.607 ± 0.036 | 0.702 ± 0.135 |
-| Uncertainty | 0.464 ± 0.250 | 0.393 ± 0.071 | 0.619 ± 0.055 | 0.655 ± 0.082 | 0.702 ± 0.125 |
-| Core-set | 0.476 ± 0.109 | 0.464 ± 0.036 | 0.512 ± 0.197 | 0.679 ± 0.094 | 0.667 ± 0.074 |
-| Cluster-quota uncertainty | 0.631 ± 0.144 | 0.560 ± 0.021 | 0.643 ± 0.036 | 0.655 ± 0.149 | 0.548 ± 0.055 |
-| Uncertainty + diversity | 0.548 ± 0.243 | 0.548 ± 0.115 | 0.643 ± 0.094 | 0.643 ± 0.107 | 0.726 ± 0.041 |
-| Cluster-Margin | 0.476 ± 0.082 | 0.607 ± 0.036 | 0.452 ± 0.090 | 0.607 ± 0.143 | 0.679 ± 0.129 |
-| MC-dropout variance | 0.381 ± 0.055 | 0.500 ± 0.217 | 0.690 ± 0.074 | 0.679 ± 0.199 | 0.464 ± 0.071 |
-| MC-dropout mutual info | 0.393 ± 0.250 | 0.560 ± 0.090 | 0.714 ± 0.129 | 0.524 ± 0.197 | 0.726 ± 0.144 |
+| Random | 0.507 ± 0.154 | 0.536 ± 0.175 | 0.536 ± 0.091 | 0.664 ± 0.096 | 0.679 ± 0.143 |
+| Uncertainty | 0.421 ± 0.188 | 0.429 ± 0.080 | 0.579 ± 0.092 | 0.586 ± 0.117 | 0.621 ± 0.227 |
+| Core-set | 0.486 ± 0.082 | 0.421 ± 0.069 | 0.564 ± 0.174 | 0.636 ± 0.102 | 0.679 ± 0.104 |
+| Cluster-quota uncertainty | 0.479 ± 0.264 | 0.564 ± 0.127 | 0.636 ± 0.069 | 0.664 ± 0.109 | 0.564 ± 0.077 |
+| Uncertainty + diversity | 0.536 ± 0.194 | 0.486 ± 0.128 | 0.650 ± 0.111 | 0.600 ± 0.159 | 0.721 ± 0.081 |
+| Cluster-Margin | 0.421 ± 0.102 | 0.593 ± 0.155 | 0.486 ± 0.078 | 0.643 ± 0.143 | 0.671 ± 0.092 |
+| MC-dropout variance | 0.386 ± 0.132 | 0.507 ± 0.191 | 0.650 ± 0.159 | 0.621 ± 0.178 | 0.514 ± 0.086 |
+| MC-dropout mutual info | 0.393 ± 0.217 | 0.443 ± 0.206 | 0.693 ± 0.169 | 0.571 ± 0.156 | 0.700 ± 0.140 |
 
-Best strategy per budget: Budget 10 — Cluster-quota uncertainty (0.631); Budget 25 — Cluster-Margin (0.607); Budget 50 — MC-dropout mutual information (0.714); Budget 75 — Core-set and MC-dropout variance (0.679, tied); Budget 100 — Uncertainty+diversity and MC-dropout mutual information (0.726, tied).
+Best strategy per budget: Budget 10 — Uncertainty+diversity (0.536); Budget 25 — Cluster-Margin (0.593); Budget 50 — MC-dropout mutual information (0.693); Budget 75 — Random and Cluster-quota uncertainty (0.664, tied); Budget 100 — Uncertainty+diversity (0.721).
 
-No single strategy dominates across all budgets. At the lowest budget (10 pair groups), cluster-quota uncertainty provides stable cross-type coverage by enforcing a minimum allocation per reconstruction class. At medium budgets (25–50), Cluster-Margin targets the batch at the decision boundary by pre-filtering to the 10× most uncertain candidates before applying farthest-first selection [Citovsky et al., 2021]; MC-dropout mutual information reaches the highest single accuracy (0.714 at budget 50) by treating model disagreement across stochastic forward passes as the acquisition signal [Gal and Ghahramani, 2016]. At high budgets (75–100), the candidate pool is largely consumed and differences between strategies narrow; uncertainty+diversity and MC-dropout mutual information share the top position at budget 100 (0.726). All standard deviations are ≥ 0.036, reflecting substantial seed-level variance with only 28 outer-test images. Seeds 202 and 303 have been run under commit 482f712; five-seed aggregate numbers are pending local collection of the Drive-stored cell results.
+With five seeds, no strategy dominates across budgets, and the margins between the leading strategies are small relative to seed-level variance (all standard deviations are ≥ 0.069 on a 28-image outer test, so one image is 0.036). Random is tied for the top mean at budget 75 and is within 0.03 of the leader at budget 10 (0.507 vs. 0.536). Uncertainty+diversity gives the highest mean at the smallest and largest budgets (0.536 and 0.721), and MC-dropout mutual information at budget 50 (0.693), by treating model disagreement across stochastic forward passes as the acquisition signal [Gal and Ghahramani, 2016]. Cluster-Margin leads at budget 25 by pre-filtering to the 10× most uncertain candidates before applying farthest-first selection [Citovsky et al., 2021]. At budget 100 only Uncertainty+diversity (0.721) and MC-dropout mutual information (0.700) exceed random (0.679), by 0.042 and 0.021, both well inside one standard deviation. These five-seed results replace the three-seed (42, 79, 123) rankings reported in earlier drafts, in which Cluster-quota uncertainty led at budget 10, Core-set and MC-dropout variance at budget 75, and Uncertainty+diversity tied MC-dropout mutual information at budget 100; those orderings did not hold once seeds 202 and 303 were added. Seeds 202 and 303 were run under commit 482f712 (Twinned pairwise filter active). In the 80 cells of seeds 202 and 303, all seven forbidden-overlap audit fields are zero. The 120 cells of seeds 42, 79, and 123 record the other five forbidden-overlap fields as zero but do not record `pairwise_image_identity_overlap_reference` and `pairwise_image_identity_overlap_utility_validation`; §3.2 explains why those overlaps were already excluded for those seeds.
 
-Per-class outer-test accuracy at budget 100, mean over seeds 42, 79, 123:
+Per-class outer-test accuracy at budget 100, mean over the five seeds:
 
 | Strategy | (1×1) | c(6×2) | (√13×√13) | HTR |
 |---|---:|---:|---:|---:|
-| Random | 1.000 | 0.708 | 0.476 | 0.533 |
-| Uncertainty | 0.875 | 0.917 | 0.333 | 0.600 |
-| Core-set | 0.708 | 0.667 | 0.667 | 0.600 |
-| Cluster-quota uncertainty | 0.458 | 0.792 | 0.238 | 0.733 |
-| Uncertainty + diversity | 0.792 | 0.917 | 0.429 | 0.733 |
-| Cluster-Margin | 0.833 | 0.750 | 0.429 | 0.667 |
-| MC-dropout variance | 0.625 | 0.333 | 0.333 | 0.600 |
-| MC-dropout mutual info | 0.917 | 0.917 | 0.238 | 0.800 |
+| Random | 0.800 | 0.675 | 0.543 | 0.680 |
+| Uncertainty | 0.700 | 0.750 | 0.343 | 0.680 |
+| Core-set | 0.750 | 0.700 | 0.543 | 0.720 |
+| Cluster-quota uncertainty | 0.500 | 0.700 | 0.400 | 0.680 |
+| Uncertainty + diversity | 0.650 | 0.925 | 0.514 | 0.800 |
+| Cluster-Margin | 0.750 | 0.700 | 0.514 | 0.720 |
+| MC-dropout variance | 0.675 | 0.475 | 0.286 | 0.640 |
+| MC-dropout mutual info | 0.900 | 0.750 | 0.343 | 0.800 |
 
-The hardest class is (√13×√13), where no strategy exceeds 0.667 and most fall below 0.500. This matches the PCA diagnostic in §5.4 showing that (√13×√13) shares a crowded neighborhood with HTR in the frozen SimCLR feature space. Core-set achieves the best (√13×√13) accuracy (0.667) by covering distant embedding regions rather than prioritising model uncertainty, consistent with its farthest-first selection covering the ambiguous HTR–RT13 boundary.
+The hardest class is (√13×√13), where no strategy exceeds 0.543 and four of eight fall below 0.500. This matches the PCA diagnostic in §5.4 showing that (√13×√13) shares a crowded neighborhood with HTR in the frozen SimCLR feature space. Random and Core-set tie for the best (√13×√13) accuracy (0.543); the five-seed result therefore no longer supports the earlier three-seed claim that Core-set's farthest-first coverage uniquely helps this class. Pure-uncertainty rules (Uncertainty, MC-dropout variance, MC-dropout mutual information) are the weakest on it (0.286–0.343). Uncertainty+diversity has the best c(6×2) accuracy (0.925) and ties for the best HTR accuracy (0.800 with MC-dropout mutual information).
 
 ![Eight-strategy outer-test accuracy curves](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/eight_strategy_outer_test_accuracy_curve.png)
 
-*Figure 16. Mean outer-test accuracy vs. annotation budget for all eight strategies (three seeds; error bands are ± one standard deviation). Task 3b-selected training schedule applied uniformly per budget.*
+*Figure 16. Mean outer-test accuracy vs. annotation budget for all eight strategies (five seeds; error bands are ± one standard deviation). Task 3b-selected training schedule applied uniformly per budget.*
 
 ![Paired outer-test gain versus random](active_learning_studies/pair_disjoint_not_image_disjoint/paper_assets/paired_outer_test_difference_vs_random.png)
 
@@ -597,11 +597,11 @@ The hardest class is (√13×√13), where no strategy exceeds 0.667 and most fa
 
 *Figure 18. Outer-test accuracy for every individual seed × strategy × budget cell. The spread confirms that no single strategy dominates at every seed.*
 
-These results cover seeds 42, 79, and 123. Seeds 202 and 303 have completed Task 3c under commit 482f712 (Twinned pairwise filter active); their 80 cell results are stored in Google Drive and will be merged into the aggregate tables once collected locally.
+These results cover all five seeds (42, 79, 123, 202, 303), 200 cells in total. Seeds 202 and 303 ran under commit 482f712 (Twinned pairwise filter active); seeds 42, 79, and 123 ran at git SHA 58d59d6 (§2.1). Every cell is stored in `results/simclr_three_seed_identity_safe_task3/task3c_final_strategy_cells/`, and Figures 16–18 are generated from them by `generate_simclr_identity_safe_task3_figures.py`.
 
 ## 6. Conclusion
 
-The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for all five seeds (42, 79, 123, 202, 303) under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) over five seeds confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25, with the exception of budget 75 uncertainty where the five-seed mean is equal (0.357 vs. 0.357). No single acquisition strategy dominates across all budgets (three-seed results): Cluster-quota uncertainty is strongest at budget 10, Cluster-Margin at budget 25, MC-dropout mutual information at budget 50, and Uncertainty+diversity and MC-dropout mutual information are tied at budget 100 (0.726). Five-seed Task 3c aggregate tables are pending local collection of the seeds 202/303 Drive-stored cells. The hardest reconstruction class is (√13×√13), where core-set achieves the best three-seed result (0.667) by covering the HTR–RT13 feature-space boundary. Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
+The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for all five seeds (42, 79, 123, 202, 303) under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) over five seeds confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25, with the exception of budget 75 uncertainty where the five-seed mean is equal (0.357 vs. 0.357). No single acquisition strategy dominates across budgets in the five-seed Task 3c comparison: Uncertainty+diversity has the highest mean at budgets 10 and 100 (0.536, 0.721), Cluster-Margin at budget 25 (0.593), MC-dropout mutual information at budget 50 (0.693), and Random ties Cluster-quota uncertainty at budget 75 (0.664). The gaps between leading strategies and random are small relative to seed-level standard deviations (≥ 0.069), so the evidence supports no strong claim that any acquisition rule beats random selection at this scale. The hardest reconstruction class is (√13×√13), where Random and Core-set tie for the best five-seed accuracy at budget 100 (0.543). Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
 
 ## References
 
