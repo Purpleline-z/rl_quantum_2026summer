@@ -1,0 +1,10 @@
+{
+ "seed": 42,
+ "budget": 0,
+ "strategy": "initial_only",
+ "pool": 71,
+ "test_decisive_accuracy": 0.8920378088951111,
+ "test_decisive_log_loss": 0.3849398195743561,
+ "test_decisive_rows": 75,
+ "type_accuracy": 0.75
+}

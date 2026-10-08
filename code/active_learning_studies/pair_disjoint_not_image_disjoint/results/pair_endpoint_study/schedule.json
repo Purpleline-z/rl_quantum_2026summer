@@ -1,0 +1,5 @@
+{
+ "learning_rate": 0.01,
+ "steps": 100,
+ "selection": "mean validation log-loss, seeds 42/79/123, all budgets; test groups unused"
+}

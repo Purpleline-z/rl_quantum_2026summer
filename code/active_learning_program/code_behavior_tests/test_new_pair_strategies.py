@@ -44,3 +44,10 @@ def test_selector_does_not_read_the_label_derived_type(name):
     a = [x["pair_id"] for x in NEW_STRATEGIES[name](candidates, labeled, _Model(), cache, budget=10, seed=2)]
     b = [x["pair_id"] for x in NEW_STRATEGIES[name](stripped, stripped_labeled, _Model(), cache, budget=10, seed=2)]
     assert a == b
+
+
+def test_bald_decisive_uses_labelled_outcomes_when_available():
+    candidates, labeled, cache = _data(); rng = np.random.default_rng(0)
+    with_outcomes = [{**x, "outcomes": [(int(k), bool(rng.random() > .5)) for k in (0, 2, 3, 4)]} for x in labeled]
+    ids = [x["pair_id"] for x in NEW_STRATEGIES["bald_decisive"](candidates, with_outcomes, _Model(), cache, budget=10, seed=1)]
+    assert len(ids) == 10 and len(set(ids)) == 10
