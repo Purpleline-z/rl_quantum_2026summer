@@ -90,3 +90,9 @@ with a confidence-aware response model (pairs of nearly identical or entirely di
 - But the decisive share does not predict held-out log-loss across cells (correlation -0.07), and the best five-seed strategy (Cluster-Margin) has a *low* decisive share (0.44, tie 0.20).
 - Coverage does not explain it either: the mean distance from held-out pairs to the nearest selected pair (relation-aware pair space) correlates 0.055 with log-loss within (seed, budget).
 - So the five-seed ranking has no mechanistic story yet; the extension to 30 more seeds tests whether the ranking itself is real.
+
+## Fifth round: submodular and optimal-design foundations
+- [Experimental Design under the Bradley–Terry Model, Guo et al., IJCAI 2018](https://www.ijcai.org/proceedings/2018/0304.pdf): treats pair selection as active learning and evaluates mutual information, entropy, D-optimal (covariance) and Fisher-information objectives, proving they are submodular so greedy gives near-optimal batches. This is the theory behind `fisher_dopt` and `laplace_bald` (both greedy with batch-aware updates).
+- [Submodularity in Data Subset Selection and Active Learning, Wei et al., ICML 2015](https://proceedings.mlr.press/v37/wei15.pdf): greedy 1-1/e guarantee; combines informativeness and representativeness; its FASS filters by uncertainty then covers the filtered set. -> `fass_pairs`; `graphcut_pairs` implements the graph-cut objective.
+- Facility location as low-budget selection with no labels needed (Kaushal et al., WACV 2019, via search summary; not opened). Our `maxherding_pairs` and `graph_facility_location` are of this family.
+- No source compared pair-feature constructions (concatenate / difference / product) for active selection; our relation-aware representation is therefore tested only empirically (`core_set` vs `core_set_relation`).

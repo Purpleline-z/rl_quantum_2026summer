@@ -3,8 +3,13 @@
  "budget": 0,
  "strategy": "initial_only",
  "pool": 71,
- "test_decisive_accuracy": 0.8920378088951111,
- "test_decisive_log_loss": 0.3849398195743561,
+ "test_decisive_accuracy": 0.8920377867746289,
+ "test_decisive_log_loss": 0.3849398626445246,
+ "test_decisive_auc": 0.9407142857142857,
+ "test_calibrated_log_loss": 0.37694363453690255,
+ "fitted_temperature": 1.0784476676087886,
  "test_decisive_rows": 75,
+ "validation_decisive_log_loss": 0.2788421409458419,
+ "validation_decisive_accuracy": 0.8461538461538461,
  "type_accuracy": 0.75
 }

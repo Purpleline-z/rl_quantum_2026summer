@@ -67,7 +67,7 @@ def run(scratch, cache, schedule) -> None:
         target = cells / f"seed{seed}_budget0_initial_only.json"
         if not target.exists():
             target.write_text(json.dumps({"seed": seed, "budget": 0, "strategy": "initial_only", "pool": len(pool),
-                                          **{f"test_{k}": v for k, v in endpoint.evaluate_preferences(exp, features, baseline, test).items()},
+                                          **endpoint.evaluate_full(exp, features, baseline, validation, test),
                                           "type_accuracy": frozen.evaluate_model(exp, features, baseline)["test_accuracy"]}, indent=1))
         names = list(ORIGINAL) + list(NEW_STRATEGIES) + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
         for budget in BUDGETS:
@@ -81,8 +81,7 @@ def run(scratch, cache, schedule) -> None:
                 else: ids = [x["pair_id"] for x in exp.select(name, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)[0]]
                 model = frozen.train_model(exp, features, initial + ids, lr, steps)
                 target.write_text(json.dumps({"seed": seed, "budget": budget, "strategy": name, "pool": len(pool), "selected_pair_ids": sorted(ids),
-                    **{f"test_{k}": v for k, v in endpoint.evaluate_preferences(exp, features, model, test).items()},
-                    **{f"validation_{k}": v for k, v in endpoint.evaluate_preferences(exp, features, model, validation).items()},
+                    **endpoint.evaluate_full(exp, features, model, validation, test),
                     "type_accuracy": frozen.evaluate_model(exp, features, model)["test_accuracy"]}, indent=1))
         print(f"finished seed {seed} in {time.monotonic() - started:.0f}s", flush=True)
 

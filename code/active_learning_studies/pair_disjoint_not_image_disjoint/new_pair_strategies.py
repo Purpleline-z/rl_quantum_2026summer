@@ -314,8 +314,33 @@ def bald_decisive(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, 
     return [candidates[i] for i in chosen]
 
 
+def _similarity(allp):
+    d2 = ((allp[:, None] - allp[None]) ** 2).sum(2); return np.exp(-d2 / np.median(d2[d2 > 0]))
+
+
+def fass_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation", filter_factor=3):
+    """FASS (Wei et al., ICML 2015): keep the ``filter_factor * budget`` most uncertain candidates, then pick a submodular
+    facility-location cover of that filtered set (greedy, 1-1/e guarantee).  Informativeness first, representativeness second."""
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p = _hidden_and_logit(model, candidates, cache)
+    keep = np.argsort(-_mean_uncertainty(p), kind="stable")[:min(n, filter_factor * budget)]; sim = _similarity(allp)
+    covered = sim[n:, :][:, keep].max(0) if len(labeled) else np.zeros(len(keep)); chosen = []
+    for _ in range(min(budget, len(keep))):
+        gains = [np.maximum(sim[keep[j]][keep] - covered, 0).sum() if j not in chosen else -1 for j in range(len(keep))]; pick = int(np.argmax(gains))
+        chosen.append(pick); covered = np.maximum(covered, sim[keep[pick]][keep])
+    return [candidates[keep[j]] for j in chosen]
+
+
+def graphcut_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation", trade_off=0.5):
+    """Graph cut (Iyer et al.): maximise sum_{i in V} sum_{j in S} s_ij - trade_off * sum_{i,j in S} s_ij, greedily; representative yet non-redundant."""
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); sim = _similarity(allp); chosen = []; selected = list(range(n, len(allp)))
+    for _ in range(min(budget, n)):
+        gains = [sim[i, :n].sum() - trade_off * (2 * sim[i, selected].sum() + sim[i, i]) if i not in chosen else -np.inf for i in range(n)]
+        pick = int(np.argmax(gains)); chosen.append(pick); selected.append(pick)
+    return [candidates[i] for i in chosen]
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,
-    "uncertainty_all_heads": uncertainty_all_heads, "bald_decisive": bald_decisive, "delta_gap": delta_gap, "delta_ucb": delta_ucb, "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
+    "uncertainty_all_heads": uncertainty_all_heads, "bald_decisive": bald_decisive, "delta_gap": delta_gap, "delta_ucb": delta_ucb, "fass_pairs": fass_pairs, "graphcut_pairs": graphcut_pairs, "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
 }

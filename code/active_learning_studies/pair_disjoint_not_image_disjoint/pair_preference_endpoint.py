@@ -13,6 +13,7 @@ import random
 
 import numpy as np
 import torch
+from sklearn.metrics import roc_auc_score
 
 from pairwise_active_learning_pipeline import Experiment
 
@@ -43,3 +44,26 @@ def evaluate_preferences(exp: Experiment, features, model, heldout: list[str]) -
     correct = ((d * sign) > 0).float(); loss = torch.nn.functional.softplus(-d * sign)
     return {"decisive_accuracy": float((correct * weight).sum() / weight.sum()), "decisive_log_loss": float((loss * weight).sum() / weight.sum()),
             "decisive_rows": int(len(rows))}
+
+
+@torch.no_grad()
+def preference_scores(exp: Experiment, features, model, groups: list[str]):
+    """Signed logit gap d = r_a - r_b (own type head) for every decisive row, its orientation (+1 if image 1 won) and confidence weight."""
+    rows = exp.rows_for(groups); rows = rows[rows.Winner.isin(["1", "2"])]
+    head = model.reward_head.eval(); a, b = head(features.get(rows.resolved_img1)), head(features.get(rows.resolved_img2))
+    d = (a - b)[torch.arange(len(rows)), torch.as_tensor(rows.type_idx.to_numpy())].numpy()
+    return d, np.where((rows.Winner == "1").to_numpy(), 1.0, -1.0), rows.confidence_weight.to_numpy().astype(float)
+
+
+def _log_loss(d, sign, weight, temperature=1.0):
+    return float((weight * np.logaddexp(0.0, -sign * d / temperature)).sum() / weight.sum())
+
+
+def evaluate_full(exp: Experiment, features, model, validation: list[str], test: list[str]) -> dict:
+    """Test metrics on the held-out groups: accuracy, log-loss, AUC (scale-free) and log-loss after fitting one temperature on the validation groups."""
+    dv, sv, wv = preference_scores(exp, features, model, validation); dt, st, wt = preference_scores(exp, features, model, test)
+    temperatures = np.exp(np.linspace(np.log(.05), np.log(20), 120)); best = temperatures[int(np.argmin([_log_loss(dv, sv, wv, t) for t in temperatures]))]
+    return {"test_decisive_accuracy": float((wt * ((dt * st) > 0)).sum() / wt.sum()), "test_decisive_log_loss": _log_loss(dt, st, wt),
+            "test_decisive_auc": float(roc_auc_score(st > 0, dt)) if len(set(st)) == 2 else float("nan"),
+            "test_calibrated_log_loss": _log_loss(dt, st, wt, best), "fitted_temperature": float(best), "test_decisive_rows": int(len(dt)),
+            "validation_decisive_log_loss": _log_loss(dv, sv, wv), "validation_decisive_accuracy": float((wv * ((dv * sv) > 0)).sum() / wv.sum())}

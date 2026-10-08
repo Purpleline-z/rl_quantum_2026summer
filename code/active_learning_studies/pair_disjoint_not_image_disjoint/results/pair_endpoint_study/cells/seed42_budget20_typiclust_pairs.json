@@ -25,11 +25,13 @@
   "Trajectories/2022-04-11/063_RR220411A_402C_1510.bmp || Trajectories/2022-04-11/268_RR220411A_952C_1801.bmp",
   "Trajectories/2022-04-11/238_RR220411A_905C_1736.bmp || Trajectories/2022-04-11/319_RR220411A_828C_1900.bmp"
  ],
- "test_decisive_accuracy": 0.8380566239356995,
- "test_decisive_log_loss": 0.4619550108909607,
+ "test_decisive_accuracy": 0.8380566801619433,
+ "test_decisive_log_loss": 0.4619550484360293,
+ "test_decisive_auc": 0.9171428571428573,
+ "test_calibrated_log_loss": 0.380836765605014,
+ "fitted_temperature": 2.413547670468569,
  "test_decisive_rows": 75,
- "validation_decisive_accuracy": 0.8846153616905212,
- "validation_decisive_log_loss": 0.5322491526603699,
- "validation_decisive_rows": 26,
+ "validation_decisive_log_loss": 0.532249181983894,
+ "validation_decisive_accuracy": 0.8846153846153846,
  "type_accuracy": 0.7857142857142857
 }
