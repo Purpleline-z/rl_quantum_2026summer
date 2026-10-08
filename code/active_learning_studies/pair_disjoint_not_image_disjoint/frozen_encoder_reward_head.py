@@ -32,10 +32,10 @@ LABELS = ("1", "2", "tie", "not_apply")
 
 class FrozenFeatures:
     """Encodes each image path once with the untrained-by-us SimCLR encoder and caches the 512-d result."""
-    def __init__(self, exp: Experiment):
+    def __init__(self, exp: Experiment, cache: dict[str, torch.Tensor] | None = None):
         self.base_model: BTModel = exp.make_model().eval()
         for parameter in self.base_model.encoder.parameters(): parameter.requires_grad_(False)
-        self.tf = transform(); self.cache: dict[str, torch.Tensor] = {}
+        self.tf = transform(); self.cache: dict[str, torch.Tensor] = {} if cache is None else cache  # may be shared across seeds: same encoder
 
     @torch.no_grad()
     def get(self, paths: Iterable) -> torch.Tensor:
