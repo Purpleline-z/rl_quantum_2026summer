@@ -51,3 +51,16 @@ def test_bald_decisive_uses_labelled_outcomes_when_available():
     with_outcomes = [{**x, "outcomes": [(int(k), bool(rng.random() > .5)) for k in (0, 2, 3, 4)]} for x in labeled]
     ids = [x["pair_id"] for x in NEW_STRATEGIES["bald_decisive"](candidates, with_outcomes, _Model(), cache, budget=10, seed=1)]
     assert len(ids) == 10 and len(set(ids)) == 10
+
+
+def test_ensemble_bald_prefers_pairs_where_members_disagree():
+    from new_pair_strategies import ENSEMBLE_STRATEGIES
+    candidates, labeled, cache = _data(); models = [_Model() for _ in range(4)]
+    for k, m in enumerate(models): torch.manual_seed(100 + k); m.reward_head[3].reset_parameters()
+    for name in ENSEMBLE_STRATEGIES:
+        ids = [x["pair_id"] for x in ENSEMBLE_STRATEGIES[name](candidates, labeled, models, cache, 10, 1)]
+        assert len(ids) == 10 and len(set(ids)) == 10
+    identical = [_Model() for _ in range(4)]   # no disagreement -> all scores 0 -> still a valid, deterministic batch
+    a = [x["pair_id"] for x in ENSEMBLE_STRATEGIES["ensemble_bald"](candidates, labeled, identical, cache, 10, 1)]
+    b = [x["pair_id"] for x in ENSEMBLE_STRATEGIES["ensemble_bald"](candidates, labeled, identical, cache, 10, 1)]
+    assert a == b

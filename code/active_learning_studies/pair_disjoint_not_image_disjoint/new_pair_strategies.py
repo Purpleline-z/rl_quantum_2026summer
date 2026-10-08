@@ -339,6 +339,43 @@ def graphcut_pairs(candidates, labeled, model, cache, budget, seed=0, kind="rela
     return [candidates[i] for i in chosen]
 
 
+def _decisive_probability(candidates, labeled, cache):
+    """P(decisive) per (candidate, head) from a regularised logistic regression on the labelled judgments (see ``bald_decisive``); 0.5 if unavailable."""
+    from sklearn.linear_model import LogisticRegression
+    n = len(candidates); decisive = np.full((n, 5), .5)
+    def stats(items):
+        a = np.stack([_feature(cache, x["img1"]) for x in items]); b = np.stack([_feature(cache, x["img2"]) for x in items])
+        return np.column_stack([np.linalg.norm(a - b, axis=1), (a * b).sum(1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1))])
+    xs, ys = [], []
+    if labeled:
+        for item, st in zip(labeled, stats(labeled)):
+            for type_idx, ok in item.get("outcomes", []): xs.append(np.concatenate([np.eye(5)[type_idx], st])); ys.append(int(ok))
+    if len(set(ys)) == 2:
+        X = np.array(xs); mu, sd = X[:, 5:].mean(0), X[:, 5:].std(0) + 1e-6; X[:, 5:] = (X[:, 5:] - mu) / sd
+        clf = LogisticRegression(C=0.3, max_iter=1000).fit(X, ys); sc = (stats(candidates) - mu) / sd
+        for k in ACTIVE_HEADS: decisive[:, k] = clf.predict_proba(np.column_stack([np.tile(np.eye(5)[k], (n, 1)), sc]))[:, 1]
+    return decisive
+
+
+def ensemble_bald(candidates, labeled, models, cache, budget, seed=0, decisive=False):
+    """Deep-ensemble BALD: mutual information between the preference and the head initialisation, from an ensemble of heads trained on the same labels.
+
+    ``models`` is a list of BTModels with identical data and different head initialisations (cheap on frozen features).  Score per head =
+    H[mean_m p_m] - mean_m H[p_m], summed over the active heads; with ``decisive`` it is weighted by the predicted probability of a decisive answer.
+    Greedy top-k (no batch interaction)."""
+    ps = []
+    for m in models: _, p = _hidden_and_logit(m, candidates, cache); ps.append(p)
+    ps = np.stack(ps); ent = lambda x: -(x * np.log(np.clip(x, 1e-9, 1)) + (1 - x) * np.log(np.clip(1 - x, 1e-9, 1)))
+    mi = ent(ps.mean(0)) - ent(ps).mean(0)   # [n, 5]
+    weight = _decisive_probability(candidates, labeled, cache) if decisive else np.ones_like(mi)
+    score = sum(weight[:, k] * mi[:, k] for k in ACTIVE_HEADS)
+    return [candidates[i] for i in np.argsort(-score, kind="stable")[:budget]]
+
+
+ENSEMBLE_STRATEGIES = {"ensemble_bald": lambda *a, **k: ensemble_bald(*a, **k, decisive=False), "ensemble_bald_decisive": lambda *a, **k: ensemble_bald(*a, **k, decisive=True)}
+ENSEMBLE_SIZE = 8
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,

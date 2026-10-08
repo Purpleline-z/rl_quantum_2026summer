@@ -20,7 +20,7 @@ import torch
 import frozen_encoder_reward_head as frozen
 import pair_preference_endpoint as endpoint
 import run_frozen_encoder_task3 as harness
-from new_pair_strategies import NEW_STRATEGIES
+from new_pair_strategies import ENSEMBLE_SIZE, ENSEMBLE_STRATEGIES, NEW_STRATEGIES
 
 HERE = Path(__file__).resolve().parent; DATA = HERE.parents[2] / "data"
 OUT = HERE / "results" / "pair_endpoint_study"; CACHE = harness.OUT / "simclr_feature_cache.pt"
@@ -70,7 +70,8 @@ def run(scratch, cache, schedule) -> None:
             target.write_text(json.dumps({"seed": seed, "budget": 0, "strategy": "initial_only", "pool": len(pool),
                                           **endpoint.evaluate_full(exp, features, baseline, validation, test),
                                           "type_accuracy": frozen.evaluate_model(exp, features, baseline)["test_accuracy"]}, indent=1))
-        names = list(ORIGINAL) + list(NEW_STRATEGIES) + LABEL_FREE + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
+        ensemble = None
+        names = list(ORIGINAL) + list(NEW_STRATEGIES) + LABEL_FREE + list(ENSEMBLE_STRATEGIES) + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
         for budget in BUDGETS:
             for name in names:
                 target = cells / f"seed{seed}_budget{budget}_{name}.json"
@@ -78,6 +79,9 @@ def run(scratch, cache, schedule) -> None:
                 if name.startswith("random_r"):
                     import random as pyrandom
                     ids = [r["pair_id"] for r in pyrandom.Random(seed * 7919 + budget * 31 + int(name[8:])).sample(rows, budget)]
+                elif name in ENSEMBLE_STRATEGIES:
+                    if ensemble is None: ensemble = [frozen.train_model(exp, features, initial, lr, steps, head_seed=1000 + k) for k in range(ENSEMBLE_SIZE)]
+                    ids = [x["pair_id"] for x in ENSEMBLE_STRATEGIES[name](rows, labeled, ensemble, features.embedding_cache(rows + labeled), budget, seed)]
                 elif name.endswith("_lf"):
                     rows_lf, model_lf = frozen.label_free_inputs(rows, baseline)
                     ids = [x["pair_id"] for x in exp.select(name[:-3], rows_lf, model_lf, features.embedding_cache(rows + labeled), [], budget=budget, labeled_ids=initial)[0]]
