@@ -81,11 +81,13 @@ def fit_head(head: nn.Module, xa: torch.Tensor, xb: torch.Tensor, type_index: to
 
 
 def train_model(exp: Experiment, features: FrozenFeatures, pair_ids: list[str], lr: float, steps: int,
-                head_seed: int | None = None, anchor_weight: float = .25) -> BTModel:
+                head_seed: int | None = None, anchor_weight: float = .25, rows=None) -> BTModel:
     """Return a BTModel whose reward head was trained on ``pair_ids`` (order of ``pair_ids`` is irrelevant).
 
-    ``head_seed`` re-initialises the head (default: the experiment seed's initialisation); ``anchor_weight`` scales the reference-ranking loss."""
-    model = copy.deepcopy(features.base_model); rows = exp.rows_for(sorted(pair_ids))
+    ``head_seed`` re-initialises the head (default: the experiment seed's initialisation); ``anchor_weight`` scales the reference-ranking loss.
+    ``rows`` (a DataFrame of individual judgment rows, e.g. from ``judgment_unit_study.rows_of``) replaces the group rows ``exp.rows_for(pair_ids)``:
+    with it the training set is exactly those judgments (judgment-unit study); without it the group path is unchanged."""
+    model = copy.deepcopy(features.base_model); rows = exp.rows_for(sorted(pair_ids)) if rows is None else rows
     if head_seed is not None:
         torch.manual_seed(head_seed)
         for layer in model.reward_head:
