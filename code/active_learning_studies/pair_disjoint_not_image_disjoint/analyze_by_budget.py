@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Per-budget comparison: gain over Random at each budget separately (the headline tables average over budgets within a seed)."""
+import os
+
 import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon
@@ -11,7 +13,7 @@ METRICS = (("test_decisive_log_loss", True, "log-loss"), ("test_decisive_auc", F
 
 def main() -> None:
     rows = []
-    for mode in ("single", "sequential"):
+    for mode in (("single",) if os.environ.get("PAIR_STUDY_CELLS") else ("single", "sequential")):
         cells = agg.load(mode, "all"); cells = cells[cells.budget > 0]
         for metric, lower, label in METRICS:
             ps = cells.groupby(["seed", "budget", "family"], as_index=False)[metric].mean()
@@ -23,7 +25,7 @@ def main() -> None:
                     v = h.gain.to_numpy(); tests[family] = float(wilcoxon(v).pvalue) if np.any(v != 0) else 1.0
                 adj = agg.holm(tests)
                 for family, h in g.groupby("family"): rows.append({"mode": mode, "metric": label, "budget": budget, "family": family, "mean_gain": h.gain.mean(), "p": tests[family], "holm_p": adj[family], "n": len(h)})
-    frame = pd.DataFrame(rows); frame.to_csv(agg.OUT / "by_budget_gain_vs_random.csv", index=False)
+    frame = pd.DataFrame(rows); suffix = os.environ.get("PAIR_STUDY_CELLS", "") + os.environ.get("PAIR_STUDY_SEQ_CELLS", ""); frame.to_csv(agg.OUT / (f"by_budget_gain_vs_random_{suffix}.csv" if suffix else "by_budget_gain_vs_random.csv"), index=False)
     for (mode, label), g in frame.groupby(["mode", "metric"]):
         print(f"\n=== {mode}, {label}: best strategy at each budget (mean gain over Random, Holm p across {g.family.nunique()} variants)")
         for budget, h in g.groupby("budget"):

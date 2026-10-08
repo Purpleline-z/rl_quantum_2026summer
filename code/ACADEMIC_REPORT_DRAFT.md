@@ -2,7 +2,7 @@
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training a Bradley--Terry reward model of RHEED reconstruction types, and what evidence can separate acquisition strategies. The reward model has one head per reconstruction type; four types are active (1×1, c(6×2), (√13×√13), HTR) and Twinned(2×1) is excluded from ideal-image partitions and evaluation. An SHA-256 content-identity audit enforces that no outer-test image appears in training pairs, candidate images, reference anchors, utility validation, or negative anchors. Three results frame the study. (1) With the encoder fine-tuned end to end (§5.10), eight acquisition strategies on five seeds cannot be separated: accuracy on 28 ideal test images is 0.4–0.7, training noise (±0.1, including dependence on the order of the selected pairs) exceeds the differences between strategies, and at the largest budget all strategies train on identical data. (2) With a frozen encoder and an order-independent head (§5.11), type accuracy on ideal images reaches about 0.85, but the reference anchors alone give 0.848 with no pair labels at all and pair labels add nothing; this endpoint cannot compare acquisition rules. (3) On a held-out preference endpoint that pair labels do move (§5.12; 33 strategy variants, 35 seeds, two acquisition conditions), information-based rules built on the last-layer posterior (Laplace BALD, BALD × P(decisive)) give a small, significant gain over random selection when one batch is chosen (log-loss about 0.04 lower, AUC about 0.01 higher) that does not reproduce under sequential retraining and, under a second training schedule, persists only as a smaller AUC gain for Laplace BALD; uncertainty-driven rules do not beat random choice, and graph-cut selection is worse. A pre-registered fixed-epoch comparison (3 vs. 30 epochs, lr=10^{-4}) is reported for five seeds (42, 79, 123, 202, 303).
+This study examines how to select a limited number of image-pair preference labels for training a Bradley--Terry reward model of RHEED reconstruction types, and what evidence can separate acquisition strategies. The reward model has one head per reconstruction type; four types are active (1×1, c(6×2), (√13×√13), HTR) and Twinned(2×1) is excluded from ideal-image partitions and evaluation. An SHA-256 content-identity audit enforces that no outer-test image appears in training pairs, candidate images, reference anchors, utility validation, or negative anchors. Three results frame the study. (1) With the encoder fine-tuned end to end (§5.10), eight acquisition strategies on five seeds cannot be separated: accuracy on 28 ideal test images is 0.4–0.7, training noise (±0.1, including dependence on the order of the selected pairs) exceeds the differences between strategies, and at the largest budget all strategies train on identical data. (2) With a frozen encoder and an order-independent head (§5.11), type accuracy on ideal images reaches about 0.85, but the reference anchors alone give 0.848 with no pair labels at all and pair labels add nothing; this endpoint cannot compare acquisition rules. (3) On a held-out preference endpoint that pair labels do move (§5.12; 33 strategy variants, 35 seeds, two acquisition conditions), information-based rules built on the last-layer posterior (Laplace BALD, BALD × P(decisive)) give a small, significant gain over random selection when one batch is chosen (log-loss about 0.04 lower, AUC about 0.01 higher) that does not reproduce under sequential retraining and, under a second training schedule, persists only as a smaller AUC gain for Laplace BALD; uncertainty-driven rules do not beat random choice, and graph-cut selection is worse. Repeating the comparison with the 20% pair-level hold-out of the earlier classifier2 work (§5.13) gives a different set of significant rules (only core-set), so which coverage- or information-based rule helps depends on the split. A pre-registered fixed-epoch comparison (3 vs. 30 epochs, lr=10^{-4}) is reported for five seeds (42, 79, 123, 202, 303).
 
 ## 1. Introduction
 
@@ -672,13 +672,13 @@ With **no pair groups at all**, the reference-anchor term alone reaches 0.848. P
 | Core-set, relation-aware pairs | +0.036 | 0.176 | +0.038 | 0.067 | +0.006 | 1.000 | 74% (35) |
 | Cluster-Margin | +0.033 | 0.285 | +0.026 | 0.481 | +0.002 | 1.000 | 69% (35) |
 | MaxHerding (pairs) | +0.031 | 0.122 | +0.014 | 0.335 | +0.007 | 0.601 | 69% (35) |
-| Cluster-quota uncertainty, all heads | +0.029 | 0.176 | +0.002 | 1.000 | +0.001 | 1.000 | 74% (35) |
+| Cluster-quota uncertainty, original code, all heads | +0.029 | 0.176 | +0.002 | 1.000 | +0.001 | 1.000 | 74% (35) |
 | DPP (quality x diversity) | +0.028 | 0.047 | +0.012 | 0.877 | +0.005 | 1.000 | 77% (35) |
 | FASS (pairs) | +0.025 | 1.000 | +0.012 | 1.000 | +0.003 | 1.000 | 60% (35) |
 | Core-set | +0.023 | 1.000 | +0.008 | 1.000 | -0.002 | 1.000 | 60% (35) |
 | Graph facility location (uncertainty-weighted) | +0.020 | 1.000 | +0.003 | 1.000 | +0.004 | 1.000 | 51% (35) |
 | MC-dropout variance | +0.019 | 1.000 | +0.003 | 1.000 | +0.003 | 1.000 | 57% (35) |
-| Cluster-Margin, all heads | +0.018 | 1.000 | +0.009 | 1.000 | -0.003 | 1.000 | 60% (35) |
+| Cluster-Margin, original code, all heads | +0.018 | 1.000 | +0.009 | 1.000 | -0.003 | 1.000 | 60% (35) |
 | TypiClust (pairs) | +0.018 | 1.000 | +0.036 | 0.294 | +0.006 | 1.000 | 57% (35) |
 | Largest predicted gap | +0.017 | 1.000 | +0.035 | 0.105 | +0.005 | 1.000 | 60% (35) |
 | BADGE (pairs) | +0.016 | 1.000 | +0.009 | 1.000 | +0.002 | 1.000 | 60% (35) |
@@ -689,16 +689,16 @@ With **no pair groups at all**, the reference-anchor term alone reaches 0.848. P
 | Image-coverage uncertainty | +0.010 | 1.000 | -0.014 | 1.000 | -0.000 | 1.000 | 63% (35) |
 | Uncertainty | +0.007 | 1.000 | +0.000 | 1.000 | +0.001 | 1.000 | 51% (35) |
 | Deep-ensemble BALD x P(decisive) | +0.004 | 1.000 | -0.002 | 1.000 | +0.005 | 1.000 | 51% (35) |
+| Uncertainty, original code, all heads | +0.003 | 1.000 | -0.028 | 0.474 | -0.004 | 1.000 | 60% (35) |
 | Uncertainty, all heads | +0.003 | 1.000 | -0.028 | 0.474 | -0.004 | 1.000 | 60% (35) |
-| Uncertainty, all heads | +0.003 | 1.000 | -0.028 | 0.474 | -0.004 | 1.000 | 60% (35) |
-| Uncertainty + diversity, all heads | +0.002 | 1.000 | -0.014 | 1.000 | -0.006 | 1.000 | 57% (35) |
+| Uncertainty + diversity, original code, all heads | +0.002 | 1.000 | -0.014 | 1.000 | -0.006 | 1.000 | 57% (35) |
 | Gap + posterior std (DeltaUCB-style) | -0.001 | 1.000 | +0.029 | 0.579 | +0.001 | 1.000 | 57% (35) |
-| MC-dropout mutual info, all heads | -0.015 | 1.000 | -0.020 | 1.000 | -0.007 | 1.000 | 54% (35) |
+| MC-dropout mutual info, original code, all heads | -0.015 | 1.000 | -0.020 | 1.000 | -0.007 | 1.000 | 54% (35) |
 | DropQuery (pairs) | -0.016 | 1.000 | -0.019 | 0.483 | -0.004 | 1.000 | 37% (35) |
-| MC-dropout variance, all heads | -0.019 | 1.000 | -0.024 | 1.000 | -0.007 | 1.000 | 49% (35) |
+| MC-dropout variance, original code, all heads | -0.019 | 1.000 | -0.024 | 1.000 | -0.007 | 1.000 | 49% (35) |
 | Graph cut (pairs) | -0.058 | 0.047 | -0.010 | 1.000 | -0.000 | 1.000 | 31% (35) |
 
-Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss and AUC after correction (Holm p = 0.022 and 0.026 on log-loss, 0.031 and 0.027 on AUC). Two further strategies are significant on log-loss alone, the original Cluster-quota uncertainty (Holm p = 0.033) and the DPP selector (0.047); graph cut is significantly *worse* than Random (−0.058, p = 0.047). On calibrated log-loss no strategy survives correction (the best, relation-aware core-set, has Holm p = 0.067), so part of the raw log-loss gain comes from the scale of the scores rather than from a better ordering of the pairs. The effects are small: Laplace BALD lowers log-loss from 0.600 to 0.542 at 10 groups and from 0.356 to 0.324 at 60, and raises AUC by about 0.01, and the gains are largest at the smallest budgets. Pure uncertainty rules do not help: Uncertainty (+0.007), MC-dropout mutual information (+0.012), and the all-head entropy rule (+0.003) are indistinguishable from Random, and DropQuery (−0.016) is no better. Deep-ensemble BALD, an alternative estimate of the same epistemic quantity, gains only +0.013 (Holm p = 1.0) and weighting it by P(decisive) +0.004; a plausible reason, which we did not test, is that heads trained to convergence on the same labels from different initialisations end up close to one another, leaving little disagreement to exploit, whereas the Laplace posterior reflects how little data constrains each direction of the last layer. The all-head versions of the original rules (rows marked `all heads`) are all weaker than the originals: Cluster-quota uncertainty falls from +0.038 to +0.029 and is no longer significant (Holm p = 0.16), Cluster-Margin from +0.033 to +0.018, and the two MC-dropout rules from +0.019 and +0.012 to −0.019 and −0.015. The original Cluster-quota rule's advantage therefore depends on scoring only the head of the first judgment row rather than all heads. If the system chooses which type to ask for, as in the intended labeling protocol, the original scoring is legitimate and the all-head versions are a conservative alternative; both are reported. The five-seed ranking that first suggested a large advantage for Cluster-Margin (+0.110) and core-set (+0.076) did not replicate: over 35 seeds they are +0.033 and +0.023 and neither is significant after correction, an instance of the noise that a five-seed, 28-image comparison cannot exclude.
+Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss and AUC after correction (Holm p = 0.022 and 0.026 on log-loss, 0.031 and 0.027 on AUC). Two further strategies are significant on log-loss alone, the original Cluster-quota uncertainty (Holm p = 0.033) and the DPP selector (0.047); graph cut is significantly *worse* than Random (−0.058, p = 0.047). On calibrated log-loss no strategy survives correction (the best, relation-aware core-set, has Holm p = 0.067), so part of the raw log-loss gain comes from the scale of the scores rather than from a better ordering of the pairs. The effects are small: Laplace BALD lowers log-loss from 0.600 to 0.542 at 10 groups and from 0.356 to 0.324 at 60, and raises AUC by about 0.01, and the gains are largest at the smallest budgets. Pure uncertainty rules do not help: Uncertainty (+0.007), MC-dropout mutual information (+0.012), and the all-head entropy rule (+0.003) are indistinguishable from Random, and DropQuery (−0.016) is no better. Deep-ensemble BALD, an alternative estimate of the same epistemic quantity, gains only +0.013 (Holm p = 1.0) and weighting it by P(decisive) +0.004; a plausible reason, which we did not test, is that heads trained to convergence on the same labels from different initialisations end up close to one another, leaving little disagreement to exploit, whereas the Laplace posterior reflects how little data constrains each direction of the last layer. The all-head versions of the original rules (rows marked `original code, all heads`) are all weaker than the originals: Cluster-quota uncertainty falls from +0.038 to +0.029 and is no longer significant (Holm p = 0.16), Cluster-Margin from +0.033 to +0.018, and the two MC-dropout rules from +0.019 and +0.012 to −0.019 and −0.015. The original Cluster-quota rule's advantage therefore depends on scoring only the head of the first judgment row rather than all heads. If the system chooses which type to ask for, as in the intended labeling protocol, the original scoring is legitimate and the all-head versions are a conservative alternative; both are reported. The five-seed ranking that first suggested a large advantage for Cluster-Margin (+0.110) and core-set (+0.076) did not replicate: over 35 seeds they are +0.033 and +0.023 and neither is significant after correction, an instance of the noise that a five-seed, 28-image comparison cannot exclude.
 
 **Results: sequential, 35 seeds.** With rounds of 10 groups and retraining between rounds, Random reaches log-loss 0.578, 0.474, 0.398, 0.354 and AUC 0.891, 0.907, 0.922, 0.933 at 10, 20, 40, and 60 acquired groups. The strategies again differ overall (Friedman across the 33 variants: log-loss p = 0.001, calibrated log-loss p < 0.0001, AUC p = 0.004, accuracy p = 0.021), but **no strategy is significantly better than Random on any of the four metrics after Holm correction**, and the gains are smaller than in the single-shot condition:
 
@@ -713,15 +713,15 @@ Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss a
 | Fisher D-optimal (Active Reward Modeling) | +0.013 | 1.000 | -0.015 | 1.000 | +0.002 | 1.000 | 54% (35) |
 | Cluster-Margin | +0.012 | 1.000 | +0.001 | 1.000 | -0.005 | 1.000 | 60% (35) |
 | Core-set | +0.010 | 1.000 | -0.004 | 1.000 | -0.005 | 1.000 | 54% (35) |
-| Cluster-Margin, all heads | +0.010 | 1.000 | -0.011 | 1.000 | -0.004 | 1.000 | 54% (35) |
-| Uncertainty + diversity, all heads | +0.001 | 1.000 | -0.020 | 1.000 | -0.005 | 1.000 | 49% (35) |
+| Cluster-Margin, original code, all heads | +0.010 | 1.000 | -0.011 | 1.000 | -0.004 | 1.000 | 54% (35) |
+| Uncertainty + diversity, original code, all heads | +0.001 | 1.000 | -0.020 | 1.000 | -0.005 | 1.000 | 49% (35) |
 | Largest predicted gap | +0.001 | 1.000 | +0.019 | 1.000 | +0.001 | 1.000 | 49% (35) |
 | MC-dropout variance | -0.000 | 1.000 | -0.008 | 1.000 | -0.001 | 1.000 | 63% (35) |
 | Uncertainty + diversity | -0.000 | 1.000 | -0.003 | 1.000 | -0.002 | 1.000 | 51% (35) |
 | Graph facility location (uncertainty-weighted) | -0.000 | 1.000 | -0.007 | 1.000 | -0.001 | 1.000 | 51% (35) |
 | DPP (quality x diversity) | -0.002 | 1.000 | +0.009 | 1.000 | -0.002 | 1.000 | 46% (35) |
 | ProbCover (pairs) | -0.004 | 1.000 | +0.008 | 1.000 | +0.002 | 1.000 | 57% (35) |
-| Cluster-quota uncertainty, all heads | -0.005 | 1.000 | -0.016 | 1.000 | -0.007 | 0.452 | 51% (35) |
+| Cluster-quota uncertainty, original code, all heads | -0.005 | 1.000 | -0.016 | 1.000 | -0.007 | 0.452 | 51% (35) |
 | TypiClust (pairs) | -0.007 | 1.000 | +0.019 | 1.000 | +0.001 | 1.000 | 46% (35) |
 | Image-coverage uncertainty | -0.007 | 1.000 | -0.011 | 1.000 | -0.004 | 1.000 | 54% (35) |
 | BADGE (pairs) | -0.009 | 1.000 | +0.002 | 1.000 | -0.001 | 1.000 | 49% (35) |
@@ -730,10 +730,10 @@ Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss a
 | Uncertainty | -0.011 | 1.000 | -0.010 | 1.000 | -0.005 | 1.000 | 43% (35) |
 | Gap + posterior std (DeltaUCB-style) | -0.020 | 1.000 | +0.001 | 1.000 | -0.005 | 1.000 | 37% (35) |
 | Deep-ensemble BALD x P(decisive) | -0.021 | 1.000 | -0.001 | 1.000 | -0.000 | 1.000 | 40% (35) |
+| Uncertainty, original code, all heads | -0.023 | 1.000 | -0.034 | 0.145 | -0.009 | 0.145 | 49% (35) |
 | Uncertainty, all heads | -0.023 | 1.000 | -0.034 | 0.145 | -0.009 | 0.145 | 49% (35) |
-| Uncertainty, all heads | -0.023 | 1.000 | -0.034 | 0.145 | -0.009 | 0.145 | 49% (35) |
-| MC-dropout variance, all heads | -0.025 | 1.000 | -0.040 | 1.000 | -0.009 | 1.000 | 54% (35) |
-| MC-dropout mutual info, all heads | -0.032 | 1.000 | -0.019 | 1.000 | -0.010 | 1.000 | 46% (35) |
+| MC-dropout variance, original code, all heads | -0.025 | 1.000 | -0.040 | 1.000 | -0.009 | 1.000 | 54% (35) |
+| MC-dropout mutual info, original code, all heads | -0.032 | 1.000 | -0.019 | 1.000 | -0.010 | 1.000 | 46% (35) |
 | DropQuery (pairs) | -0.039 | 0.491 | -0.023 | 1.000 | -0.008 | 1.000 | 37% (35) |
 | Graph cut (pairs) | -0.049 | 0.015 | -0.025 | 1.000 | -0.001 | 1.000 | 23% (35) |
 
@@ -745,7 +745,7 @@ Laplace BALD's log-loss gain falls from +0.038 (single-shot) to +0.016, BALD × 
 
 | Budget | Metric | Three largest gains over Random (Holm p) | Significant after Holm correction within this cell |
 |---:|---|---|---|
-| 10 | log-loss | Cluster-quota uncertainty +0.082 (0.06); Cluster-quota uncertainty, all heads +0.077 (0.04); BALD x P(decisive) +0.071 (0.10) | Cluster-quota uncertainty, all heads +0.077; DPP (quality x diversity) +0.067 |
+| 10 | log-loss | Cluster-quota uncertainty +0.082 (0.06); Cluster-quota uncertainty, original code, all heads +0.077 (0.04); BALD x P(decisive) +0.071 (0.10) | Cluster-quota uncertainty, original code, all heads +0.077; DPP (quality x diversity) +0.067 |
 | 10 | AUC | MaxHerding (pairs) +0.018 (0.27); BALD x P(decisive) +0.017 (0.14); DPP (quality x diversity) +0.016 (0.24) | none |
 | 20 | log-loss | Core-set, relation-aware pairs +0.061 (0.20); Core-set +0.053 (0.62); Cluster-Margin +0.046 (0.20) | none |
 | 20 | AUC | BALD x P(decisive) +0.011 (0.74); MaxHerding (pairs) +0.010 (0.90); Largest predicted gap +0.009 (1.00) | none |
@@ -758,14 +758,14 @@ Laplace BALD's log-loss gain falls from +0.038 (single-shot) to +0.016, BALD × 
 
 | Budget | Metric | Three largest gains over Random (Holm p) | Significant after Holm correction within this cell |
 |---:|---|---|---|
-| 10 | log-loss | Cluster-quota uncertainty +0.060 (1.00); Cluster-quota uncertainty, all heads +0.055 (0.61); BALD x P(decisive) +0.049 (1.00) | Graph cut (pairs) -0.120 |
+| 10 | log-loss | Cluster-quota uncertainty +0.060 (1.00); Cluster-quota uncertainty, original code, all heads +0.055 (0.61); BALD x P(decisive) +0.049 (1.00) | Graph cut (pairs) -0.120 |
 | 10 | AUC | MaxHerding (pairs) +0.010 (1.00); BALD x P(decisive) +0.008 (1.00); DPP (quality x diversity) +0.007 (1.00) | none |
 | 20 | log-loss | Core-set, relation-aware pairs +0.041 (1.00); Core-set +0.033 (1.00); MaxHerding (pairs) +0.016 (1.00) | none |
 | 20 | AUC | Core-set, relation-aware pairs +0.004 (1.00); MaxHerding (pairs) +0.003 (1.00); Laplace BALD +0.003 (1.00) | none |
 | 40 | log-loss | FASS (pairs) +0.034 (0.05); Fisher D-optimal (Active Reward Modeling) +0.025 (1.00); Graph facility location (uncertainty-weighted) +0.025 (1.00) | FASS (pairs) +0.034 |
 | 40 | AUC | FASS (pairs) +0.008 (0.34); Graph facility location (uncertainty-weighted) +0.006 (1.00); Core-set, relation-aware pairs +0.005 (1.00) | none |
-| 60 | log-loss | Largest predicted gap +0.024 (0.03); Image-coverage uncertainty +0.023 (0.10); MC-dropout mutual info, all heads +0.023 (0.03) | Largest predicted gap +0.024; MC-dropout mutual info, all heads +0.023 |
-| 60 | AUC | Largest predicted gap +0.008 (0.05); MC-dropout mutual info, all heads +0.006 (0.38); BALD x P(decisive) +0.005 (1.00) | Largest predicted gap +0.008 |
+| 60 | log-loss | Largest predicted gap +0.024 (0.03); Image-coverage uncertainty +0.023 (0.10); MC-dropout mutual info, original code, all heads +0.023 (0.03) | Largest predicted gap +0.024; MC-dropout mutual info, original code, all heads +0.023 |
+| 60 | AUC | Largest predicted gap +0.008 (0.05); MC-dropout mutual info, original code, all heads +0.006 (0.38); BALD x P(decisive) +0.005 (1.00) | Largest predicted gap +0.008 |
 
 In the single-shot condition the leaders move with the budget: at 10 groups the leading rules are Cluster-quota uncertainty (original +0.082, all-head +0.077, the latter significant) and DPP (+0.067), at 20 the relation-aware and plain core-set, at 40 the Fisher D-optimal and BALD × P(decisive) rules, and at 60 Laplace BALD (log-loss +0.032, AUC +0.012). This looks like coverage- or diversity-oriented rules doing better when few groups can be labelled and rules built on the model's posterior doing better as the budget grows, which is the direction of the low-budget-versus-high-budget argument of Hacohen et al. (2022; notes, third round). It is a plausible pattern, not a conclusion, for three reasons. (i) Each cell reports the best of 32 variants, which overstates the best one. (ii) Holm correction is applied within each cell only, not across budgets, metrics, and conditions, so the number of significant cells is larger than a family-wise correction over all 32 × 4 × 2 × 2 comparisons would leave. (iii) The sequential condition does not reproduce the pattern: its leaders are Cluster-quota uncertainty (not significant) at 10, relation-aware core-set (not significant) at 20, FASS (+0.034, significant on log-loss only) at 40, and the largest-predicted-gap rule (+0.024 log-loss, +0.008 AUC) and all-head MC-dropout mutual information at 60. In addition, a budget of 60 groups is 78–94% of the candidate pool (64–77 groups), so at that budget every strategy selects most of the pool and the strategies differ only in the 4–17 groups they leave out; the budget-60 results should not be read as evidence about large budgets. Establishing the pattern would need a larger candidate pool and a correction over all cells.
 
@@ -785,6 +785,70 @@ In the single-shot condition the leaders move with the budget: at 10 groups the 
 
 
 
+### 5.13 A second split following classifier2: 20% of pair groups held out
+
+**Why a second split.** The split of §5.12 holds out 40 test and 20 validation groups, so the evaluation sets are as large as the largest training set (10 initial + 60 acquired groups) and the candidate pool is only 64–77 groups. The results of §5.12 are therefore results for a very small labelled budget evaluated on a comparatively large held-out set. To test them under the data-splitting practice of the earlier classifier2 work (`classifier2/classifier_training_code/train_unified.py`, `load_data`: shuffle the unique image pairs and hold out 20%, all judgments of a pair on the same side, no separate validation set), the comparison is repeated with that split.
+
+**Split.** For each of the same 35 seeds, 20% of the 168 usable pair groups (34) are held out as the test set, every group that shares an image with a test group is removed from training, and the 10 initial groups are drawn from the remainder by the study's rule (random with greedy coverage of the reconstruction types). The remaining 99–113 groups form the candidate pool, so the largest budget (60 groups) is 53–61% of the pool. The test set holds 35–67 decisive judgments per seed (mean 53.5). There is no validation set, so the learning rate and step count of §5.12 (0.01, 100 steps, chosen on different groups) are reused without recalibration, and the temperature-calibrated log-loss is not reported. Strategies, budgets (10, 20, 40, 60), the single-shot and sequential conditions, and the statistics are those of §5.12 (`PAIR_STUDY_SPLIT=classifier2`).
+
+**Results: single-shot, 35 seeds.** Random reaches log-loss 0.574, 0.484, 0.392, 0.359 and AUC 0.886, 0.905, 0.924, 0.930 at 10, 20, 40, and 60 acquired groups; the 10 initial groups give log-loss 0.667 and AUC 0.865. The strategies differ overall (Friedman test across 33 variants, p < 0.0001 for log-loss, AUC, and accuracy), but after Holm correction **only plain core-set** is significantly better than Random, on log-loss (+0.052, p = 0.012, better in 77% of seeds); no strategy is significant on AUC or accuracy.
+
+| Strategy | log-loss gain | Holm p | AUC gain | Holm p | seeds better (log-loss) |
+|---|---:|---:|---:|---:|---:|
+| Core-set | +0.052 | 0.012 | +0.003 | 1.000 | 77% (35) |
+| Core-set, relation-aware pairs | +0.042 | 0.391 | +0.004 | 1.000 | 60% (35) |
+| BALD x P(decisive) | +0.037 | 0.314 | +0.008 | 0.654 | 71% (35) |
+| Gap + posterior std (DeltaUCB-style) | +0.027 | 1.000 | +0.001 | 1.000 | 63% (35) |
+| Laplace BALD | +0.027 | 1.000 | +0.003 | 1.000 | 66% (35) |
+| ProbCover (pairs) | +0.025 | 1.000 | +0.005 | 1.000 | 60% (35) |
+| TypiClust (pairs) | +0.024 | 1.000 | +0.006 | 1.000 | 57% (35) |
+| Deep-ensemble BALD (8 heads) | +0.021 | 1.000 | +0.007 | 0.654 | 71% (35) |
+| Graph facility location (uncertainty-weighted) | +0.020 | 1.000 | +0.004 | 1.000 | 74% (35) |
+| Fisher D-optimal (Active Reward Modeling) | +0.020 | 1.000 | +0.002 | 1.000 | 69% (35) |
+| FASS (pairs) | +0.016 | 1.000 | +0.000 | 1.000 | 60% (35) |
+| Largest predicted gap | +0.015 | 1.000 | -0.001 | 1.000 | 60% (35) |
+| Cluster-Margin | +0.014 | 1.000 | -0.003 | 1.000 | 57% (35) |
+| MaxHerding (pairs) | +0.014 | 1.000 | +0.004 | 1.000 | 66% (35) |
+| BADGE (pairs) | +0.012 | 1.000 | +0.005 | 1.000 | 63% (35) |
+| Deep-ensemble BALD x P(decisive) | +0.012 | 1.000 | +0.003 | 1.000 | 60% (35) |
+| Cluster-Margin, all heads | +0.012 | 1.000 | -0.008 | 1.000 | 49% (35) |
+| Uncertainty + diversity, all heads | -0.001 | 1.000 | -0.007 | 0.654 | 46% (35) |
+| DropQuery (pairs) | -0.001 | 1.000 | -0.006 | 1.000 | 46% (35) |
+| Uncertainty + diversity | -0.002 | 1.000 | -0.001 | 1.000 | 54% (35) |
+| MC-dropout mutual info, all heads | -0.006 | 1.000 | -0.005 | 1.000 | 51% (35) |
+| Image-coverage uncertainty | -0.008 | 1.000 | -0.010 | 0.091 | 40% (35) |
+| Cluster-quota uncertainty, all heads | -0.010 | 1.000 | -0.011 | 0.219 | 49% (35) |
+| Uncertainty, all heads | -0.012 | 1.000 | -0.013 | 0.175 | 46% (35) |
+| Uncertainty, all heads | -0.012 | 1.000 | -0.013 | 0.175 | 46% (35) |
+| Uncertainty | -0.012 | 1.000 | -0.007 | 0.493 | 34% (35) |
+| Cluster-quota uncertainty | -0.015 | 1.000 | -0.008 | 1.000 | 43% (35) |
+| DPP (quality x diversity) | -0.016 | 1.000 | -0.007 | 1.000 | 49% (35) |
+| MC-dropout mutual info | -0.018 | 1.000 | -0.006 | 0.819 | 43% (35) |
+| MC-dropout variance, all heads | -0.020 | 1.000 | -0.007 | 1.000 | 46% (35) |
+| MC-dropout variance | -0.029 | 1.000 | -0.009 | 0.183 | 29% (35) |
+| Graph cut (pairs) | -0.048 | 0.909 | -0.002 | 1.000 | 46% (35) |
+
+The information-based rules that were significant in §5.12 are not here: Laplace BALD +0.027 (Holm p = 1.0), BALD × P(decisive) +0.037 (p = 0.31), Fisher D-optimal +0.020 (p = 1.0). The uncertainty-driven rules are again no better than Random and mostly worse (Uncertainty −0.012, Cluster-quota uncertainty −0.015, MC-dropout mutual information −0.018, MC-dropout variance −0.029; none significant), and graph cut keeps its negative sign (−0.048) but is no longer significant (p = 0.91).
+
+**By budget.** The same per-budget analysis as in §5.12 (single-shot, Holm correction within each cell):
+
+| Budget | Metric | Three largest gains over Random (Holm p) | Significant after Holm correction within this cell |
+|---:|---|---|---|
+| 10 | log-loss | Graph facility location (uncertainty-weighted) +0.072 (0.01); Gap + posterior std (DeltaUCB-style) +0.071 (0.85); Core-set, relation-aware pairs +0.069 (0.70) | Graph facility location (uncertainty-weighted) +0.072 |
+| 10 | AUC | Deep-ensemble BALD (8 heads) +0.018 (0.00); TypiClust (pairs) +0.016 (0.46); BALD x P(decisive) +0.013 (0.12) | Deep-ensemble BALD (8 heads) +0.018 |
+| 20 | log-loss | Core-set +0.080 (0.01); BALD x P(decisive) +0.050 (1.00); Deep-ensemble BALD (8 heads) +0.044 (1.00) | Core-set +0.080 |
+| 20 | AUC | BALD x P(decisive) +0.012 (1.00); Deep-ensemble BALD (8 heads) +0.009 (1.00); Core-set +0.008 (1.00) | none |
+| 40 | log-loss | Core-set +0.047 (0.11); Core-set, relation-aware pairs +0.037 (0.93); Laplace BALD +0.034 (0.80) | none |
+| 40 | AUC | Laplace BALD +0.006 (1.00); Core-set +0.004 (1.00); Core-set, relation-aware pairs +0.004 (1.00) | none |
+| 60 | log-loss | Core-set, relation-aware pairs +0.031 (0.57); Laplace BALD +0.027 (0.42); FASS (pairs) +0.023 (0.11) | none |
+| 60 | AUC | Core-set, relation-aware pairs +0.008 (1.00); FASS (pairs) +0.007 (0.38); Laplace BALD +0.005 (1.00) | none |
+
+Coverage-oriented rules lead at the smallest budgets: graph facility location (+0.072 log-loss) at 10 groups and core-set (+0.080) at 20, both significant, and deep-ensemble BALD has a significant AUC gain at 10 (+0.018). At 40 and 60 groups nothing is significant (core-set +0.047 at 40, p = 0.11; relation-aware core-set +0.031 at 60). The lowest budgets favouring coverage is in line with §5.12 (where Cluster-quota uncertainty and DPP led at 10), but the leading rule differs between the two splits, and each cell is again the best of 32 variants with correction only within the cell.
+
+<<SEQ_C2>>
+
+**What the two splits say together.** Two statements hold under both splits: no uncertainty-driven rule (Uncertainty, MC-dropout, BADGE-style, DropQuery) is significantly better than Random, and gains over Random are small (log-loss about 0.03–0.05, AUC at most 0.01). The statements that differ are the ones about which rules help: Laplace BALD and BALD × P(decisive) are significant under the small-pool split of §5.12 and not under this one, while core-set is significant here (+0.052) and not in §5.12 (+0.023); no rule is significant under both. The ranking of coverage-type and information-type rules therefore depends on the split, plausibly on the size of the candidate pool and of the test set, and the data do not support recommending one rule. A larger candidate pool and a second encoder are needed to settle it.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.
@@ -793,9 +857,9 @@ The implemented protocol separates pair-disjoint acquisition groups, SHA-256 con
 
 *Frozen encoder (§5.11).* Caching the SimCLR features and training only the reward head, with an order-invariant loss, removes most training noise (residual head-initialisation sd about 0.04) and lifts type accuracy to 0.73–0.86, in line with a frozen-encoder nearest-neighbour baseline (0.871 ± 0.041). But the reference-anchor term alone reaches 0.848 with zero pair groups, pair labels alone reach 0.37–0.55, and the 10 initial groups already reach the plateau: type accuracy on ideal images is not an endpoint on which acquisition rules can be compared.
 
-*Held-out preference endpoint (§5.12).* Across 33 strategy variants and 35 seeds, the evidence for any acquisition rule beating random selection is limited. With one batch chosen from the 10-group model, Laplace BALD and BALD × P(decisive) are significantly better than Random on log-loss and AUC after correction (gains of about 0.04 and 0.01), and the original Cluster-quota uncertainty rule and a DPP selector on log-loss only (the Cluster-quota advantage does not survive scoring all heads instead of the first row's type); with sequential retraining none is significant, and a second training schedule changes which strategies are significant on log-loss and leaves only Laplace BALD's AUC gain. Uncertainty-driven rules (Uncertainty, MC-dropout, BADGE-style, DropQuery) are no better than Random in either condition, graph-cut selection is worse in both, and the choice of initial set does not matter detectably. A ranking that looked decisive on five seeds (Cluster-Margin, core-set) shrank to nothing over 35, a caution for any comparison that rests on a few seeds and a few dozen test images.
+*Held-out preference endpoint (§5.12).* Across 33 strategy variants and 35 seeds, the evidence for any acquisition rule beating random selection is limited. With one batch chosen from the 10-group model, Laplace BALD and BALD × P(decisive) are significantly better than Random on log-loss and AUC after correction (gains of about 0.04 and 0.01), and the original Cluster-quota uncertainty rule and a DPP selector on log-loss only (the Cluster-quota advantage does not survive scoring all heads instead of the first row's type); with sequential retraining none is significant, and a second training schedule changes which strategies are significant on log-loss and leaves only Laplace BALD's AUC gain. Uncertainty-driven rules (Uncertainty, MC-dropout, BADGE-style, DropQuery) are no better than Random in either condition, graph-cut selection is worse in both, and the choice of initial set does not matter detectably. With the 20% pair-level hold-out of the classifier2 work (§5.13), the significant rule is instead plain core-set (+0.052 log-loss) and neither Laplace BALD nor BALD × P(decisive) is significant, so no rule is significant under both splits; coverage-oriented rules lead at the smallest budgets in both. A ranking that looked decisive on five seeds (Cluster-Margin, core-set) shrank to nothing over 35, a caution for any comparison that rests on a few seeds and a few dozen test images.
 
-*Next steps.* The held-out preference endpoint, not ideal-image type accuracy, should be the primary measure for deciding which pairs to label; the Fisher/Laplace-posterior rules are the natural candidates to confirm with more data or a second encoder (ImageNet, or a larger self-supervised model), and whether to score the queried type only or all types should follow the actual labeling protocol, and the budget should count judgments (pair, type) rather than pair groups. Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) remain deferred pending structured process-variable data and a validated five-state classifier, respectively.
+*Next steps.* The held-out preference endpoint, not ideal-image type accuracy, should be the primary measure for deciding which pairs to label; coverage rules (core-set) and the Fisher/Laplace-posterior rules are the natural candidates to confirm with a larger candidate pool or a second encoder (ImageNet, or a larger self-supervised model), and whether to score the queried type only or all types should follow the actual labeling protocol, and the budget should count judgments (pair, type) rather than pair groups. Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) remain deferred pending structured process-variable data and a validated five-state classifier, respectively.
 
 ## References
 
