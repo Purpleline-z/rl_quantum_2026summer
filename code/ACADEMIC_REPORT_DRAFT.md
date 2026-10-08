@@ -2,7 +2,7 @@
 
 ### Abstract
 
-This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model with a five-head reward output (one head per reconstruction type in TYPE\_ORDER), compare uncertainty and diversity-aware acquisition rules across annotation budgets, and evaluate against a test set of ideal images with absolute labels. Four reconstruction classes are active: (1×1), c(6×2), (√13×√13), and HTR; Twinned(2×1) is excluded from ideal image partitions and from evaluation. An SHA-256 content-identity audit enforces that no outer-test image appears in training pairs, candidate images, reference anchors, utility validation, or negative anchors. Task 3b selects training schedules using utility-validation accuracy only; Task 3c evaluates the final strategy comparison. A pre-registered fixed-epoch comparison (3 vs. 30 epochs, lr=10^{-4}) is also completed for seeds 42, 79, and 123.
+This study examines how to select a limited number of image-pair preference labels for training the Bradley--Terry reward model, in order to improve the downstream reconstruction type classifier. We implement a ResNet-18 reward model with a five-head reward output (one head per reconstruction type in TYPE\_ORDER), compare uncertainty and diversity-aware acquisition rules across annotation budgets, and evaluate against a test set of ideal images with absolute labels. Four reconstruction classes are active: (1×1), c(6×2), (√13×√13), and HTR; Twinned(2×1) is excluded from ideal image partitions and from evaluation. An SHA-256 content-identity audit enforces that no outer-test image appears in training pairs, candidate images, reference anchors, utility validation, or negative anchors. Task 3b selects training schedules using utility-validation accuracy only; Task 3c evaluates the final strategy comparison. A pre-registered fixed-epoch comparison (3 vs. 30 epochs, lr=10^{-4}) is completed for all five seeds (42, 79, 123, 202, 303).
 
 ## 1. Introduction
 
@@ -522,7 +522,7 @@ Selection used mean utility-validation accuracy over seeds 42, 79, and 123; SimC
 
 The selected schedules vary in both epoch count and learning rate: acquired sets differ in amount and composition of pairwise data. In Task 3c, every strategy at the same encoder and budget uses the same Task 3b-selected setting, so the comparison isolates the value of the acquired labels from training-schedule differences.
 
-Task 3b and 3c have been completed for seeds 42, 79, and 123 on the identity-safe, SHA-256-repaired partitions (protocol-frozen git SHA: 58d59d6). Seeds 202 and 303 are pending; they will run under commit 482f712, which adds a Twinned pairwise filter.
+Task 3b and 3c have been completed for seeds 42, 79, and 123 on the identity-safe, SHA-256-repaired partitions (protocol-frozen git SHA: 58d59d6). Seeds 202 and 303 have been run under commit 482f712, which adds a Twinned pairwise filter to load\_and\_split(). All five seeds have completed Task 3b and 3c.
 
 ### 5.9 Fixed-epoch single-shot comparison (pre-registered)
 
@@ -530,22 +530,22 @@ Task 3b and 3c have been completed for seeds 42, 79, and 123 on the identity-saf
 
 The fixed-epoch comparison pre-registers lr=$10^{-4}$, weight decay=$10^{-4}$, and epoch counts $E\in\{3,30\}$ without consulting outer-test results. Two strategies are compared at each budget: random (the paired baseline) and uncertainty. Both use the same 10-pair initial pool, the same 100-pair candidate pool, and the same SHA-256-enforced identity-safe splits as Task 3c. The outer test (28 images, 4 classes) is evaluated after all protocol choices are frozen.
 
-Mean outer-test accuracy over seeds 42, 79, 123 (outer-test total = 28 per seed):
+Mean outer-test accuracy over all five seeds (42, 79, 123, 202, 303; outer-test total = 28 per seed):
 
 | Strategy | Budget | 3-epoch accuracy | 30-epoch accuracy | Δ (30 − 3) |
 |---|---:|---:|---:|---:|
-| Random | 10 | 0.393 ± 0.094 | 0.333 ± 0.103 | −0.060 |
-| Random | 25 | 0.226 ± 0.074 | 0.667 ± 0.125 | +0.440 |
-| Random | 50 | 0.250 ± 0.062 | 0.679 ± 0.179 | +0.429 |
-| Random | 75 | 0.333 ± 0.090 | 0.536 ± 0.124 | +0.202 |
-| Random | 100 | 0.417 ± 0.238 | 0.667 ± 0.149 | +0.250 |
-| Uncertainty | 10 | 0.250 ± 0.062 | 0.310 ± 0.165 | +0.060 |
-| Uncertainty | 25 | 0.357 ± 0.036 | 0.512 ± 0.021 | +0.155 |
-| Uncertainty | 50 | 0.274 ± 0.082 | 0.595 ± 0.238 | +0.321 |
-| Uncertainty | 75 | 0.310 ± 0.090 | 0.381 ± 0.115 | +0.071 |
-| Uncertainty | 100 | 0.333 ± 0.021 | 0.571 ± 0.124 | +0.238 |
+| Random | 10 | 0.379 ± 0.190 | 0.329 ± 0.073 | −0.050 |
+| Random | 25 | 0.214 ± 0.067 | 0.564 ± 0.166 | +0.350 |
+| Random | 50 | 0.236 ± 0.070 | 0.571 ± 0.197 | +0.336 |
+| Random | 75 | 0.379 ± 0.096 | 0.557 ± 0.234 | +0.179 |
+| Random | 100 | 0.457 ± 0.188 | 0.671 ± 0.130 | +0.214 |
+| Uncertainty | 10 | 0.279 ± 0.077 | 0.364 ± 0.152 | +0.086 |
+| Uncertainty | 25 | 0.336 ± 0.120 | 0.500 ± 0.025 | +0.164 |
+| Uncertainty | 50 | 0.214 ± 0.107 | 0.557 ± 0.249 | +0.343 |
+| Uncertainty | 75 | 0.357 ± 0.094 | 0.357 ± 0.101 | +0.000 |
+| Uncertainty | 100 | 0.329 ± 0.030 | 0.621 ± 0.117 | +0.293 |
 
-30 epochs consistently outperforms 3 epochs at budgets ≥ 25 for both strategies. At budget 10, neither strategy benefits reliably from longer training (high variance, small labelled set). The full per-seed results are in [pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv) and the aggregate summary is in [fixed\_epoch\_outer\_test\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/fixed\_epoch\_outer\_test\_summary.csv).
+Over five seeds, 30 epochs consistently outperforms 3 epochs at budgets ≥ 25 for both strategies. At budget 10, the advantage is inconsistent (Δ = −0.050 for random, +0.086 for uncertainty), reflecting high variance with a small labelled set. The uncertainty advantage from the three-seed analysis (all Δ > 0) does not fully replicate: at budget 75, the five-seed mean is identical (0.357) for both epoch counts. The full per-seed results are in [pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/pre\_registered\_outer\_test\_results\_at\_epochs\_3\_and\_30.csv) and the aggregate summary is in [fixed\_epoch\_outer\_test\_summary.csv](active\_learning\_studies/pair\_disjoint\_not\_image\_disjoint/results/simclr\_three\_seed\_identity\_safe\_task3/fixed\_epoch\_3\_and\_30\_single\_shot\_aggregate/fixed\_epoch\_outer\_test\_summary.csv).
 
 ### 5.10 Task 3c: eight-strategy acquisition comparison
 
@@ -568,7 +568,7 @@ Mean outer-test accuracy ± standard deviation over three seeds (outer-test set:
 
 Best strategy per budget: Budget 10 — Cluster-quota uncertainty (0.631); Budget 25 — Cluster-Margin (0.607); Budget 50 — MC-dropout mutual information (0.714); Budget 75 — Core-set and MC-dropout variance (0.679, tied); Budget 100 — Uncertainty+diversity and MC-dropout mutual information (0.726, tied).
 
-No single strategy dominates across all budgets. At the lowest budget (10 pair groups), cluster-quota uncertainty provides stable cross-type coverage by enforcing a minimum allocation per reconstruction class. At medium budgets (25–50), Cluster-Margin targets the batch at the decision boundary by pre-filtering to the 10× most uncertain candidates before applying farthest-first selection [Citovsky et al., 2021]; MC-dropout mutual information reaches the highest single accuracy (0.714 at budget 50) by treating model disagreement across stochastic forward passes as the acquisition signal [Gal and Ghahramani, 2016]. At high budgets (75–100), the candidate pool is largely consumed and differences between strategies narrow; uncertainty+diversity and MC-dropout mutual information share the top position at budget 100 (0.726). All standard deviations are ≥ 0.036, reflecting substantial seed-level variance with only 28 outer-test images; seeds 202 and 303 will extend this to five seeds once run under commit 482f712.
+No single strategy dominates across all budgets. At the lowest budget (10 pair groups), cluster-quota uncertainty provides stable cross-type coverage by enforcing a minimum allocation per reconstruction class. At medium budgets (25–50), Cluster-Margin targets the batch at the decision boundary by pre-filtering to the 10× most uncertain candidates before applying farthest-first selection [Citovsky et al., 2021]; MC-dropout mutual information reaches the highest single accuracy (0.714 at budget 50) by treating model disagreement across stochastic forward passes as the acquisition signal [Gal and Ghahramani, 2016]. At high budgets (75–100), the candidate pool is largely consumed and differences between strategies narrow; uncertainty+diversity and MC-dropout mutual information share the top position at budget 100 (0.726). All standard deviations are ≥ 0.036, reflecting substantial seed-level variance with only 28 outer-test images. Seeds 202 and 303 have been run under commit 482f712; five-seed aggregate numbers are pending local collection of the Drive-stored cell results.
 
 Per-class outer-test accuracy at budget 100, mean over seeds 42, 79, 123:
 
@@ -597,11 +597,11 @@ The hardest class is (√13×√13), where no strategy exceeds 0.667 and most fa
 
 *Figure 18. Outer-test accuracy for every individual seed × strategy × budget cell. The spread confirms that no single strategy dominates at every seed.*
 
-These results complete Task 3c for seeds 42, 79, and 123. Seeds 202 and 303 will run under commit 482f712 with the Twinned pairwise filter active.
+These results cover seeds 42, 79, and 123. Seeds 202 and 303 have completed Task 3c under commit 482f712 (Twinned pairwise filter active); their 80 cell results are stored in Google Drive and will be merged into the aggregate tables once collected locally.
 
 ## 6. Conclusion
 
-The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for seeds 42, 79, and 123 under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25. No single acquisition strategy dominates across all budgets: Cluster-quota uncertainty is strongest at budget 10, Cluster-Margin at budget 25, MC-dropout mutual information at budget 50, and Uncertainty+diversity and MC-dropout mutual information are tied at budget 100 (0.726). The hardest reconstruction class is (√13×√13), where core-set achieves the best result (0.667) by covering the HTR–RT13 feature-space boundary. Seeds 202 and 303 remain to be verified identity-safe and run under commit 482f712 (which adds the Twinned pairwise filter). Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
+The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for all five seeds (42, 79, 123, 202, 303) under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) over five seeds confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25, with the exception of budget 75 uncertainty where the five-seed mean is equal (0.357 vs. 0.357). No single acquisition strategy dominates across all budgets (three-seed results): Cluster-quota uncertainty is strongest at budget 10, Cluster-Margin at budget 25, MC-dropout mutual information at budget 50, and Uncertainty+diversity and MC-dropout mutual information are tied at budget 100 (0.726). Five-seed Task 3c aggregate tables are pending local collection of the seeds 202/303 Drive-stored cells. The hardest reconstruction class is (√13×√13), where core-set achieves the best three-seed result (0.667) by covering the HTR–RT13 feature-space boundary. Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
 
 ## References
 
