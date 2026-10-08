@@ -1,0 +1,143 @@
+mode=single seeds=all: 35 seeds, 15 strategy families, 2555 cells
+
+[test_decisive_log_loss] Friedman test across 14 strategies with data on all 35 seeds: chi2=43.4, p=0.0000
+
+=== log-loss (lower is better); gain = improvement over random, per seed averaged over budgets ===
+                               mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                          
+core_set_relation                 0.0627  0.1031  35       0.8286      0.0002  0.0032     6.8786
+cluster_quota_uncertainty         0.0507  0.0772  35       0.7714      0.0003  0.0040     6.8143
+cluster_margin_pairwise           0.0471  0.1103  35       0.6286      0.0341  0.1724     7.0929
+laplace_bald                      0.0443  0.0979  35       0.6857      0.0091  0.0914     7.2179
+fisher_dopt                       0.0430  0.1014  35       0.6571      0.0210  0.1469     6.9464
+cluster_quota_uncertainty_lf      0.0384  0.0912  35       0.6571      0.0124  0.1116     6.9571
+dpp_pairs                         0.0310  0.0936  35       0.6571      0.0700  0.2799     7.1714
+mc_dropout_mutual_information     0.0260  0.1007  35       0.7143      0.0287  0.1724     7.2643
+uncertainty_all_heads             0.0246  0.0791  35       0.7714      0.0174  0.1393     7.3643
+ensemble_bald                     0.0242  0.1413  35       0.5714      0.1037  0.2799     7.2357
+uncertainty                       0.0223  0.0889  35       0.6571      0.0810  0.2799     7.4071
+bald_decisive                     0.0181  0.1123  35       0.4857      0.5329  0.5329     7.9929
+graphcut_pairs                   -0.0662  0.1058  35       0.2857      0.0004  0.0049     9.7214
+by budget (mean):
+budget                            10     20     40     60
+family                                                   
+core_set_relation              0.606  0.495  0.426  0.385
+cluster_quota_uncertainty      0.589  0.529  0.465  0.376
+cluster_margin_pairwise        0.599  0.546  0.445  0.384
+laplace_bald                   0.624  0.527  0.455  0.378
+fisher_dopt                    0.610  0.568  0.433  0.379
+cluster_quota_uncertainty_lf   0.621  0.552  0.446  0.391
+dpp_pairs                      0.613  0.569  0.466  0.390
+mc_dropout_mutual_information  0.676  0.565  0.422  0.396
+uncertainty_all_heads          0.668  0.565  0.443  0.389
+ensemble_bald                  0.669  0.567  0.456  0.374
+uncertainty                    0.660  0.555  0.450  0.408
+bald_decisive                  0.665  0.582  0.449  0.395
+graphcut_pairs                 0.774  0.729  0.511  0.414
+
+[test_calibrated_log_loss] Friedman test across 14 strategies with data on all 35 seeds: chi2=25.6, p=0.0194
+
+=== calibrated log-loss (lower is better); gain = improvement over random, per seed averaged over budgets ===
+                               mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                          
+core_set_relation                 0.0267  0.0714  35       0.7429      0.0056  0.0734     6.6214
+laplace_bald                      0.0151  0.0598  35       0.7429      0.0082  0.0988     6.5821
+ensemble_bald                     0.0032  0.1032  35       0.5429      0.3945  1.0000     7.2286
+fisher_dopt                       0.0010  0.0967  35       0.6000      0.3101  1.0000     6.7036
+cluster_margin_pairwise          -0.0011  0.0582  35       0.4571      0.7647  1.0000     7.7643
+mc_dropout_mutual_information    -0.0044  0.0646  35       0.5714      0.6799  1.0000     7.3857
+cluster_quota_uncertainty        -0.0048  0.1023  35       0.5429      0.3766  1.0000     7.1857
+uncertainty_all_heads            -0.0103  0.0762  35       0.3714      0.2585  1.0000     8.3786
+graphcut_pairs                   -0.0223  0.1296  35       0.5714      0.9420  1.0000     7.7071
+cluster_quota_uncertainty_lf     -0.0247  0.1903  35       0.6000      0.3023  1.0000     7.4929
+dpp_pairs                        -0.0278  0.1297  35       0.4571      0.7158  1.0000     7.8714
+uncertainty                      -0.0302  0.0928  35       0.3714      0.0934  1.0000     8.2071
+bald_decisive                    -0.0371  0.2081  35       0.4286      0.9678  1.0000     7.6143
+by budget (mean):
+budget                            10     20     40     60
+family                                                   
+core_set_relation              0.447  0.402  0.389  0.383
+laplace_bald                   0.448  0.427  0.404  0.389
+ensemble_bald                  0.458  0.437  0.413  0.407
+fisher_dopt                    0.480  0.425  0.402  0.418
+cluster_margin_pairwise        0.452  0.442  0.435  0.403
+mc_dropout_mutual_information  0.472  0.454  0.387  0.433
+cluster_quota_uncertainty      0.436  0.489  0.434  0.388
+uncertainty_all_heads          0.474  0.490  0.411  0.394
+graphcut_pairs                 0.463  0.454  0.417  0.483
+cluster_quota_uncertainty_lf   0.553  0.434  0.448  0.392
+dpp_pairs                      0.451  0.453  0.457  0.479
+uncertainty                    0.493  0.479  0.433  0.444
+bald_decisive                  0.449  0.468  0.411  0.548
+
+[test_decisive_auc] Friedman test across 14 strategies with data on all 35 seeds: chi2=18.4, p=0.1417
+
+=== AUC (higher is better); gain = improvement over random, per seed averaged over budgets ===
+                               mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                          
+laplace_bald                      0.0074  0.0121  35       0.6286      0.0017  0.0225     6.8964
+core_set_relation                 0.0071  0.0175  35       0.7143      0.0112  0.1346     7.2179
+fisher_dopt                       0.0067  0.0156  35       0.6286      0.0371  0.4086     6.8250
+ensemble_bald                     0.0054  0.0191  35       0.5714      0.0840  0.7034     7.1036
+bald_decisive                     0.0049  0.0143  35       0.5143      0.0782  0.7034     7.4607
+cluster_quota_uncertainty         0.0045  0.0155  35       0.7143      0.0438  0.4383     7.0143
+dpp_pairs                         0.0041  0.0187  35       0.6000      0.1037  0.7258     7.1321
+mc_dropout_mutual_information     0.0034  0.0173  35       0.6286      0.1788  1.0000     7.2500
+uncertainty                       0.0021  0.0144  35       0.5429      0.3423  1.0000     7.7607
+cluster_margin_pairwise           0.0017  0.0166  35       0.5143      0.6215  1.0000     7.7107
+cluster_quota_uncertainty_lf      0.0012  0.0177  35       0.5429      0.5436  1.0000     7.8929
+graphcut_pairs                    0.0004  0.0185  35       0.5429      1.0000  1.0000     8.0107
+uncertainty_all_heads            -0.0000  0.0140  35       0.4286      0.8652  1.0000     8.2429
+by budget (mean):
+budget                            10     20     40     60
+family                                                   
+laplace_bald                   0.896  0.913  0.925  0.935
+core_set_relation              0.899  0.912  0.924  0.933
+fisher_dopt                    0.900  0.908  0.925  0.933
+ensemble_bald                  0.894  0.910  0.922  0.935
+bald_decisive                  0.896  0.907  0.926  0.930
+cluster_quota_uncertainty      0.899  0.908  0.918  0.933
+dpp_pairs                      0.903  0.903  0.917  0.933
+mc_dropout_mutual_information  0.894  0.904  0.926  0.929
+uncertainty                    0.893  0.907  0.919  0.929
+cluster_margin_pairwise        0.891  0.904  0.919  0.932
+cluster_quota_uncertainty_lf   0.890  0.902  0.921  0.930
+graphcut_pairs                 0.893  0.897  0.921  0.929
+uncertainty_all_heads          0.884  0.903  0.920  0.932
+
+[test_decisive_accuracy] Friedman test across 14 strategies with data on all 35 seeds: chi2=11.2, p=0.5936
+
+=== accuracy (higher is better); gain = improvement over random, per seed averaged over budgets ===
+                               mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                          
+laplace_bald                      0.0110  0.0180  35       0.7714      0.0011  0.0143     6.6893
+ensemble_bald                     0.0086  0.0207  35       0.6571      0.0280  0.3363     6.7750
+bald_decisive                     0.0074  0.0223  35       0.6000      0.0726  0.7988     7.0786
+fisher_dopt                       0.0060  0.0221  35       0.5714      0.2131  1.0000     7.3107
+cluster_quota_uncertainty         0.0051  0.0223  35       0.6571      0.1099  1.0000     7.2286
+dpp_pairs                         0.0051  0.0286  35       0.5429      0.2012  1.0000     7.2964
+uncertainty_all_heads             0.0047  0.0213  35       0.5143      0.2797  1.0000     7.5607
+uncertainty                       0.0046  0.0212  35       0.5143      0.2071  1.0000     7.4143
+graphcut_pairs                    0.0036  0.0260  35       0.5429      0.5876  1.0000     7.8857
+mc_dropout_mutual_information     0.0032  0.0216  35       0.6000      0.3023  1.0000     7.7571
+core_set_relation                 0.0024  0.0277  35       0.4286      0.8146  1.0000     8.0821
+cluster_quota_uncertainty_lf      0.0021  0.0237  35       0.5714      0.3879  1.0000     7.4464
+cluster_margin_pairwise          -0.0003  0.0214  35       0.4857      1.0000  1.0000     7.9893
+by budget (mean):
+budget                            10     20     40     60
+family                                                   
+laplace_bald                   0.831  0.843  0.861  0.865
+ensemble_bald                  0.825  0.842  0.851  0.873
+bald_decisive                  0.827  0.844  0.853  0.863
+fisher_dopt                    0.827  0.832  0.859  0.862
+cluster_quota_uncertainty      0.828  0.842  0.847  0.860
+dpp_pairs                      0.836  0.836  0.843  0.862
+uncertainty_all_heads          0.825  0.840  0.851  0.858
+uncertainty                    0.830  0.836  0.849  0.859
+graphcut_pairs                 0.830  0.828  0.853  0.859
+mc_dropout_mutual_information  0.830  0.828  0.855  0.857
+core_set_relation              0.827  0.834  0.844  0.861
+cluster_quota_uncertainty_lf   0.821  0.827  0.854  0.863
+cluster_margin_pairwise        0.814  0.832  0.849  0.860
+
+initial only (10 groups): {'test_decisive_log_loss': np.float64(0.736), 'test_calibrated_log_loss': np.float64(0.476), 'test_decisive_auc': np.float64(0.882), 'test_decisive_accuracy': np.float64(0.816)}
