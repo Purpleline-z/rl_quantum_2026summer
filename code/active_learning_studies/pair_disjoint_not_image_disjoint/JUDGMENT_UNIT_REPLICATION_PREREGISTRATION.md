@@ -90,3 +90,6 @@ Exploratory (labelled as such in the results file; nothing in the verdict depend
 ## 8. Checks planned
 
 Recount cells from files (expected 12,880 + 70 initial-only files); assert `n_revealed == budget` in every cell; recompute one cell by hand with `judgment_unit_verify.py` (retrain from the stored selection and compare metrics); run the full existing test suite (`pytest` in `code/`; all tests must pass); keep the committed result size modest.
+
+---
+Pre-run commit: `6b6070dabd57515f49c933ca9499c144f5322637` (contains the pre-registration text above; no run on seeds 500-534 had been started at that commit; this line is the only later change to the file).
