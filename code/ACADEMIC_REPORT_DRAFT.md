@@ -661,7 +661,40 @@ With **no pair groups at all**, the reference-anchor term alone reaches 0.848. P
 
 **Statistics.** The unit of replication is the seed (random split of ideal images, initial groups, validation and test groups). For each strategy and metric, the gain over Random is averaged over budgets within a seed, giving one number per seed; significance is a two-sided Wilcoxon signed-rank test on these numbers, with Holm correction across strategies. Five seeds (42, 79, 123, 202, 303) are the primary study seeds; 30 further seeds (400–429), outside the calibration, extend the comparison. Seeds 42, 79, and 123 were also used to choose the learning rate and step count.
 
-<<RESULTS_5_12>>
+**Results: single-shot, 35 seeds.** Random reaches held-out log-loss 0.600, 0.494, 0.406, 0.356 and AUC 0.883, 0.902, 0.921, 0.934 at 10, 20, 40, and 60 acquired groups (mean over 35 seeds); the 10 initial groups alone give log-loss 0.715 and AUC 0.872, so the labels teach the held-out preferences and the endpoint responds to the budget. The strategies differ overall (Friedman test across the 25 strategies with data on all 35 seeds: log-loss p < 0.0001, calibrated log-loss p < 0.0001, AUC p = 0.003, accuracy p = 0.015). The table gives each strategy's gain over Random, averaged over budgets within a seed (positive = better, in log-loss units for the first two columns and AUC units for the third), with the Wilcoxon signed-rank p-value Holm-corrected across the strategies, and the fraction of seeds in which the strategy beat Random on log-loss. Full per-budget tables and the unadjusted p-values are in `results/pair_endpoint_study/single_all_*`.
+
+| Strategy | log-loss gain | Holm p | cal. log-loss gain | Holm p | AUC gain | Holm p | seeds better (log-loss) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Fisher D-optimal (Active Reward Modeling) | +0.041 | 0.107 | +0.009 | 0.478 | +0.008 | 0.658 | 66% (35) |
+| BALD x P(decisive) | +0.038 | 0.019 | +0.008 | 0.570 | +0.010 | 0.020 | 77% (35) |
+| Cluster-quota uncertainty | +0.038 | 0.024 | +0.003 | 1.000 | +0.005 | 1.000 | 74% (35) |
+| Laplace BALD | +0.038 | 0.016 | +0.024 | 0.212 | +0.010 | 0.023 | 80% (35) |
+| Core-set, relation-aware pairs | +0.036 | 0.119 | +0.038 | 0.050 | +0.006 | 1.000 | 74% (35) |
+| Cluster-Margin | +0.033 | 0.198 | +0.026 | 0.341 | +0.002 | 1.000 | 69% (35) |
+| MaxHerding (pairs) | +0.031 | 0.086 | +0.014 | 0.236 | +0.007 | 0.441 | 69% (35) |
+| DPP (quality x diversity) | +0.028 | 0.034 | +0.012 | 0.570 | +0.005 | 1.000 | 77% (35) |
+| FASS (pairs) | +0.025 | 1.000 | +0.012 | 1.000 | +0.003 | 1.000 | 60% (35) |
+| Core-set | +0.023 | 1.000 | +0.008 | 1.000 | -0.002 | 1.000 | 60% (35) |
+| Graph facility location (uncertainty-weighted) | +0.020 | 1.000 | +0.003 | 1.000 | +0.004 | 1.000 | 51% (35) |
+| MC-dropout variance | +0.019 | 1.000 | +0.003 | 1.000 | +0.003 | 1.000 | 57% (35) |
+| TypiClust (pairs) | +0.018 | 1.000 | +0.036 | 0.213 | +0.006 | 0.950 | 57% (35) |
+| Largest predicted gap | +0.017 | 1.000 | +0.035 | 0.078 | +0.005 | 1.000 | 60% (35) |
+| BADGE (pairs) | +0.016 | 1.000 | +0.009 | 1.000 | +0.002 | 1.000 | 60% (35) |
+| ProbCover (pairs) | +0.016 | 1.000 | +0.023 | 0.236 | +0.005 | 1.000 | 66% (35) |
+| Uncertainty + diversity | +0.015 | 1.000 | +0.013 | 1.000 | +0.001 | 1.000 | 63% (35) |
+| MC-dropout mutual info | +0.012 | 1.000 | +0.008 | 1.000 | +0.004 | 1.000 | 54% (35) |
+| Image-coverage uncertainty | +0.010 | 1.000 | -0.014 | 0.958 | -0.000 | 1.000 | 63% (35) |
+| Uncertainty | +0.007 | 1.000 | +0.000 | 1.000 | +0.001 | 1.000 | 51% (35) |
+| Uncertainty, all heads | +0.003 | 1.000 | -0.028 | 0.328 | -0.004 | 1.000 | 60% (35) |
+| Gap + posterior std (DeltaUCB-style) | -0.001 | 1.000 | +0.029 | 0.395 | +0.001 | 1.000 | 57% (35) |
+| DropQuery (pairs) | -0.016 | 1.000 | -0.019 | 0.341 | -0.004 | 1.000 | 37% (35) |
+| Graph cut (pairs) | -0.058 | 0.034 | -0.010 | 1.000 | -0.000 | 1.000 | 31% (35) |
+
+Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss and AUC after correction (Holm p = 0.016 and 0.019 on log-loss, 0.023 and 0.020 on AUC). Two further strategies are significant on log-loss alone, Cluster-quota uncertainty (Holm p = 0.024) and the DPP selector (0.034); graph cut is significantly *worse* than Random (−0.058, p = 0.034). On calibrated log-loss no strategy survives correction (the best, relation-aware core-set, has Holm p = 0.050), so part of the raw log-loss gain comes from the scale of the scores rather than from a better ordering of the pairs. The effects are small: Laplace BALD lowers log-loss from 0.600 to 0.542 at 10 groups and from 0.356 to 0.324 at 60, and raises AUC by about 0.01, and the gains are largest at the smallest budgets. Pure uncertainty rules do not help: Uncertainty (+0.007), MC-dropout mutual information (+0.012), and the all-head entropy rule (+0.003) are indistinguishable from Random, and DropQuery (−0.016) is no better. The five-seed ranking that first suggested a large advantage for Cluster-Margin (+0.110) and core-set (+0.076) did not replicate: over 35 seeds they are +0.033 and +0.023 and neither is significant after correction, an instance of the noise that a five-seed, 28-image comparison cannot exclude.
+
+<<SEQUENTIAL_5_12>>
+
+
 
 ## 6. Conclusion
 
