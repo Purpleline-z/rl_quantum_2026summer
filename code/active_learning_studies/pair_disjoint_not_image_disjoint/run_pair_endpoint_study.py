@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import json
+import os
 import tempfile
 import time
 from pathlib import Path
@@ -24,6 +25,14 @@ from new_pair_strategies import NEW_STRATEGIES
 HERE = Path(__file__).resolve().parent; DATA = HERE.parents[2] / "data"
 OUT = HERE / "results" / "pair_endpoint_study"; CACHE = harness.OUT / "simclr_feature_cache.pt"
 BUDGETS = (10, 20, 40, 60); ORIGINAL = harness.STRATEGIES; RANDOM_REPLICATES = 5
+def seeds() -> tuple:
+    """Seeds to run: PAIR_STUDY_SEEDS='400-429' (range) or '1,2,3'; default are the five study seeds."""
+    spec = os.environ.get("PAIR_STUDY_SEEDS")
+    if not spec: return harness.ALL_SEEDS
+    if "-" in spec: low, high = spec.split("-"); return tuple(range(int(low), int(high) + 1))
+    return tuple(int(x) for x in spec.split(","))
+
+
 GRID = list(itertools.product((1e-3, 3e-3, 1e-2), (100, 300, 1000)))
 
 
@@ -50,7 +59,7 @@ def calibrate(scratch, cache) -> dict:
 
 def run(scratch, cache, schedule) -> None:
     cells = OUT / "cells"; cells.mkdir(parents=True, exist_ok=True); lr, steps = schedule["learning_rate"], schedule["steps"]
-    for seed in harness.ALL_SEEDS:
+    for seed in seeds():
         exp, features, initial, pool, validation, test = setup(seed, scratch, cache); started = time.monotonic()
         labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2,
                     "outcomes": [(int(r.type_idx), r.Winner in ("1", "2")) for r in exp.groups[i].itertuples()]} for i in initial]

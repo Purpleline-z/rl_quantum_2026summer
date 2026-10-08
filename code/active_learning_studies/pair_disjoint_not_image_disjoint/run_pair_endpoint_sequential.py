@@ -50,7 +50,7 @@ def main() -> None:
     schedule = json.loads((single.OUT / "schedule.json").read_text()); lr, steps = schedule["learning_rate"], schedule["steps"]
     names = list(single.ORIGINAL) + list(NEW_STRATEGIES) + [f"random_r{r}" for r in range(1, single.RANDOM_REPLICATES)]
     with tempfile.TemporaryDirectory() as scratch_name:
-        for seed in harness.ALL_SEEDS:
+        for seed in single.seeds():
             exp, features, initial, pool, validation, test = single.setup(seed, Path(scratch_name), cache); started = time.monotonic()
             for name in names:
                 target = OUT / f"seed{seed}_{name}.json"
