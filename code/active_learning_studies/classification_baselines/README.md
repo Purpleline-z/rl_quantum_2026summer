@@ -41,3 +41,15 @@ python3 aggregate_baselines.py results/frozen_paper_seeds --out results/table_pa
 python3 -m pytest ../../active_learning_program/code_behavior_tests/test_classification_baselines.py
 ```
 Results: `results/table_paper_seeds.md`, `results/table_all_30_splits.md` (frozen), `results/table_finetune.md`.
+
+## Results (paper split, 28 test images per seed)
+
+Full tables: `results/table_paper_seeds_with_finetune.md` (5 paper seeds, includes fine-tuning), `results/table_all_30_splits.md` (frozen features, 5 + 25 splits).
+
+- **Every runnable baseline lands between 0.81 and 0.91 accuracy (5 paper seeds)**: frozen SimCLR 1-NN 0.871 ± 0.041, raw pixels + logistic regression 0.886, random-weight ResNet-18 + 1-NN 0.886–0.900, fine-tuned SimCLR 0.893 ± 0.051, fine-tuned random-weight 0.807 ± 0.070. Differences between these rows are far smaller than the split-to-split sd (0.03–0.09) and than the binomial noise of 28 images (about ±0.06), so **the 28-image test cannot rank these baselines**.
+- **Pre-training is not visibly needed for this endpoint.** Random-weight ResNet-18 features and raw pixels match the SimCLR features. Over the 30 splits, raw pixels + logistic regression (0.914) is above SimCLR 1-NN (0.877) in 20 of 27 non-tied splits; given the overlapping test sets this is a description of these splits, not a significance test.
+- **All of them are well above the fine-tuned Bradley–Terry reward model of §5.10 (0.4–0.7 on the same seeds' outer-test images)** and consistent with the frozen-head result of §5.11 (0.73–0.86). This reproduces, with more baselines, the report's earlier statement that the low Task 3c accuracy comes from the training procedure and the tiny labelled sets, not from the encoder or the images. The two numbers are comparable (same seeds, same references, same outer-test images); they are not the same method (baselines use absolute reference labels only, the reward model also uses pair labels).
+- HTR (the type of most interest) is the weakest class for most baselines: recall 0.52–0.88 with sd up to 0.3 (5 HTR test images per seed), i.e. one image changes HTR recall by 0.2.
+- Fine-tuning with only 88 labelled images is unstable: selected epochs range from 6 to 30, and the random-weight fine-tune varies from 0.71 to 0.89 across seeds.
+
+Caveats: ImageNet / ViT / DINOv2 / CLIP baselines are missing (blocked hosts, see above). The earlier "5-NN CV on all ideal images: raw 0.832, ImageNet ResNet-18 0.896, SimCLR 0.884" slide numbers use a different protocol (cross-validation over all images) and are not directly comparable with the table here.
