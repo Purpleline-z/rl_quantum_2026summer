@@ -1,0 +1,14 @@
+hypothesis,claim,tests,replicated_tests,right_sign_tests,nominal_p<0.05,verdict
+H1,cluster_quota_uncertainty_lf,1,1,1,1,replicated
+H2,ensemble_bald_decisive,1,1,1,1,replicated
+H3,ensemble_bald_decisive,4,4,4,4,replicated
+H3,ensemble_bald,4,4,4,4,replicated
+H3,fisher_dopt,4,4,4,4,replicated
+H4,core_set,2,1,2,1,not replicated
+H5,dpp_pairs,1,1,1,1,replicated
+H5,uncertainty_all_heads,1,1,1,1,replicated
+H1,ALL (whole hypothesis),1,1,1,1,replicated
+H2,ALL (whole hypothesis),1,1,1,1,replicated
+H3,ALL (whole hypothesis),12,12,12,12,replicated
+H4,ALL (whole hypothesis),2,1,2,1,not replicated
+H5,ALL (whole hypothesis),2,2,2,2,replicated

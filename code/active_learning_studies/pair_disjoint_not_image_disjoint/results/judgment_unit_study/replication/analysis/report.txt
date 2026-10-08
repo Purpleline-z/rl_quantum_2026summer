@@ -1,0 +1,157 @@
+[replication seeds 500-534] split A single: 3220 cells = 35 seeds x 23 strategy names x 4 budgets (expected 3220); seeds with all 23 names: 35/35; n_revealed == budget everywhere: True
+[replication seeds 500-534] split A sequential: 3220 cells = 35 seeds x 23 strategy names x 4 budgets (expected 3220); seeds with all 23 names: 35/35; n_revealed == budget everywhere: True
+[replication seeds 500-534] split B single: 3220 cells = 35 seeds x 23 strategy names x 4 budgets (expected 3220); seeds with all 23 names: 35/35; n_revealed == budget everywhere: True
+[replication seeds 500-534] split B sequential: 3220 cells = 35 seeds x 23 strategy names x 4 budgets (expected 3220); seeds with all 23 names: 35/35; n_revealed == budget everywhere: True
+[main seeds, restricted to the 15 replicated families] split A single: 35 seeds, 3220 cells
+[main seeds, restricted to the 15 replicated families] split A sequential: 35 seeds, 3220 cells
+[main seeds, restricted to the 15 replicated families] split B single: 35 seeds, 3220 cells
+[main seeds, restricted to the 15 replicated families] split B sequential: 35 seeds, 3220 cells
+
+=== CONFIRMATORY (seeds 500-534): 18 one-sided tests, Holm over the 18 ===
+hypothesis                      variant split  condition   metric direction  mean_gain  share_seeds_gain_gt0  share_seeds_gain_lt0  p_one_sided   holm_p  right_sign  test_replicated
+        H1 cluster_quota_uncertainty_lf     B sequential log-loss   greater   0.044253              0.571429              0.428571     0.021913 0.109567        True            False
+        H2       ensemble_bald_decisive     B sequential      AUC   greater   0.014235              0.685714              0.314286     0.002390 0.019116        True             True
+        H3       ensemble_bald_decisive     A     single accuracy   greater   0.010941              0.685714              0.314286     0.006512 0.039074        True             True
+        H3       ensemble_bald_decisive     A sequential accuracy   greater   0.018685              0.771429              0.228571     0.000256 0.003076        True             True
+        H3       ensemble_bald_decisive     B     single accuracy   greater   0.012188              0.685714              0.314286     0.003906 0.027342        True             True
+        H3       ensemble_bald_decisive     B sequential accuracy   greater   0.022843              0.828571              0.171429     0.000017 0.000294        True             True
+        H3                ensemble_bald     A     single accuracy   greater   0.008095              0.600000              0.400000     0.059337 0.237348        True            False
+        H3                ensemble_bald     A sequential accuracy   greater   0.019556              0.714286              0.285714     0.000165 0.002143        True             True
+        H3                ensemble_bald     B     single accuracy   greater   0.013162              0.685714              0.314286     0.001416 0.014671        True             True
+        H3                ensemble_bald     B sequential accuracy   greater   0.024580              0.742857              0.257143     0.000046 0.000643        True             True
+        H3                  fisher_dopt     A     single accuracy   greater   0.009661              0.714286              0.285714     0.001692 0.015231        True             True
+        H3                  fisher_dopt     A sequential accuracy   greater   0.020908              0.771429              0.228571     0.000039 0.000580        True             True
+        H3                  fisher_dopt     B     single accuracy   greater   0.020849              0.800000              0.200000     0.000016 0.000284        True             True
+        H3                  fisher_dopt     B sequential accuracy   greater   0.029714              0.828571              0.171429     0.000020 0.000315        True             True
+        H4                     core_set     B     single log-loss   greater   0.001780              0.600000              0.400000     0.357916 0.357916        True            False
+        H4                     core_set     B sequential log-loss   greater   0.028612              0.600000              0.400000     0.069830 0.237348        True            False
+        H5                    dpp_pairs     B     single log-loss      less  -0.035167              0.485714              0.514286     0.079180 0.237348        True            False
+        H5        uncertainty_all_heads     B     single      AUC      less  -0.014603              0.285714              0.714286     0.001334 0.014671        True             True
+
+=== MAIN SEEDS, same tests (hypotheses were formed here): 18 one-sided tests, Holm over the 18 ===
+hypothesis                      variant split  condition   metric direction  mean_gain  share_seeds_gain_gt0  share_seeds_gain_lt0  p_one_sided   holm_p  right_sign  test_replicated
+        H1 cluster_quota_uncertainty_lf     B sequential log-loss   greater   0.073771              0.800000              0.200000 1.627486e-06 0.000028        True             True
+        H2       ensemble_bald_decisive     B sequential      AUC   greater   0.013800              0.714286              0.285714 3.650917e-04 0.003286        True             True
+        H3       ensemble_bald_decisive     A     single accuracy   greater   0.015273              0.742857              0.257143 3.549026e-05 0.000461        True             True
+        H3       ensemble_bald_decisive     A sequential accuracy   greater   0.020053              0.800000              0.200000 3.252533e-05 0.000455        True             True
+        H3       ensemble_bald_decisive     B     single accuracy   greater   0.006441              0.600000              0.400000 1.127415e-01 0.168373        True            False
+        H3       ensemble_bald_decisive     B sequential accuracy   greater   0.022320              0.828571              0.171429 2.080412e-05 0.000312        True             True
+        H3                ensemble_bald     A     single accuracy   greater   0.011953              0.714286              0.257143 6.349577e-04 0.004445        True             True
+        H3                ensemble_bald     A sequential accuracy   greater   0.019073              0.771429              0.228571 1.725199e-04 0.001725        True             True
+        H3                ensemble_bald     B     single accuracy   greater   0.009927              0.571429              0.428571 3.370073e-02 0.134803        True            False
+        H3                ensemble_bald     B sequential accuracy   greater   0.018501              0.771429              0.228571 5.490150e-04 0.004392        True             True
+        H3                  fisher_dopt     A     single accuracy   greater   0.010848              0.714286              0.285714 2.258258e-03 0.013550        True             True
+        H3                  fisher_dopt     A sequential accuracy   greater   0.024075              0.800000              0.171429 7.317053e-06 0.000117        True             True
+        H3                  fisher_dopt     B     single accuracy   greater   0.010898              0.600000              0.400000 5.184563e-02 0.155537        True            False
+        H3                  fisher_dopt     B sequential accuracy   greater   0.019654              0.828571              0.171429 9.604284e-05 0.001056        True             True
+        H4                     core_set     B     single log-loss   greater   0.029038              0.600000              0.400000 8.418666e-02 0.168373        True            False
+        H4                     core_set     B sequential log-loss   greater   0.063233              0.657143              0.342857 4.570430e-03 0.022852        True             True
+        H5                    dpp_pairs     B     single log-loss      less  -0.103546              0.142857              0.857143 5.434206e-05 0.000652        True             True
+        H5        uncertainty_all_heads     B     single      AUC      less  -0.026138              0.171429              0.828571 2.204033e-07 0.000004        True             True
+
+=== EXPLORATORY POOLED (70 seeds): 18 one-sided tests, Holm over the 18 ===
+hypothesis                      variant split  condition   metric direction  mean_gain  share_seeds_gain_gt0  share_seeds_gain_lt0  p_one_sided       holm_p  right_sign  test_replicated
+        H1 cluster_quota_uncertainty_lf     B sequential log-loss   greater   0.059012              0.685714              0.314286 3.838602e-06 4.222462e-05        True             True
+        H2       ensemble_bald_decisive     B sequential      AUC   greater   0.014017              0.700000              0.300000 8.157838e-06 7.342054e-05        True             True
+        H3       ensemble_bald_decisive     A     single accuracy   greater   0.013107              0.714286              0.285714 6.420353e-06 6.420353e-05        True             True
+        H3       ensemble_bald_decisive     A sequential accuracy   greater   0.019369              0.785714              0.214286 2.379247e-07 3.330946e-06        True             True
+        H3       ensemble_bald_decisive     B     single accuracy   greater   0.009314              0.642857              0.357143 4.262194e-03 8.524389e-03        True             True
+        H3       ensemble_bald_decisive     B sequential accuracy   greater   0.022582              0.828571              0.171429 1.680261e-08 2.856444e-07        True             True
+        H3                ensemble_bald     A     single accuracy   greater   0.010024              0.657143              0.328571 2.899089e-04 1.449545e-03        True             True
+        H3                ensemble_bald     A sequential accuracy   greater   0.019314              0.742857              0.257143 2.415729e-07 3.330946e-06        True             True
+        H3                ensemble_bald     B     single accuracy   greater   0.011544              0.628571              0.371429 5.081041e-04 2.032416e-03        True             True
+        H3                ensemble_bald     B sequential accuracy   greater   0.021541              0.757143              0.242857 4.762580e-07 5.715096e-06        True             True
+        H3                  fisher_dopt     A     single accuracy   greater   0.010254              0.714286              0.285714 2.729186e-05 1.910430e-04        True             True
+        H3                  fisher_dopt     A sequential accuracy   greater   0.022491              0.785714              0.200000 5.361181e-09 9.650125e-08        True             True
+        H3                  fisher_dopt     B     single accuracy   greater   0.015873              0.700000              0.300000 2.177890e-05 1.742312e-04        True             True
+        H3                  fisher_dopt     B sequential accuracy   greater   0.024684              0.828571              0.171429 2.669611e-08 4.271378e-07        True             True
+        H4                     core_set     B     single log-loss   greater   0.015409              0.600000              0.400000 9.249948e-02 9.249948e-02        True            False
+        H4                     core_set     B sequential log-loss   greater   0.045923              0.628571              0.371429 2.507089e-03 7.521266e-03        True             True
+        H5                    dpp_pairs     B     single log-loss      less  -0.069356              0.314286              0.685714 5.546123e-05 3.327674e-04        True             True
+        H5        uncertainty_all_heads     B     single      AUC      less  -0.020371              0.228571              0.771429 5.817108e-08 8.725662e-07        True             True
+
+=== CONFIRMATORY verdicts ===
+hypothesis                        claim  tests  replicated_tests  right_sign_tests  nominal_p<0.05        verdict
+        H1 cluster_quota_uncertainty_lf      1                 0                 1               1 not replicated
+        H2       ensemble_bald_decisive      1                 1                 1               1     replicated
+        H3       ensemble_bald_decisive      4                 4                 4               4     replicated
+        H3                ensemble_bald      4                 3                 4               3 not replicated
+        H3                  fisher_dopt      4                 4                 4               4     replicated
+        H4                     core_set      2                 0                 2               0 not replicated
+        H5                    dpp_pairs      1                 0                 1               0 not replicated
+        H5        uncertainty_all_heads      1                 1                 1               1     replicated
+        H1       ALL (whole hypothesis)      1                 0                 1               1 not replicated
+        H2       ALL (whole hypothesis)      1                 1                 1               1     replicated
+        H3       ALL (whole hypothesis)     12                11                12              11 not replicated
+        H4       ALL (whole hypothesis)      2                 0                 2               0 not replicated
+        H5       ALL (whole hypothesis)      2                 1                 2               1 not replicated
+
+=== EXPLORATORY pooled verdicts ===
+hypothesis                        claim  tests  replicated_tests  right_sign_tests  nominal_p<0.05        verdict
+        H1 cluster_quota_uncertainty_lf      1                 1                 1               1     replicated
+        H2       ensemble_bald_decisive      1                 1                 1               1     replicated
+        H3       ensemble_bald_decisive      4                 4                 4               4     replicated
+        H3                ensemble_bald      4                 4                 4               4     replicated
+        H3                  fisher_dopt      4                 4                 4               4     replicated
+        H4                     core_set      2                 1                 2               1 not replicated
+        H5                    dpp_pairs      1                 1                 1               1     replicated
+        H5        uncertainty_all_heads      1                 1                 1               1     replicated
+        H1       ALL (whole hypothesis)      1                 1                 1               1     replicated
+        H2       ALL (whole hypothesis)      1                 1                 1               1     replicated
+        H3       ALL (whole hypothesis)     12                12                12              12     replicated
+        H4       ALL (whole hypothesis)      2                 1                 2               1 not replicated
+        H5       ALL (whole hypothesis)      2                 2                 2               2     replicated
+
+=== H6 null check (seeds 500-534), alternative gain > 0, Holm over 8 ===
+hypothesis     variant split  condition   metric direction  mean_gain  share_seeds_gain_gt0  share_seeds_gain_lt0  p_one_sided  holm_p  right_sign  test_replicated
+        H6 uncertainty     A     single log-loss   greater  -0.024948              0.457143              0.542857     0.802767     1.0       False            False
+        H6 uncertainty     A     single      AUC   greater  -0.005055              0.514286              0.485714     0.683491     1.0       False            False
+        H6 uncertainty     A sequential log-loss   greater  -0.024125              0.428571              0.571429     0.874179     1.0       False            False
+        H6 uncertainty     A sequential      AUC   greater  -0.003368              0.428571              0.571429     0.754467     1.0       False            False
+        H6 uncertainty     B     single log-loss   greater  -0.020805              0.400000              0.600000     0.915813     1.0       False            False
+        H6 uncertainty     B     single      AUC   greater  -0.006349              0.457143              0.542857     0.927914     1.0       False            False
+        H6 uncertainty     B sequential log-loss   greater  -0.038931              0.342857              0.657143     0.978087     1.0       False            False
+        H6 uncertainty     B sequential      AUC   greater  -0.006733              0.342857              0.657143     0.951615     1.0       False            False
+no test rejected: True
+
+=== H6 pooled 70 seeds (exploratory) ===
+hypothesis     variant split  condition   metric direction  mean_gain  share_seeds_gain_gt0  share_seeds_gain_lt0  p_one_sided  holm_p  right_sign  test_replicated
+        H6 uncertainty     A     single log-loss   greater  -0.006497              0.500000              0.500000     0.563928     1.0       False            False
+        H6 uncertainty     A     single      AUC   greater  -0.001478              0.557143              0.442857     0.399528     1.0       False            False
+        H6 uncertainty     A sequential log-loss   greater  -0.015343              0.442857              0.557143     0.757829     1.0       False            False
+        H6 uncertainty     A sequential      AUC   greater   0.000186              0.500000              0.500000     0.327188     1.0        True            False
+        H6 uncertainty     B     single log-loss   greater  -0.033920              0.357143              0.642857     0.997493     1.0       False            False
+        H6 uncertainty     B     single      AUC   greater  -0.009587              0.414286              0.585714     0.997447     1.0       False            False
+        H6 uncertainty     B sequential log-loss   greater  -0.007520              0.457143              0.542857     0.709879     1.0       False            False
+        H6 uncertainty     B sequential      AUC   greater  -0.001654              0.471429              0.528571     0.683302     1.0       False            False
+no test rejected: True
+
+=== exploratory: Spearman correlation (13 variants) of mean gains, main seeds vs new seeds ===
+split  condition   metric  spearman_mean_gain_main_vs_new
+    A     single log-loss                            0.03
+    A     single      AUC                            0.45
+    A     single accuracy                            0.64
+    A sequential log-loss                            0.34
+    A sequential      AUC                            0.62
+    A sequential accuracy                            0.88
+    B     single log-loss                            0.36
+    B     single      AUC                            0.88
+    B     single accuracy                            0.89
+    B sequential log-loss                            0.65
+    B sequential      AUC                            0.76
+    B sequential accuracy                            0.87
+
+=== random_pair_type vs Random (two-sided) ===
+split  condition   metric  mean_gain  p_two_sided
+    A     single log-loss      0.002        0.955
+    A     single      AUC     -0.002        0.588
+    A     single accuracy      0.001        0.413
+    A sequential log-loss      0.026        0.413
+    A sequential      AUC      0.003        0.554
+    A sequential accuracy      0.004        0.394
+    B     single log-loss     -0.006        0.501
+    B     single      AUC     -0.006        0.004
+    B     single accuracy     -0.003        0.302
+    B sequential log-loss     -0.007        0.259
+    B sequential      AUC     -0.005        0.019
+    B sequential accuracy     -0.003        0.215

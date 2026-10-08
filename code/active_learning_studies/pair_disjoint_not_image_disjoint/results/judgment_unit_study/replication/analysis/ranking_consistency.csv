@@ -1,0 +1,13 @@
+split,condition,metric,spearman_mean_gain_main_vs_new
+A,single,log-loss,0.03296703296703297
+A,single,AUC,0.4450549450549451
+A,single,accuracy,0.6373626373626374
+A,sequential,log-loss,0.33516483516483514
+A,sequential,AUC,0.6208791208791209
+A,sequential,accuracy,0.8791208791208791
+B,single,log-loss,0.3626373626373627
+B,single,AUC,0.8791208791208791
+B,single,accuracy,0.8901098901098902
+B,sequential,log-loss,0.6483516483516483
+B,sequential,AUC,0.7582417582417583
+B,sequential,accuracy,0.8736263736263737
