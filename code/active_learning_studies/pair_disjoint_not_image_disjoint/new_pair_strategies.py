@@ -245,8 +245,39 @@ def dropquery_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mea
     return [candidates[i] for i in chosen[:budget]]
 
 
+def uncertainty_all_heads(candidates, labeled, model, cache, budget, seed=0):
+    """Plain uncertainty sampling, but averaging the Bernoulli entropy over the four active heads instead of the first label row's head."""
+    _, p = _hidden_and_logit(model, candidates, cache); order = np.argsort(-_mean_uncertainty(p), kind="stable")[:budget]
+    return [candidates[i] for i in order]
+
+
+def delta_gap(candidates, labeled, model, cache, budget, seed=0):
+    """Largest predicted quality gap (ActiveUltraFeedback, 2026: large-gap pairs give lower-noise preference labels than near-ties).
+
+    Score = |r_a - r_b| averaged over the active heads.  Near-equal pairs are the ones annotators call ties or 'not applicable'
+    (14% and 35% of our rows), so the opposite of uncertainty sampling is a legitimate hypothesis here.
+    """
+    _, p = _hidden_and_logit(model, candidates, cache); pc = np.clip(p, 1e-6, 1 - 1e-6); gap = np.abs(np.log(pc / (1 - pc)))[:, list(ACTIVE_HEADS)].mean(1)
+    return [candidates[i] for i in np.argsort(-gap, kind="stable")[:budget]]
+
+
+def delta_ucb(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, beta=1.0):
+    """Large gap that the model is still unsure about: |mu| + beta*s per head, with s the Laplace standard deviation of the last-layer logit
+    (batch-aware: the information matrix is updated after each pick).  Interpolates between delta_gap (beta=0) and BALD-like exploration."""
+    h, p = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); d = h.shape[1]
+    pc = np.clip(p, 1e-6, 1 - 1e-6); mu = np.abs(np.log(pc / (1 - pc))); inverse = {k: np.eye(d) / ridge for k in ACTIVE_HEADS}
+    for i in range(n, len(h)):
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[i], w[i, k])
+    chosen = []; remaining = list(range(n))
+    for _ in range(min(budget, n)):
+        score = [np.mean([mu[i, k] + beta * np.sqrt(max(h[i] @ inverse[k] @ h[i], 0)) for k in ACTIVE_HEADS]) for i in remaining]; pick = remaining[int(np.argmax(score))]
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[pick], w[pick, k])
+        chosen.append(pick); remaining.remove(pick)
+    return [candidates[i] for i in chosen]
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,
-    "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
+    "uncertainty_all_heads": uncertainty_all_heads, "delta_gap": delta_gap, "delta_ucb": delta_ucb, "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
 }
