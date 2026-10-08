@@ -164,8 +164,9 @@ def cluster_quota_uncertainty_sampling(candidates, current_model, budget, device
 def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="cpu", seed=42, embedding_cache=None) -> list[dict]:
     """Cluster-Margin: margin-prefiltered, cluster-round-robin pair selection.
 
-    Follows Citovsky et al. (2021): keep the 2×budget lowest-margin candidates,
-    then pick one from each cluster in round-robin until the budget is filled.
+    Follows Citovsky et al. (2021): keep the min(10×budget, |C|) lowest-margin
+    candidates, then pick one from each cluster in round-robin until the budget
+    is filled.
     """
     del seed
     if embedding_cache is None:
@@ -189,8 +190,8 @@ def cluster_margin_pairwise_sampling(candidates, current_model, budget, device="
                 margin = float(torch.abs(probability - .5).mean().cpu())
             margins.append(margin)
     for pair, margin in zip(scored, margins): pair["margin"] = margin
-    # Prefilter: keep the 2×budget lowest-margin (most uncertain) candidates.
-    prefilter_size = min(max(1, 2 * budget), len(scored))
+    # Prefilter: keep the min(10×budget, |C|) lowest-margin (most uncertain) candidates.
+    prefilter_size = min(max(1, 10 * budget), len(scored))
     prefiltered = sorted(scored, key=lambda item: item["margin"])[:prefilter_size]
     full_cluster_sizes = defaultdict(int)
     for pair in scored:

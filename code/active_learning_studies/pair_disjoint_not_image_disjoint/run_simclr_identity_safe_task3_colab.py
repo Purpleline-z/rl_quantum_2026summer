@@ -303,9 +303,12 @@ def final_tasks(protocol: dict[str, Any], output: Path) -> list[dict[str, Any]]:
 
 
 def run_queue(action: str, protocol: dict[str, Any], output: Path, device: str, project: str | None) -> None:
+    print(f"run_queue: building task list for {action}...", flush=True)
     tasks = calibration_tasks(protocol) if action == "run_task3a" else selector_tasks(protocol, output) if action == "run_selector_screen" else final_tasks(protocol, output)
     folder = "task3a_validation_cells" if action == "run_task3a" else "selector_validation_cells" if action == "run_selector_screen" else "task3c_final_strategy_cells"
+    print(f"run_queue: {len(tasks)} tasks queued; scanning Drive for completed cells...", flush=True)
     complete = sum(result_path(output, folder, task).exists() for task in tasks)
+    print(f"run_queue: {complete}/{len(tasks)} already complete; cleaning up shared baselines...", flush=True)
     if action != "run_task3a":
         cleanup_finished_shared_baselines(protocol, output, tasks, folder)
     timing = output / "warmup_timing_estimate.json"; estimate = read_json(timing).get("seconds_per_final_cell") if timing.exists() else None

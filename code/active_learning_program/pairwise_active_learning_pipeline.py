@@ -151,8 +151,7 @@ class BTModel(nn.Module):
 
 @dataclass
 class Config:
-    #initial_pairs: int = 70; candidate_pairs: int = 100; budget: int = 50; batch_size: int = 5
-    initial_pairs: int = 50; candidate_pairs: int = 120; budget: int = 50; batch_size: int = 5
+    initial_pairs: int = 10; candidate_pairs: int = 100; budget: int = 50; batch_size: int = 5
     epochs: int = 10; train_batch_size: int = 16; lr: float = 1e-4; weight_decay: float = 1e-4
     test_fraction: float = .2; clusters: int = 20; seed: int = 42; device: str = "auto"
     strategies: str = "random,uncertainty,cluster_quota_uncertainty"; include_twinned: bool = False
@@ -216,6 +215,11 @@ class Experiment:
         if not required <= set(df): raise ValueError(f"CSV misses {required - set(df)}")
         df["canonical_type"] = df.Reconstruction_Type.map(canonical_type)
         df = df[df.canonical_type.notna() & df.Winner.astype(str).isin(["1", "2", "tie", "not_apply"])].copy()
+        if not self.cfg.include_twinned:
+            _dropped = int((df.canonical_type == "Twinned(2 x 1)").sum())
+            if _dropped:
+                print(f"Excluding {_dropped} Twinned(2 x 1) pairwise rows (include_twinned=False).", flush=True)
+            df = df[df.canonical_type != "Twinned(2 x 1)"].copy()
         df["pair_id"] = [canonical_pair(a, b) for a, b in zip(df.Image1_Path, df.Image2_Path)]
         df["resolved_img1"] = [str((self.data_root / p).resolve()) for p in df.Image1_Path]
         df["resolved_img2"] = [str((self.data_root / p).resolve()) for p in df.Image2_Path]
@@ -269,7 +273,8 @@ class Experiment:
             pd.DataFrame([{"matched_rows": len(self.metadata), "training_rows": len(train_meta), "numeric_columns": ",".join(self.metadata_columns)}]).to_csv(self.output / "metadata_coverage.csv", index=False)
         overlap = self._image_overlap(selected, candidates)
         print(f"Validated {len(df)} rows / {len(self.groups)} pairs. Pretrain={len(selected)}, candidate={len(candidates)}, pairwise image overlap={len(overlap)}.", flush=True)
-        if set(TYPE_ORDER) - covered: print(f"WARNING: missing initial coverage for {set(TYPE_ORDER) - covered}", flush=True)
+        active_types = set(TYPE_ORDER) if self.cfg.include_twinned else set(TYPE_ORDER) - {"Twinned(2 x 1)"}
+        if active_types - covered: print(f"WARNING: missing initial coverage for {active_types - covered}", flush=True)
         return selected, candidates
 
     def _split_ideals(self) -> None:
@@ -683,7 +688,7 @@ class Experiment:
 
 def parse_args() -> Config:
     p = argparse.ArgumentParser(description=__doc__)
-    for name, typ, default in [("initial-pairs", int, 70), ("candidate-pairs", int, 100), ("budget", int, 50), ("batch-size", int, 5), ("epochs", int, 10), ("train-batch-size", int, 16), ("lr", float, 1e-4), ("test-fraction", float, .2), ("clusters", int, 20), ("seed", int, 42)]: p.add_argument(f"--{name}", type=typ, default=default)
+    for name, typ, default in [("initial-pairs", int, 10), ("candidate-pairs", int, 100), ("budget", int, 50), ("batch-size", int, 5), ("epochs", int, 10), ("train-batch-size", int, 16), ("lr", float, 1e-4), ("test-fraction", float, .2), ("clusters", int, 20), ("seed", int, 42)]: p.add_argument(f"--{name}", type=typ, default=default)
     p.add_argument("--strategies", default="random,uncertainty,cluster_quota_uncertainty"); p.add_argument("--device", default="auto"); p.add_argument("--include-twinned", action="store_true"); p.add_argument("--no-utility-per-pair", dest="utility_per_pair", action="store_false"); p.add_argument("--utility-min-history", type=int, default=10); p.add_argument("--dropout-p", type=float, default=.2); p.add_argument("--mc-samples", type=int, default=20); p.add_argument("--acquisition-mode", choices=["sequential", "single-shot"], default="sequential"); p.add_argument("--diversity-lambda", type=float, default=.5); p.add_argument("--symmetry-mode", choices=SYMMETRY_MODES, default="none"); p.add_argument("--metadata-csv"); p.add_argument("--metadata-weight", type=float, default=.5); p.add_argument("--mixture-weight", type=float, default=.5); p.add_argument("--data-root"); p.add_argument("--dataset-version", choices=["v1.8", "v5.7"], default="v1.8"); p.add_argument("--utility-validation-fraction", type=float, default=.2); p.add_argument("--bad-anchor-weight", type=float, default=.10); p.add_argument("--smoke-test", action="store_true")
     a = p.parse_args(); cfg = Config(**{k.replace("_", "-").replace("-", "_"): v for k, v in vars(a).items() if k != "smoke_test"})
     if a.smoke_test: cfg.initial_pairs, cfg.candidate_pairs, cfg.budget, cfg.batch_size, cfg.epochs, cfg.strategies = 8, 8, 2, 1, 1, "random"

@@ -4,7 +4,7 @@
   "initial_pair_groups": 10,
   "maximum_acquired_pair_groups": 100,
   "budgets": [10, 25, 50, 75, 100],
-  "pair_group_split": {"training_universe": 0.70, "validation": 0.10, "outer_test": 0.20},
+  "pair_group_split": {"reference_anchors": 0.60, "utility_validation": 0.20, "outer_test": 0.20},
   "encoder_initializations": ["simclr", "imagenet"],
   "learning_rates": [0.00001, 0.00003, 0.0001, 0.0003],
   "epochs": [3, 10, 30],
