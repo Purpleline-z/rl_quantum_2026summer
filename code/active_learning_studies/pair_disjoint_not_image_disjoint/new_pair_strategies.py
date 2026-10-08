@@ -226,8 +226,27 @@ def laplace_bald(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, s
     return [candidates[i] for i in chosen]
 
 
+def dropquery_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mean", centroid_fraction=.5):
+    """DropQuery-style (Mittal et al., 2024): representative pairs first, then uncertainty.
+
+    The first ``centroid_fraction`` of the budget takes the pair nearest each k-means centre (cold-start coverage); the rest takes the most
+    uncertain remaining pairs (entropy averaged over the active heads).
+    """
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); cand = allp[:n]; _, p = _hidden_and_logit(model, candidates, cache)
+    unc = _mean_uncertainty(p); k = max(1, int(round(budget * centroid_fraction))); chosen = []
+    centres = KMeans(n_clusters=min(k, n), n_init=5, random_state=seed).fit(cand).cluster_centers_
+    for centre in centres:
+        order = np.argsort(((cand - centre) ** 2).sum(1))
+        for i in order:
+            if int(i) not in chosen: chosen.append(int(i)); break
+    for i in np.argsort(-unc):
+        if len(chosen) >= min(budget, n): break
+        if int(i) not in chosen: chosen.append(int(i))
+    return [candidates[i] for i in chosen[:budget]]
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,
-    "dpp_pairs": dpp_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
+    "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
 }
