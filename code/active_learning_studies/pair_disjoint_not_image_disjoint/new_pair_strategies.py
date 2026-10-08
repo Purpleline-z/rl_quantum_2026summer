@@ -276,8 +276,46 @@ def delta_ucb(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, beta
     return [candidates[i] for i in chosen]
 
 
+def bald_decisive(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, samples=64):
+    """BALD x P(decisive): information about the preference, discounted by the chance the annotator gives a decisive answer.
+
+    49% of judgments are tie/not_apply, which carry little preference information.  P(decisive) per (pair, head) comes from a strongly
+    regularised logistic regression fitted on the *labelled* judgments only (``labeled[i]["outcomes"]`` = list of (type_idx, decisive)),
+    using the head's one-hot, the feature distance and the cosine similarity of the two images.  Falls back to 0.5 without labelled outcomes.
+    """
+    from sklearn.linear_model import LogisticRegression
+    h, p = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); dim = h.shape[1]
+    pc = np.clip(p, 1e-7, 1 - 1e-7); logit = np.log(pc / (1 - pc)); z = np.random.default_rng(seed).standard_normal(samples)
+    def pair_stats(items):
+        a = np.stack([_feature(cache, x["img1"]) for x in items]); b = np.stack([_feature(cache, x["img2"]) for x in items])
+        return np.column_stack([np.linalg.norm(a - b, axis=1), (a * b).sum(1) / (np.linalg.norm(a, axis=1) * np.linalg.norm(b, axis=1))])
+    rows_x, rows_y = [], []; stats_lab = pair_stats(labeled) if labeled else np.zeros((0, 2))
+    for item, stat in zip(labeled, stats_lab):
+        for type_idx, decisive in item.get("outcomes", []): rows_x.append(np.concatenate([np.eye(5)[type_idx], stat])); rows_y.append(int(decisive))
+    stats_cand = pair_stats(candidates); decisive = np.full((n, 5), .5)
+    if len(set(rows_y)) == 2:
+        X = np.array(rows_x); mu, sd = X[:, 5:].mean(0), X[:, 5:].std(0) + 1e-6; X[:, 5:] = (X[:, 5:] - mu) / sd
+        classifier = LogisticRegression(C=0.3, max_iter=1000).fit(X, rows_y)
+        for k in ACTIVE_HEADS:
+            Xc = np.column_stack([np.tile(np.eye(5)[k], (n, 1)), (stats_cand - mu) / sd]); decisive[:, k] = classifier.predict_proba(Xc)[:, 1]
+    inverse = {k: np.eye(dim) / ridge for k in ACTIVE_HEADS}
+    for i in range(n, len(h)):
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[i], w[i, k])
+    ent = lambda x: -(x * np.log(np.clip(x, 1e-9, 1)) + (1 - x) * np.log(np.clip(1 - x, 1e-9, 1)))
+    def score(i):
+        total = 0.0
+        for k in ACTIVE_HEADS:
+            s = np.sqrt(max(h[i] @ inverse[k] @ h[i], 1e-12)); draws = 1 / (1 + np.exp(-(logit[i, k] + s * z))); total += decisive[i, k] * (ent(draws.mean()) - ent(draws).mean())
+        return total
+    chosen = []; remaining = list(range(n))
+    for _ in range(min(budget, n)):
+        pick = remaining[int(np.argmax([score(i) for i in remaining]))]; chosen.append(pick); remaining.remove(pick)
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[pick], w[pick, k])
+    return [candidates[i] for i in chosen]
+
+
 NEW_STRATEGIES = {
     "core_set_relation": core_set_relation, "typiclust_pairs": typiclust_pairs, "badge_pairs": badge_pairs, "fisher_dopt": fisher_dopt,
     "image_coverage_uncertainty": image_coverage_uncertainty, "graph_facility_location": graph_facility_location,
-    "uncertainty_all_heads": uncertainty_all_heads, "delta_gap": delta_gap, "delta_ucb": delta_ucb, "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
+    "uncertainty_all_heads": uncertainty_all_heads, "bald_decisive": bald_decisive, "delta_gap": delta_gap, "delta_ucb": delta_ucb, "dpp_pairs": dpp_pairs, "dropquery_pairs": dropquery_pairs, "probcover_pairs": probcover_pairs, "maxherding_pairs": maxherding_pairs, "laplace_bald": laplace_bald,
 }

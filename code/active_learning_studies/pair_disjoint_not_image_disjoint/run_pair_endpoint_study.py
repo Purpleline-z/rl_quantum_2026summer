@@ -52,7 +52,8 @@ def run(scratch, cache, schedule) -> None:
     cells = OUT / "cells"; cells.mkdir(parents=True, exist_ok=True); lr, steps = schedule["learning_rate"], schedule["steps"]
     for seed in harness.ALL_SEEDS:
         exp, features, initial, pool, validation, test = setup(seed, scratch, cache); started = time.monotonic()
-        labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2} for i in initial]
+        labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2,
+                    "outcomes": [(int(r.type_idx), r.Winner in ("1", "2")) for r in exp.groups[i].itertuples()]} for i in initial]
         baseline = frozen.train_model(exp, features, initial, lr, steps); rows, cache_ = exp.candidates_with_clusters(pool, baseline)
         target = cells / f"seed{seed}_budget0_initial_only.json"
         if not target.exists():

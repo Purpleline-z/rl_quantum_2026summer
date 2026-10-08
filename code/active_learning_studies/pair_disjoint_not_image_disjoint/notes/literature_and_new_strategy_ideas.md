@@ -68,3 +68,19 @@ original uncertainty/MC-dropout rules score only that head. Because a group usua
 - Statistical RLHF survey, [arXiv 2604.02507](https://arxiv.org/html/2604.02507v1): preference collection links to experimental design; uncertainty estimates matter for active querying.
 - [Batch Active Learning at Scale (Cluster-Margin), Citovsky et al., NeurIPS 2021](https://arxiv.org/pdf/2107.14263): margin pre-filter, then round-robin over clusters; the abstract reports needing about 40% of the labels of the next best method on its benchmarks. Our `cluster_margin_pairwise` follows it with 20 flat k-means clusters rather than hierarchical agglomerative clustering, a simplification worth stating in the paper.
 - [Active Learning with Imperfect Labels, 2025](https://arxiv.org/html/2512.12870): uncertainty-based selection picks samples more likely to receive noisy labels; diversity-only selection without noise awareness degrades under high noise. Relevant because 49% of our rows are tie/not_apply.
+
+## Can the outcome of a judgment be predicted from the images? (explore_predict_decisive.py)
+Group-wise (pair-level) 5-fold cross-validated AUC on all 521 rows, logistic regression, frozen SimCLR features:
+
+| Target | type only | type + distance + cosine | type + mean + abs-difference (1024-d) |
+|---|---:|---:|---:|
+| decisive (winner 1/2) | 0.60 | 0.70 | 0.79 |
+| not_apply | 0.72 | 0.74 | 0.75 |
+| tie | 0.65 | 0.84 | 0.87 |
+
+Outcome mix: 51% decisive, 14% tie, 35% not_apply. HTR judgments are 64% not_apply and c(6x2) 46%; (1x1) and (√13x√13) are mostly decisive or tie.
+The relation features (|a-b|) carry the signal, which supports putting pair relations into the representation. `bald_decisive` multiplies BALD by a predicted
+probability of a decisive answer fitted on the labelled judgments only (so it is label-honest, but with 10 initial groups the fit is crude).
+Related work found: [tie-aware DPO](https://arxiv.org/html/2409.17431v1) (Rao–Kupper/Davidson inside the loss), a [2026 preprint on active query synthesis](https://arxiv.org/html/2605.26072v1)
+with a confidence-aware response model (pairs of nearly identical or entirely dissimilar items give ambiguous answers), and cold-start work
+([TypiClust](https://arxiv.org/abs/2202.02794), [k-means baseline](https://arxiv.org/pdf/2110.12033)) showing representative seeds beat random at tiny budgets.
