@@ -119,6 +119,57 @@ def test_rows_of_is_order_independent_and_deduplicated():
     assert a.equals(b) and len(a) == 2
 
 
+# ------------------------------------------------------------------ optional per-budget head schedule (re-tuned run); default behaviour unchanged
+def _schedule_table():
+    return {"initial": {"learning_rate": .001, "steps": 100}, "10": {"learning_rate": .003, "steps": 300}, "20": {"learning_rate": .01, "steps": 100},
+            "40": {"learning_rate": .001, "steps": 1000}, "60": {"learning_rate": .003, "steps": 100}}
+
+
+@pytest.mark.parametrize("n,expected", [(0, (.001, 100)), (10, (.003, 300)), (20, (.01, 100)), (30, (.001, 1000)), (40, (.001, 1000)), (50, (.003, 100)), (60, (.003, 100)), (70, (.003, 100))])
+def test_schedule_for_uses_the_next_calibrated_budget(n, expected):
+    import judgment_unit_study as study
+    assert study.schedule_for(_schedule_table(), n) == expected
+
+
+def test_load_schedule_ignores_documentation_keys(tmp_path):
+    import json, judgment_unit_study as study
+    raw = {**_schedule_table(), "selection": "text", "pooled_over_budgets_for_reference": {"learning_rate": .01, "steps": 100}}; path = tmp_path / "s.json"; path.write_text(json.dumps(raw))
+    assert study.load_schedule(path) == _schedule_table()
+
+
+def _bare_context(study, schedule):
+    ctx = study.Context.__new__(study.Context); ctx.exp = _Exp(); ctx.features = _Features(); ctx.initial = [("p0", 0), ("p0", 1)]; ctx.lr, ctx.steps, ctx.schedule = .01, 100, schedule
+    return ctx
+
+
+def test_context_fit_default_ignores_the_schedule_machinery(monkeypatch):
+    import judgment_unit_study as study
+    seen = []; monkeypatch.setattr(frozen, "train_model", lambda exp, features, ids, lr, steps, **k: seen.append((lr, steps)) or None)
+    ctx = _bare_context(study, None)
+    for extra in ([], [("p1", 0)], [("p1", 0), ("p1", 1), ("p2", 0)]): ctx.fit(ctx.initial + extra)
+    assert seen == [(.01, 100)] * 3
+
+
+def test_context_fit_with_schedule_uses_the_entry_for_the_number_of_revealed_judgments(monkeypatch):
+    import judgment_unit_study as study
+    seen = []; monkeypatch.setattr(frozen, "train_model", lambda exp, features, ids, lr, steps, **k: seen.append((lr, steps)) or None)
+    ctx = _bare_context(study, _schedule_table()); extra_pool = [(f"p{p}", t) for p in (1, 2) for t in range(4)]
+    for n in (0, 3, 8): ctx.fit(ctx.initial + extra_pool[:n])   # initial; 3 revealed -> budget 10 entry; 8 revealed -> budget 10 entry
+    assert seen == [(.001, 100), (.003, 300), (.003, 300)]
+    assert ctx.params_for(ctx.initial + extra_pool[:3] + [("p0", 0)]) == (.003, 300)   # an initial judgment listed twice is not counted as revealed
+
+
+def test_calibration_selection_is_per_budget_with_the_old_tie_break():
+    import judgment_unit_calibrate as cal
+    rows = []
+    for budget, best in ((0, (.001, 100)), (10, (.01, 300))):
+        for lr, steps in cal.GRID:
+            for seed in (1, 2): rows.append({"seed": seed, "budget": budget, "learning_rate": lr, "steps": steps, "decisive_log_loss": .3 if (lr, steps) == best else .5, "decisive_accuracy": .8})
+    rows += [{"seed": s, "budget": 10, "learning_rate": .003, "steps": 1000, "decisive_log_loss": .3, "decisive_accuracy": .8} for s in (1, 2)]   # tie with (.01, 300): fewer steps wins
+    schedule, _ = cal.choose(pd.DataFrame(rows))
+    assert schedule == {"initial": {"learning_rate": .001, "steps": 100}, "10": {"learning_rate": .01, "steps": 300}}
+
+
 # ------------------------------------------------------------------ integration on the real data
 DATA = STUDY.parents[2] / "data" / "original data"
 
