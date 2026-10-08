@@ -96,3 +96,19 @@ with a confidence-aware response model (pairs of nearly identical or entirely di
 - [Submodularity in Data Subset Selection and Active Learning, Wei et al., ICML 2015](https://proceedings.mlr.press/v37/wei15.pdf): greedy 1-1/e guarantee; combines informativeness and representativeness; its FASS filters by uncertainty then covers the filtered set. -> `fass_pairs`; `graphcut_pairs` implements the graph-cut objective.
 - Facility location as low-budget selection with no labels needed (Kaushal et al., WACV 2019, via search summary; not opened). Our `maxherding_pairs` and `graph_facility_location` are of this family.
 - No source compared pair-feature constructions (concatenate / difference / product) for active selection; our relation-aware representation is therefore tested only empirically (`core_set` vs `core_set_relation`).
+
+## Cold start: which 10 groups to start from (run_initial_set_study.py, five study seeds, held-out pair endpoint)
+Mean over seeds; "added" = random pool groups added after the 10 initial ones.
+
+| Initial set | AUC (0 added) | accuracy (0 added) | AUC (30 added) | calibrated log-loss (0 / 30 added) |
+|---|---:|---:|---:|---:|
+| default (random draw with greedy reconstruction-type coverage) | 0.896 | 0.856 | 0.936 | 0.476 / 0.354 |
+| farthest-first in relation-aware pair space | 0.911 | 0.852 | 0.922 | 0.499 / 0.460 |
+| k-means representatives | 0.861 | 0.777 | 0.912 | 0.627 / 0.430 |
+| random | 0.833 | 0.767 | 0.920 | 0.531 / 0.424 |
+| TypiClust on pair vectors | 0.835 | 0.758 | 0.928 | 0.609 / 0.424 |
+
+Reading: the default rule is the only one that guarantees every reconstruction type appears among the first groups (it reads the types of the judgments),
+and each type has its own reward head. Image-space representativeness alone (k-means, TypiClust) does not replace that and is no better than random here.
+Whether this is a fair comparison is debatable, since the default rule uses label-derived types; a deployable version would have to ask the annotator for the types
+or predict them. The effect fades with 30 more random groups. Five seeds only, no significance test.
