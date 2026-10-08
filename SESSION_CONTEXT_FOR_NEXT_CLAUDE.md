@@ -54,3 +54,5 @@ RHEED reconstruction images (STO, four active types: (1x1), c(6x2), (√13x√13
 - The pair-level strategy adaptations (one judgment per chosen pair, random or most-uncertain type) are my own decisions and may matter; budget 100 was not run.
 - Slack-style advisor update: `UPDATE_SLACK_STYLE.md` (written before the rerun finished; needs a line about the rerun result). Advisor update `UPDATE_FOR_ADVISORS.md` likewise.
 - Working-tree note: foreground edits were done in a git worktree (`/home/user/wt_fg`) because the background agent used the main checkout.
+- Pre-registered replication on seeds 500-534 (branch claude/judgment-unit-replication, merged here): `JUDGMENT_UNIT_REPLICATION_RESULTS.md`. Replicated: ensemble BALD x P(decisive) AUC (B sequential); decisive-accuracy gain 1-3 points for ensemble BALD x P(decisive) and Fisher D-optimal (4/4 cells), ensemble BALD (3/4). Not replicated: all-head cluster-quota log-loss, core-set, DPP. Same 168 groups, so it is not new data. Report §5.14.
+- A retuned-head-schedule rerun is running on branch claude/judgment-unit-retuned-schedule (worktree /home/user/wt_tune); not yet integrated.
