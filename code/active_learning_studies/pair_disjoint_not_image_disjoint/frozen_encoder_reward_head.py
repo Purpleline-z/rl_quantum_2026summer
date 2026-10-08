@@ -128,3 +128,17 @@ def save_feature_cache(cache: dict, path: Path, data_root: Path) -> None:
 def load_feature_cache(path: Path, data_root: Path) -> dict:
     root = str(Path(data_root).resolve()) + "/"
     return {root + k: v for k, v in torch.load(path).items()}
+
+
+LABEL_FREE_BASES = ("uncertainty", "cluster_quota_uncertainty", "uncertainty_diversity", "cluster_margin_pairwise",
+                    "mc_dropout_probability_variance", "mc_dropout_mutual_information")
+
+
+def label_free_inputs(rows: list[dict], model: BTModel):
+    """Make an original (type-aware) selector label-free: drop each candidate's type and silence the unused Twinned head.
+
+    Without ``type_idx`` the original rules average over all five heads.  Zeroing the Twinned head's last-layer row makes its logit gap exactly 0
+    for every pair (probability 0.5, no dropout variance), so it adds the same constant to every candidate and cannot change a ranking."""
+    copy_ = copy.deepcopy(model); last = copy_.reward_head[3]
+    with torch.no_grad(): last.weight[1].zero_(); last.bias[1].zero_()
+    return [{k: v for k, v in r.items() if k != "type_idx"} for r in rows], copy_.eval()

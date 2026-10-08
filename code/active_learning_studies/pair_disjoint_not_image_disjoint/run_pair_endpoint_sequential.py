@@ -32,6 +32,9 @@ def trajectory(exp, features, initial, pool, validation, test, name, seed, lr, s
         labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2,
                     "outcomes": [(int(r.type_idx), r.Winner in ("1", "2")) for r in exp.groups[i].itertuples()]} for i in labeled_ids]
         if name.startswith("random"): picks = [r["pair_id"] for r in pyrandom.Random(seed * 104729 + round_index * 31 + (int(name[8:]) if name != "random" else 0)).sample(rows, ROUND)]
+        elif name.endswith("_lf"):
+            rows_lf, model_lf = frozen.label_free_inputs(rows, model); exp.cfg.seed = seed + round_index
+            picks = [x["pair_id"] for x in exp.select(name[:-3], rows_lf, model_lf, features.embedding_cache(rows + labeled), [], budget=ROUND, labeled_ids=labeled_ids)[0]]; exp.cfg.seed = seed
         elif name in NEW_STRATEGIES: picks = [x["pair_id"] for x in NEW_STRATEGIES[name](rows, labeled, model, features.embedding_cache(rows + labeled), ROUND, seed + round_index)]
         else:
             exp.cfg.seed = seed + round_index  # selectors that draw randomness use the config seed; vary it per round
@@ -47,7 +50,7 @@ def trajectory(exp, features, initial, pool, validation, test, name, seed, lr, s
 def main() -> None:
     torch.set_num_threads(2); OUT.mkdir(parents=True, exist_ok=True); cache = frozen.load_feature_cache(single.CACHE, single.DATA)
     schedule = json.loads((single.OUT / "schedule.json").read_text()); lr, steps = schedule["learning_rate"], schedule["steps"]
-    names = list(single.ORIGINAL) + list(NEW_STRATEGIES) + [f"random_r{r}" for r in range(1, single.RANDOM_REPLICATES)]
+    names = list(single.ORIGINAL) + list(NEW_STRATEGIES) + single.LABEL_FREE + [f"random_r{r}" for r in range(1, single.RANDOM_REPLICATES)]
     with tempfile.TemporaryDirectory() as scratch_name:
         for seed in single.seeds():
             exp, features, initial, pool, validation, test = single.setup(seed, Path(scratch_name), cache); started = time.monotonic()

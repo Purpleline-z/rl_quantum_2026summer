@@ -33,6 +33,7 @@ def seeds() -> tuple:
     return tuple(int(x) for x in spec.split(","))
 
 
+LABEL_FREE = [f"{b}_lf" for b in frozen.LABEL_FREE_BASES]
 GRID = list(itertools.product((1e-3, 3e-3, 1e-2), (100, 300, 1000)))
 
 
@@ -69,7 +70,7 @@ def run(scratch, cache, schedule) -> None:
             target.write_text(json.dumps({"seed": seed, "budget": 0, "strategy": "initial_only", "pool": len(pool),
                                           **endpoint.evaluate_full(exp, features, baseline, validation, test),
                                           "type_accuracy": frozen.evaluate_model(exp, features, baseline)["test_accuracy"]}, indent=1))
-        names = list(ORIGINAL) + list(NEW_STRATEGIES) + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
+        names = list(ORIGINAL) + list(NEW_STRATEGIES) + LABEL_FREE + [f"random_r{r}" for r in range(1, RANDOM_REPLICATES)]
         for budget in BUDGETS:
             for name in names:
                 target = cells / f"seed{seed}_budget{budget}_{name}.json"
@@ -77,6 +78,9 @@ def run(scratch, cache, schedule) -> None:
                 if name.startswith("random_r"):
                     import random as pyrandom
                     ids = [r["pair_id"] for r in pyrandom.Random(seed * 7919 + budget * 31 + int(name[8:])).sample(rows, budget)]
+                elif name.endswith("_lf"):
+                    rows_lf, model_lf = frozen.label_free_inputs(rows, baseline)
+                    ids = [x["pair_id"] for x in exp.select(name[:-3], rows_lf, model_lf, features.embedding_cache(rows + labeled), [], budget=budget, labeled_ids=initial)[0]]
                 elif name in NEW_STRATEGIES: ids = [x["pair_id"] for x in NEW_STRATEGIES[name](rows, labeled, baseline, features.embedding_cache(rows + labeled), budget, seed)]
                 else: ids = [x["pair_id"] for x in exp.select(name, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)[0]]
                 model = frozen.train_model(exp, features, initial + ids, lr, steps)
