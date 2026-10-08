@@ -1,0 +1,27 @@
+{
+ "initial": {
+  "learning_rate": 0.001,
+  "steps": 100
+ },
+ "10": {
+  "learning_rate": 0.001,
+  "steps": 100
+ },
+ "20": {
+  "learning_rate": 0.001,
+  "steps": 100
+ },
+ "40": {
+  "learning_rate": 0.001,
+  "steps": 100
+ },
+ "60": {
+  "learning_rate": 0.003,
+  "steps": 100
+ },
+ "selection": "per budget (initial rows only, 10, 20, 40, 60 judgments): lowest mean validation decisive log-loss over seeds 42/79/123 on Split A's 20 validation groups, one deterministic random batch per seed and budget; tie-break fewer steps then lower lr; outer test groups unused; Split B reuses this schedule",
+ "pooled_over_budgets_for_reference": {
+  "learning_rate": 0.001,
+  "steps": 100
+ }
+}

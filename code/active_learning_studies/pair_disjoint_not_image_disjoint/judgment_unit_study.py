@@ -11,6 +11,8 @@ Environment variables
               random: 10 random judgments drawn from the judgments of the initial and pool groups (sensitivity check)
   JU_MODE     single | sequential | both (default both)
   PAIR_STUDY_SEEDS, JU_ONLY (comma list of strategies), JU_OUT (output sub-folder, default <split>_<initial>)
+  JU_SCHEDULE path of a per-budget head schedule JSON (see ``load_schedule``); default: none, i.e. the single lr/steps of results/pair_endpoint_study/schedule.json for every fit
+  JU_RESULTS  results folder name under results/ (default judgment_unit_study; the re-tuned run uses judgment_unit_study_retuned)
 """
 from __future__ import annotations
 
@@ -31,9 +33,28 @@ import pair_preference_endpoint as endpoint
 import run_pair_endpoint_study as single_study
 
 HERE = Path(__file__).resolve().parent
-OUT = HERE / "results" / "judgment_unit_study"
+OUT = HERE / "results" / os.environ.get("JU_RESULTS", "judgment_unit_study")
 BUDGETS = (10, 20, 40, 60); ROUND = 10; INITIAL_RANDOM_JUDGMENTS = 10
 ENSEMBLE_SIZE = 8
+
+
+# ------------------------------------------------------------------------------------------------ per-budget head schedule (optional)
+def load_schedule(path) -> dict:
+    """Per-budget schedule JSON: {"initial": {"learning_rate", "steps"}, "10": {...}, "20": {...}, ...}; extra keys (e.g. "selection") are ignored."""
+    raw = json.loads(Path(path).read_text()); table = {}
+    for key, value in raw.items():
+        if key == "initial" or key.isdigit(): table[key] = {"learning_rate": float(value["learning_rate"]), "steps": int(value["steps"])}
+    assert "initial" in table and any(k.isdigit() for k in table), "schedule needs an 'initial' entry and at least one numeric budget"
+    return table
+
+
+def schedule_for(table: dict, n_revealed: int) -> tuple[float, int]:
+    """(learning rate, steps) for a head trained on the initial rows plus ``n_revealed`` acquired judgments: 0 -> 'initial'; otherwise the schedule of the
+    smallest calibrated budget >= n_revealed (the checkpoint the model is on its way to; 30 -> 40, 50 -> 60), the largest budget if n_revealed exceeds all."""
+    if n_revealed <= 0: entry = table["initial"]
+    else:
+        budgets = sorted(int(k) for k in table if k.isdigit()); entry = table[str(next((b for b in budgets if b >= n_revealed), budgets[-1]))]
+    return entry["learning_rate"], entry["steps"]
 
 
 def strategy_names() -> list[str]:
@@ -59,9 +80,9 @@ def rows_of(exp, judgments) -> pd.DataFrame:
 
 class Context:
     """Everything one seed needs: experiment, features, splits and the judgment table."""
-    def __init__(self, seed, scratch, cache, split, initial_mode, lr, steps):
+    def __init__(self, seed, scratch, cache, split, initial_mode, lr, steps, schedule=None):
         os.environ["PAIR_STUDY_SPLIT"] = "classifier2" if split == "B" else ""
-        self.seed, self.lr, self.steps = seed, lr, steps
+        self.seed, self.lr, self.steps, self.schedule = seed, lr, steps, schedule  # schedule=None: every fit uses (lr, steps), as in the original study
         self.exp, self.features, initial, pool, self.validation, self.test = single_study.setup(seed, scratch, cache)
         self.initial_groups, self.pool_groups = list(initial), list(pool)
         if initial_mode == "groups": self.initial = judgments_of(self.exp, initial); self.pool = judgments_of(self.exp, pool)
@@ -78,8 +99,14 @@ class Context:
         assert not (held_out & used), "validation/test image reachable from the labelled set or the candidate pool"
         assert not (set(self.initial) & set(self.pool)); self.pool_index = {j: i for i, j in enumerate(self.pool)}
 
+    def params_for(self, judgments) -> tuple[float, int]:
+        """(lr, steps) of a fit on ``judgments``: the constant pair, or (with a schedule) the entry for the number of judgments beyond the initial set."""
+        if self.schedule is None: return self.lr, self.steps
+        return schedule_for(self.schedule, len(set(judgments) - set(self.initial)))
+
     def fit(self, judgments, head_seed=None):
-        return frozen.train_model(self.exp, self.features, [], self.lr, self.steps, head_seed=head_seed, rows=rows_of(self.exp, judgments))
+        lr, steps = self.params_for(judgments)
+        return frozen.train_model(self.exp, self.features, [], lr, steps, head_seed=head_seed, rows=rows_of(self.exp, judgments))
 
     def item(self, j, cluster=None) -> dict:
         d = self.info[j]; out = {"pair_id": f"{j[0]}#{j[1]}", "base_pair": j[0], "pos": j[1], "img1": d["img1"], "img2": d["img2"], "type_idx": d["type_idx"],
@@ -179,13 +206,16 @@ def main() -> None:
     split = os.environ.get("JU_SPLIT", "A"); initial_mode = os.environ.get("JU_INITIAL", "groups"); mode = os.environ.get("JU_MODE", "both")
     run_dir = OUT / os.environ.get("JU_OUT", f"{split}_{initial_mode}"); torch.set_num_threads(int(os.environ.get("JU_THREADS", "2")))
     schedule = json.loads((single_study.OUT / "schedule.json").read_text()); lr, steps = schedule["learning_rate"], schedule["steps"]
+    table = load_schedule(os.environ["JU_SCHEDULE"]) if os.environ.get("JU_SCHEDULE") else None
+    run_dir.mkdir(parents=True, exist_ok=True)
+    if table is not None: (run_dir / "schedule_used.json").write_text(json.dumps(table, indent=1))
     names = strategy_names()
     if os.environ.get("JU_ONLY"): only = set(os.environ["JU_ONLY"].split(",")); names = [n for n in names if family_of(n) in only or n in only]
     cache = frozen.load_feature_cache(single_study.CACHE, single_study.DATA)
     for kind in ("single", "sequential"): (run_dir / kind).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as scratch_name:
         for seed in single_study.seeds():
-            started = time.monotonic(); ctx = Context(seed, Path(scratch_name), cache, split, initial_mode, lr, steps)
+            started = time.monotonic(); ctx = Context(seed, Path(scratch_name), cache, split, initial_mode, lr, steps, table)
             manifest = run_dir / f"manifest_seed{seed}.json"
             if not manifest.exists(): manifest.write_text(json.dumps(ctx.manifest(), separators=(",", ":")))
             cell_initial = run_dir / "single" / f"seed{seed}_initial_only.json"

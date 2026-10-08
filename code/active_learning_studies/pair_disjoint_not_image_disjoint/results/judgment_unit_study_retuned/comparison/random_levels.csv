@@ -1,0 +1,97 @@
+split,condition,metric,schedule,budget,random_mean
+Split A,single,log-loss,old,10,0.6663650855429925
+Split A,single,log-loss,old,20,0.6343774404882196
+Split A,single,log-loss,old,40,0.5519257672308776
+Split A,single,log-loss,old,60,0.4962443044388704
+Split A,single,log-loss,new,10,0.528024953702721
+Split A,single,log-loss,new,20,0.4927435002058993
+Split A,single,log-loss,new,40,0.4432214895178628
+Split A,single,log-loss,new,60,0.4638840550462675
+Split A,single,AUC,old,10,0.8760475657918158
+Split A,single,AUC,old,20,0.8837538378127174
+Split A,single,AUC,old,40,0.8950692525384342
+Split A,single,AUC,old,60,0.901959868998458
+Split A,single,AUC,new,10,0.8711194785076012
+Split A,single,AUC,new,20,0.8819484286286711
+Split A,single,AUC,new,40,0.8977012929092091
+Split A,single,AUC,new,60,0.9041645331589282
+Split A,single,accuracy (secondary),old,10,0.8111737209177657
+Split A,single,accuracy (secondary),old,20,0.8197132950377832
+Split A,single,accuracy (secondary),old,40,0.8289445969856127
+Split A,single,accuracy (secondary),old,60,0.8292255350794555
+Split A,single,accuracy (secondary),new,10,0.7963493305873534
+Split A,single,accuracy (secondary),new,20,0.8109264831356254
+Split A,single,accuracy (secondary),new,40,0.8249547544743971
+Split A,single,accuracy (secondary),new,60,0.8323842041461202
+Split A,sequential,log-loss,old,10,0.6585070322426453
+Split A,sequential,log-loss,old,20,0.6153706604327204
+Split A,sequential,log-loss,old,40,0.5559351620455546
+Split A,sequential,log-loss,old,60,0.5077894670082
+Split A,sequential,log-loss,new,10,0.5230805289566851
+Split A,sequential,log-loss,new,20,0.4860340120856665
+Split A,sequential,log-loss,new,40,0.4466980872719953
+Split A,sequential,log-loss,new,60,0.4557499939874197
+Split A,sequential,AUC,old,10,0.8778430725436975
+Split A,sequential,AUC,old,20,0.8818302859113338
+Split A,sequential,AUC,old,40,0.8925264029449982
+Split A,sequential,AUC,old,60,0.9001197589314958
+Split A,sequential,AUC,new,10,0.8754752498660464
+Split A,sequential,AUC,new,20,0.8830481982101036
+Split A,sequential,AUC,new,40,0.8968829641508876
+Split A,sequential,AUC,new,60,0.9043464462138168
+Split A,sequential,accuracy (secondary),old,10,0.8109733191751722
+Split A,sequential,accuracy (secondary),old,20,0.8151345542564532
+Split A,sequential,accuracy (secondary),old,40,0.8229776454268627
+Split A,sequential,accuracy (secondary),old,60,0.8289814536749534
+Split A,sequential,accuracy (secondary),new,10,0.8039363769132012
+Split A,sequential,accuracy (secondary),new,20,0.8102740951624238
+Split A,sequential,accuracy (secondary),new,40,0.8250299208037128
+Split A,sequential,accuracy (secondary),new,60,0.8333294326737328
+Split B,single,log-loss,old,10,0.5958879280439616
+Split B,single,log-loss,old,20,0.5466918786597961
+Split B,single,log-loss,old,40,0.5268157834208264
+Split B,single,log-loss,old,60,0.4699452996197233
+Split B,single,log-loss,new,10,0.4583050838053783
+Split B,single,log-loss,new,20,0.4323183493517982
+Split B,single,log-loss,new,40,0.4174908266471619
+Split B,single,log-loss,new,60,0.4200313549387087
+Split B,single,AUC,old,10,0.8811947469179511
+Split B,single,AUC,old,20,0.8885459648364324
+Split B,single,AUC,old,40,0.8938780949222839
+Split B,single,AUC,old,60,0.9052204050020248
+Split B,single,AUC,new,10,0.8909900866045521
+Split B,single,AUC,new,20,0.8995986732312987
+Split B,single,AUC,new,40,0.9053642802344838
+Split B,single,AUC,new,60,0.9112115007489152
+Split B,single,accuracy (secondary),old,10,0.8146710214290488
+Split B,single,accuracy (secondary),old,20,0.8245336466396639
+Split B,single,accuracy (secondary),old,40,0.8294542913542488
+Split B,single,accuracy (secondary),old,60,0.8393756161323161
+Split B,single,accuracy (secondary),new,10,0.8250134683425686
+Split B,single,accuracy (secondary),new,20,0.8327175830361115
+Split B,single,accuracy (secondary),new,40,0.8398082761587817
+Split B,single,accuracy (secondary),new,60,0.8440338010373205
+Split B,sequential,log-loss,old,10,0.6268863552536938
+Split B,sequential,log-loss,old,20,0.6065533119243857
+Split B,sequential,log-loss,old,40,0.5598406695764333
+Split B,sequential,log-loss,old,60,0.5143382567953785
+Split B,sequential,log-loss,new,10,0.4817358303501152
+Split B,sequential,log-loss,new,20,0.4627443645739314
+Split B,sequential,log-loss,new,40,0.4274957353681072
+Split B,sequential,log-loss,new,60,0.4496469725365104
+Split B,sequential,AUC,old,10,0.8749499883251755
+Split B,sequential,AUC,old,20,0.8798658503511985
+Split B,sequential,AUC,old,40,0.8889972922098558
+Split B,sequential,AUC,old,60,0.8984184319577296
+Split B,sequential,AUC,new,10,0.8856520842847105
+Split B,sequential,AUC,new,20,0.8915511282058733
+Split B,sequential,AUC,new,40,0.9029245877044192
+Split B,sequential,AUC,new,60,0.9045827587437116
+Split B,sequential,accuracy (secondary),old,10,0.8090058350154266
+Split B,sequential,accuracy (secondary),old,20,0.812676775298274
+Split B,sequential,accuracy (secondary),old,40,0.8211524765626802
+Split B,sequential,accuracy (secondary),old,60,0.8368731334859371
+Split B,sequential,accuracy (secondary),new,10,0.8159075023757916
+Split B,sequential,accuracy (secondary),new,20,0.8246969060955502
+Split B,sequential,accuracy (secondary),new,40,0.835775935633181
+Split B,sequential,accuracy (secondary),new,60,0.8406632285523126

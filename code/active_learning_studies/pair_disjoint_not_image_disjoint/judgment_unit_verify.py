@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Hand-check of stored judgment-unit cells: re-derive pool/initial sets from the manifest, recount the revealed judgments, confirm that no validation/test image
 is in the labelled set, and retrain the head from the stored selection to reproduce the stored metrics.
+env JU_RESULTS / JU_SCHEDULE select the results folder / per-budget schedule (as in judgment_unit_study.py); defaults reproduce the original check.
 usage: judgment_unit_verify.py <run> <condition> <seed> <strategy> <budget> [<split A|B>]"""
 import json, sys, tempfile
 from pathlib import Path
@@ -13,7 +14,9 @@ run, condition, seed, strategy, budget = sys.argv[1], sys.argv[2], int(sys.argv[
 split, initial_mode = run.split("/")[-1].split("_")[:2]; torch.set_num_threads(1)  # run may be a sub-path such as replication/A_groups
 schedule = json.loads((single.OUT / "schedule.json").read_text()); cache = frozen.load_feature_cache(single.CACHE, single.DATA)
 with tempfile.TemporaryDirectory() as t:
-    ctx = study.Context(seed, Path(t), cache, split, initial_mode, schedule["learning_rate"], schedule["steps"])
+    import os
+    table = study.load_schedule(os.environ["JU_SCHEDULE"]) if os.environ.get("JU_SCHEDULE") else None
+    ctx = study.Context(seed, Path(t), cache, split, initial_mode, schedule["learning_rate"], schedule["steps"], table)
     manifest = json.loads((study.OUT / run / f"manifest_seed{seed}.json").read_text()); cell = json.loads((study.OUT / run / condition / f"seed{seed}_{strategy}.json").read_text())
     assert [tuple(x[:2]) for x in manifest["pool"]] == ctx.pool and [tuple(x) for x in manifest["initial"]] == ctx.initial
     values = cell["checkpoints"][budget]; chosen = [ctx.pool[i] for i in values["selected"]]
