@@ -12,6 +12,7 @@ NAMES = {"random": "Random", "uncertainty": "Uncertainty", "core_set": "Core-set
          "image_coverage_uncertainty": "Image-coverage uncertainty", "graph_facility_location": "Graph facility location (uncertainty-weighted)", "uncertainty_all_heads": "Uncertainty, all heads",
          "delta_gap": "Largest predicted gap", "delta_ucb": "Gap + posterior std (DeltaUCB-style)", "bald_decisive": "BALD x P(decisive)", "dpp_pairs": "DPP (quality x diversity)",
          "probcover_pairs": "ProbCover (pairs)", "maxherding_pairs": "MaxHerding (pairs)", "laplace_bald": "Laplace BALD", "dropquery_pairs": "DropQuery (pairs)", "fass_pairs": "FASS (pairs)", "graphcut_pairs": "Graph cut (pairs)",
+         "ensemble_bald": "Deep-ensemble BALD (8 heads)", "ensemble_bald_decisive": "Deep-ensemble BALD x P(decisive)",
          "uncertainty_lf": "Uncertainty, label-free", "cluster_quota_uncertainty_lf": "Cluster-quota uncertainty, label-free", "uncertainty_diversity_lf": "Uncertainty + diversity, label-free",
          "cluster_margin_pairwise_lf": "Cluster-Margin, label-free", "mc_dropout_probability_variance_lf": "MC-dropout variance, label-free", "mc_dropout_mutual_information_lf": "MC-dropout mutual info, label-free"}
 

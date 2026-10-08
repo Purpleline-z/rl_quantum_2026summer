@@ -36,7 +36,7 @@ def main() -> None:
                 rows[family] = (v.mean(), *np.percentile(boots, [2.5, 97.5]), table.loc[family, "holm_p"] < 0.05)
             data[(mode, metric)] = rows
             if order is None: order = sorted(rows, key=lambda f: rows[f][0])   # single-shot log-loss gain, worst to best (best at top)
-    fig, axes = plt.subplots(2, 2, figsize=(11.5, 11.4), sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(11.5, 12.2), sharey=True)
     for r, mode in enumerate(("single", "sequential")):
         for c, (metric, lower, label) in enumerate(PANELS):
             ax = axes[r, c]; rows = data[(mode, metric)]
