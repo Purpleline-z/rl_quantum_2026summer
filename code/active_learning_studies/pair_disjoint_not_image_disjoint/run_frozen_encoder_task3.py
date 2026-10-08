@@ -103,7 +103,7 @@ def final(data_root, scratch, cache, schedule) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("action", choices=("calibrate", "final", "all"))
     parser.add_argument("--data-root", default=None); args = parser.parse_args()
-    torch.set_num_threads(8); cache: dict = {}
+    torch.set_num_threads(2); cache: dict = {}
     with tempfile.TemporaryDirectory() as scratch_name:
         scratch = Path(scratch_name)
         if args.action in ("calibrate", "all"): schedule = calibrate(args.data_root, scratch, cache)

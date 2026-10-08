@@ -1,8 +1,12 @@
 """Additional acquisition strategies that operate on cached encoder features and a frozen-encoder reward head.
 
 Every selector has the signature ``select(candidates, labeled, model, cache, budget, seed)`` and returns the chosen
-candidate dicts.  ``candidates``/``labeled`` are dicts with ``pair_id, img1, img2, type_idx``; ``cache`` maps an image path
+candidate dicts.  ``candidates``/``labeled`` are dicts with ``pair_id, img1, img2``; ``cache`` maps an image path
 to its 512-d encoder feature; ``model`` is a BTModel whose ``reward_head`` is Linear-ReLU-Dropout-Linear.
+
+Label-free typing: a pair group usually carries judgments for several reconstruction types (103 of 168 groups have all four),
+and which types are judged is part of the label.  The selectors here therefore do not use a candidate's ``type_idx``; they
+aggregate information over the four active reward heads (``ACTIVE_HEADS``).  ``type_weight`` stays available for experiments.
 
 Pair representations (all symmetric in the two images, as a preference pair is unordered):
   mean      (a+b)/2                     the representation used by the original core-set rule
@@ -15,12 +19,14 @@ import numpy as np
 import torch
 from sklearn.cluster import KMeans
 
+ACTIVE_HEADS = (0, 2, 3, 4)  # (1x1), c(6x2), (sqrt13 x sqrt13), HTR; index 1 is the excluded Twinned(2x1)
+
 
 def _feature(cache, path) -> np.ndarray:
     return cache[path].numpy() if isinstance(cache[path], torch.Tensor) else np.asarray(cache[path])
 
 
-def pair_features(items, cache, kind="mean", type_weight=1.0, scaler=None):
+def pair_features(items, cache, kind="mean", type_weight=0.0, scaler=None):
     a = np.stack([_feature(cache, x["img1"]) for x in items]); b = np.stack([_feature(cache, x["img2"]) for x in items])
     blocks = [(a + b) / 2]
     if kind == "relation": blocks += [np.abs(a - b), a * b]
@@ -28,18 +34,22 @@ def pair_features(items, cache, kind="mean", type_weight=1.0, scaler=None):
     z = np.concatenate(blocks, axis=1)
     if scaler is None: scaler = (z.mean(0), z.std(0) + 1e-6)
     z = (z - scaler[0]) / scaler[1]; z = z / np.sqrt(z.shape[1])  # unit-ish scale per row regardless of kind
-    onehot = np.eye(5)[[int(x["type_idx"]) for x in items]] * type_weight
-    return np.concatenate([z, onehot], axis=1).astype(np.float64), scaler
+    if type_weight:
+        onehot = np.eye(5)[[int(x["type_idx"]) for x in items]] * type_weight; z = np.concatenate([z, onehot], axis=1)
+    return z.astype(np.float64), scaler
 
 
 def _hidden_and_logit(model, items, cache):
+    """Hidden-layer difference phi = h(a)-h(b) [n, d] and the preference probability under every head [n, 5]."""
     head = model.reward_head.eval()
     with torch.no_grad():
         a = torch.stack([cache[x["img1"]] for x in items]); b = torch.stack([cache[x["img2"]] for x in items])
-        ha, hb = head[1](head[0](a)), head[1](head[0](b))
-        t = torch.tensor([int(x["type_idx"]) for x in items]); idx = torch.arange(len(items))
-        d = (head[3](ha) - head[3](hb))[idx, t]
-    return (ha - hb).numpy().astype(np.float64), torch.sigmoid(d).numpy().astype(np.float64), t.numpy()
+        ha, hb = head[1](head[0](a)), head[1](head[0](b)); d = head[3](ha) - head[3](hb)
+    return (ha - hb).numpy().astype(np.float64), torch.sigmoid(d).numpy().astype(np.float64)
+
+
+def _mean_uncertainty(p):
+    return np.mean([_uncertainty(p[:, k]) for k in ACTIVE_HEADS], axis=0) / np.log(2)
 
 
 def _uncertainty(p):  # Bernoulli entropy
@@ -89,34 +99,38 @@ def typiclust_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mea
 
 
 def badge_pairs(candidates, labeled, model, cache, budget, seed=0):
-    """BADGE (Ash et al., 2020) for a Bradley--Terry head: gradient embedding of the loss under the model's own preference."""
-    h, p, t = _hidden_and_logit(model, candidates, cache); y = (p > .5).astype(float)
-    grad = np.zeros((len(candidates), 5 * h.shape[1]))
-    for i in range(len(candidates)): grad[i, t[i] * h.shape[1]:(t[i] + 1) * h.shape[1]] = (p[i] - y[i]) * h[i]
+    """BADGE (Ash et al., 2020) for a Bradley--Terry head: gradient embedding of the loss under the model's own preference,
+    one block per active head (the gradient of -log sigma(y*(r_a-r_b)) w.r.t. that head's last layer is (p-y)*phi)."""
+    h, p = _hidden_and_logit(model, candidates, cache); d = h.shape[1]; grad = np.zeros((len(candidates), 5 * d))
+    for k in ACTIVE_HEADS: grad[:, k * d:(k + 1) * d] = (p[:, [k]] - (p[:, [k]] > .5)) * h
     return [candidates[i] for i in _kmeanspp(grad, budget, np.random.default_rng(seed))]
 
 
-def fisher_dopt(candidates, labeled, model, cache, budget, seed=0, ridge=1.0):
-    """Greedy D-optimal design: maximise the log-determinant of the Bradley--Terry Fisher information of the last layer.
+def _rank_one(inverse, vector, weight):
+    v = inverse @ vector; return inverse - np.outer(v, v) * weight / (1 + weight * vector @ v)
 
-    Pair i contributes w_i phi_i phi_i^T with phi_i = h(a)-h(b) in its type's head block and w_i = p_i(1-p_i); labelled pairs
-    are already in the information matrix.  The gain of adding i is log(1 + w_i phi_i^T M^-1 phi_i) (matrix-determinant lemma).
+
+def fisher_dopt(candidates, labeled, model, cache, budget, seed=0, ridge=1.0):
+    """Greedy D-optimal design on the Bradley--Terry Fisher information of the last layer, summed over the active heads.
+
+    A pair contributes w_k phi phi^T to head k's information with w_k = p_k(1-p_k); labelled pairs are already included.  The gain of
+    adding a pair is sum_k log(1 + w_k phi^T M_k^-1 phi) (matrix-determinant lemma).
     """
-    h, p, t = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); d = h.shape[1]
-    inverse = {k: np.eye(d) / ridge for k in range(5)}
-    for i in range(n, len(h)):  # labelled pairs
-        k = t[i]; v = inverse[k] @ h[i]; inverse[k] = inverse[k] - np.outer(v, v) * w[i] / (1 + w[i] * h[i] @ v)
+    h, p = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); d = h.shape[1]
+    inverse = {k: np.eye(d) / ridge for k in ACTIVE_HEADS}
+    for i in range(n, len(h)):
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[i], w[i, k])
     chosen = []; remaining = list(range(n))
     for _ in range(min(budget, n)):
-        gains = [np.log1p(w[i] * h[i] @ inverse[t[i]] @ h[i]) for i in remaining]; pick = remaining[int(np.argmax(gains))]
-        k = t[pick]; v = inverse[k] @ h[pick]; inverse[k] = inverse[k] - np.outer(v, v) * w[pick] / (1 + w[pick] * h[pick] @ v)
+        gains = [sum(np.log1p(w[i, k] * h[i] @ inverse[k] @ h[i]) for k in ACTIVE_HEADS) for i in remaining]; pick = remaining[int(np.argmax(gains))]
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[pick], w[pick, k])
         chosen.append(pick); remaining.remove(pick)
     return [candidates[i] for i in chosen]
 
 
 def image_coverage_uncertainty(candidates, labeled, model, cache, budget, seed=0):
     """Graph view A: images are nodes, labelled pairs are edges.  Prefer uncertain pairs that touch images with no labelled edge."""
-    _, p, _ = _hidden_and_logit(model, candidates, cache); unc = _uncertainty(p) / np.log(2)
+    _, p = _hidden_and_logit(model, candidates, cache); unc = _mean_uncertainty(p)
     seen = {x["img1"] for x in labeled} | {x["img2"] for x in labeled}; chosen = []; remaining = list(range(len(candidates)))
     for _ in range(min(budget, len(candidates))):
         score = [unc[i] * (1 + (candidates[i]["img1"] not in seen) + (candidates[i]["img2"] not in seen)) for i in remaining]
@@ -131,8 +145,8 @@ def graph_facility_location(candidates, labeled, model, cache, budget, seed=0, k
     Maximise sum_j u_j^alpha * max_{i in S+L} sim(i, j): pairs are rewarded for covering many *uncertain* neighbours that no
     selected or labelled pair already covers.  sim = exp(-d^2 / median d^2), restricted to the kNN graph.
     """
-    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p, _ = _hidden_and_logit(model, candidates, cache)
-    u = (_uncertainty(p) / np.log(2)) ** alpha + 1e-3
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p = _hidden_and_logit(model, candidates, cache)
+    u = _mean_uncertainty(p) ** alpha + 1e-3
     d2 = ((allp[:, None] - allp[None]) ** 2).sum(2); sim = np.exp(-d2 / np.median(d2[d2 > 0]))
     for row in range(len(allp)):  # keep only the k nearest (graph edges)
         keep = np.argsort(-sim[row])[:neighbours + 1]; mask = np.zeros(len(allp), bool); mask[keep] = True; sim[row, ~mask] = 0
@@ -147,8 +161,8 @@ def graph_facility_location(candidates, labeled, model, cache, budget, seed=0, k
 
 def dpp_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation"):
     """Greedy MAP of a quality-diversity DPP (Bıyık et al., 2019): L_ij = q_i q_j S_ij, q = Bernoulli entropy, S = cosine kernel."""
-    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p, _ = _hidden_and_logit(model, candidates, cache)
-    q = _uncertainty(p) / np.log(2) + 1e-3; unit = allp / np.linalg.norm(allp, axis=1, keepdims=True)
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); _, p = _hidden_and_logit(model, candidates, cache)
+    q = _mean_uncertainty(p) + 1e-3; unit = allp / np.linalg.norm(allp, axis=1, keepdims=True)
     S = (unit @ unit.T + 1) / 2; Q = np.concatenate([q, np.full(len(labeled), 1.0)]); L = Q[:, None] * S * Q[None, :]
     chosen = list(range(n, len(allp))); picked = []  # labelled pairs are conditioned on (always in the set)
     for _ in range(min(budget, n)):
@@ -162,20 +176,24 @@ def dpp_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation"
     return [candidates[i] for i in picked]
 
 
-def probcover_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mean", purity=.9):
-    """ProbCover (Yehuda et al., 2022) on pairs: delta-balls cover the pair space.  delta is the largest radius at which a ball is
-    at least ``purity`` pure in the (observable) reconstruction type; each pick covers the most still-uncovered pairs."""
-    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates); types = np.array([int(x["type_idx"]) for x in candidates + labeled])
-    d = np.sqrt(((allp[:, None] - allp[None]) ** 2).sum(2)); delta = np.median(d[d > 0])
-    for radius in np.quantile(d[d > 0], np.linspace(.02, .6, 30)):
-        inside = (d <= radius); pure = np.mean([(types[inside[i]] == types[i]).mean() for i in range(len(allp))])
-        if pure < purity: break
-        delta = radius
-    inside = d <= delta; covered = inside[n:].any(0) if len(labeled) else np.zeros(len(allp), bool); chosen = []
-    for _ in range(min(budget, n)):
-        gain = np.array([(inside[i] & ~covered).sum() if i not in chosen else -1 for i in range(n)]); pick = int(np.argmax(gain))
-        chosen.append(pick); covered |= inside[pick]
-    return [candidates[i] for i in chosen]
+def probcover_pairs(candidates, labeled, model, cache, budget, seed=0, kind="mean", target_coverage=.9):
+    """ProbCover (Yehuda et al., 2022) on pairs: delta-balls cover the pair space and each pick covers the most still-uncovered pairs.
+
+    The original picks delta from class purity; pair groups have no single observable class, so delta is the smallest radius at which
+    ``budget`` greedy balls cover ``target_coverage`` of the pool (label-free).
+    """
+    allp, _ = pair_features(candidates + labeled, cache, kind); n = len(candidates)
+    d = np.sqrt(((allp[:, None] - allp[None]) ** 2).sum(2)); base = np.zeros(len(allp), bool)
+    if len(labeled): base = (d[n:] <= 0).any(0)
+    def greedy(radius, steps):
+        inside = d <= radius; covered = inside[n:].any(0) if len(labeled) else np.zeros(len(allp), bool); picks = []
+        for _ in range(min(steps, n)):
+            gain = np.array([(inside[i] & ~covered).sum() if i not in picks else -1 for i in range(n)]); pick = int(np.argmax(gain)); picks.append(pick); covered = covered | inside[pick]
+        return picks, covered[:n].mean()
+    radii = np.quantile(d[d > 0], np.linspace(.01, .9, 40)); delta = radii[-1]
+    for radius in radii:
+        if greedy(radius, budget)[1] >= target_coverage: delta = radius; break
+    return [candidates[i] for i in greedy(delta, budget)[0]]
 
 
 def maxherding_pairs(candidates, labeled, model, cache, budget, seed=0, kind="relation"):
@@ -184,25 +202,27 @@ def maxherding_pairs(candidates, labeled, model, cache, budget, seed=0, kind="re
 
 
 def laplace_bald(candidates, labeled, model, cache, budget, seed=0, ridge=1.0, samples=64):
-    """BALD (Houlsby et al., 2011) for the Bradley--Terry head under a Laplace posterior on the last layer.
+    """BALD (Houlsby et al., 2011) for the Bradley--Terry head under a Laplace posterior on the last layer, summed over active heads.
 
-    Per type head the weights are N(w_MAP, M^-1) with M = ridge*I + sum w_i phi_i phi_i^T over labelled pairs.  For a candidate
-    with latent d = w.phi ~ N(mu, s^2), s^2 = phi^T M^-1 phi, the mutual information between the (unseen) label and the weights is
+    Per head the weights are N(w_MAP, M^-1) with M = ridge*I + sum w_i phi_i phi_i^T over labelled pairs.  For a candidate with latent
+    d = w.phi ~ N(mu, s^2), s^2 = phi^T M^-1 phi, the mutual information between the (unseen) label and the weights is
     H[E sigma(d)] - E H[sigma(d)].  Batches are built greedily and M is updated with each selected pair (fantasy update).
     """
-    h, p, t = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); dim = h.shape[1]
-    logit = np.log(np.clip(p, 1e-7, 1 - 1e-7) / (1 - np.clip(p, 1e-7, 1 - 1e-7))); rng = np.random.default_rng(seed); z = rng.standard_normal(samples)
-    inverse = {k: np.eye(dim) / ridge for k in range(5)}
-    def update(i):
-        k = t[i]; v = inverse[k] @ h[i]; inverse[k] = inverse[k] - np.outer(v, v) * w[i] / (1 + w[i] * h[i] @ v)
-    for i in range(n, len(h)): update(i)
+    h, p = _hidden_and_logit(model, candidates + labeled, cache); w = p * (1 - p); n = len(candidates); dim = h.shape[1]
+    pc = np.clip(p, 1e-7, 1 - 1e-7); logit = np.log(pc / (1 - pc)); z = np.random.default_rng(seed).standard_normal(samples)
+    inverse = {k: np.eye(dim) / ridge for k in ACTIVE_HEADS}
+    for i in range(n, len(h)):
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[i], w[i, k])
+    ent = lambda x: -(x * np.log(np.clip(x, 1e-9, 1)) + (1 - x) * np.log(np.clip(1 - x, 1e-9, 1)))
     def bald(i):
-        s = np.sqrt(max(h[i] @ inverse[t[i]] @ h[i], 1e-12)); draws = 1 / (1 + np.exp(-(logit[i] + s * z)))
-        ent = lambda x: -(x * np.log(np.clip(x, 1e-9, 1)) + (1 - x) * np.log(np.clip(1 - x, 1e-9, 1)))
-        return ent(draws.mean()) - ent(draws).mean()
+        total = 0.0
+        for k in ACTIVE_HEADS:
+            s = np.sqrt(max(h[i] @ inverse[k] @ h[i], 1e-12)); draws = 1 / (1 + np.exp(-(logit[i, k] + s * z))); total += ent(draws.mean()) - ent(draws).mean()
+        return total
     chosen = []; remaining = list(range(n))
     for _ in range(min(budget, n)):
-        pick = remaining[int(np.argmax([bald(i) for i in remaining]))]; chosen.append(pick); remaining.remove(pick); update(pick)
+        pick = remaining[int(np.argmax([bald(i) for i in remaining]))]; chosen.append(pick); remaining.remove(pick)
+        for k in ACTIVE_HEADS: inverse[k] = _rank_one(inverse[k], h[pick], w[pick, k])
     return [candidates[i] for i in chosen]
 
 

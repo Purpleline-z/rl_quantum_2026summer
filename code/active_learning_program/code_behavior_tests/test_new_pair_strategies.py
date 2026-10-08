@@ -35,3 +35,12 @@ def test_selector_is_deterministic_for_a_seed(name):
     first = [x["pair_id"] for x in NEW_STRATEGIES[name](candidates, labeled, _Model(), cache, budget=10, seed=5)]
     second = [x["pair_id"] for x in NEW_STRATEGIES[name](candidates, labeled, _Model(), cache, budget=10, seed=5)]
     assert first == second
+
+
+@pytest.mark.parametrize("name", sorted(NEW_STRATEGIES))
+def test_selector_does_not_read_the_label_derived_type(name):
+    candidates, labeled, cache = _data()
+    stripped = [{k: v for k, v in x.items() if k != "type_idx"} for x in candidates]; stripped_labeled = [{k: v for k, v in x.items() if k != "type_idx"} for x in labeled]
+    a = [x["pair_id"] for x in NEW_STRATEGIES[name](candidates, labeled, _Model(), cache, budget=10, seed=2)]
+    b = [x["pair_id"] for x in NEW_STRATEGIES[name](stripped, stripped_labeled, _Model(), cache, budget=10, seed=2)]
+    assert a == b

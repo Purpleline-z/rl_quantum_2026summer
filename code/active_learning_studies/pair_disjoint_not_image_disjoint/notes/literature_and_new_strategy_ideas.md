@@ -40,3 +40,17 @@ The original core-set uses (a+b)/2. That is symmetric, but it throws away how th
 | [Batch active learning of reward functions from human preferences, Bıyık et al.](https://liralab.usc.edu/pdfs/publications/biyik2024batch.pdf) | Batch preference queries | Closest prior art for the whole task; read in full before writing related work |
 
 No RHEED-specific active learning or contrastive-pretraining paper turned up in the search; the nearest are the Peak Sequence Transformer (already used in `paper_replicate`) and CNN pattern classifiers.
+
+## What the pair data looks like as a graph (analyze_pair_graph.py, seed-independent)
+- 168 usable pair groups (edges) over 284 images (nodes); 237 images occur in exactly one group, 42 in two, 5 in three.
+- 117 connected components, the largest with 11 images: the graph is almost a perfect matching, so "cover more images" cannot separate
+  strategies much (`image_coverage_uncertainty` is expected to behave close to plain uncertainty). Graph structure over *images* is not informative;
+  structure over *pairs* (similarity graph in feature space) is what `graph_facility_location` and `maxherding_pairs` use.
+- A pair group holds 1–4 judgments, one per reconstruction type (103 of 168 have all four types). Outcomes: 125 "1", 139 "2", 184 "not_apply", 73 "tie".
+  Only 264 of 521 rows are decisive preferences; 35% are "not_apply".
+- 38% of pairs have both images in the same trajectory folder (same day/run).
+
+## Implementation observation (existing strategies)
+`Experiment.candidates_with_clusters` attaches `type_idx = groups[pair_id].iloc[0].type_idx`, the type of the *first label row* of the group, and the
+original uncertainty/MC-dropout rules score only that head. Because a group usually has several types, this (a) reads label information during selection and
+(b) ignores most of the group's judgments. The new selectors aggregate over the four active heads and do not read `type_idx` (tested).
