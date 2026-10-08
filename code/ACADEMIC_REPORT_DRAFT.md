@@ -601,6 +601,52 @@ The highest mean at budgets 10, 25, 50, and 75 is Uncertainty + diversity (0.536
 
 All 200 cells are stored in `results/simclr_three_seed_identity_safe_task3/task3c_final_strategy_cells/`; Figures 16–18 are generated from them by `generate_simclr_identity_safe_task3_figures.py`. In the 80 cells of seeds 202 and 303, all seven forbidden-overlap audit fields are zero. The 120 cells of seeds 42, 79, and 123 record the other five fields as zero but do not record `pairwise_image_identity_overlap_reference` and `pairwise_image_identity_overlap_utility_validation`; §3.2 explains why those overlaps were already excluded for those seeds.
 
+### 5.11 Why the encoder is frozen, and what it shows about type accuracy
+
+**Question.** The fine-tuned reward model of §5.10 gave outer-test accuracies of 0.4–0.7 with noise as large as the differences between strategies. Is that noise a property of strategies, or of how the model is trained, and does a model trained differently change the answers?
+
+**Why freeze.** Three observations from §5.10 motivate removing end-to-end fine-tuning from the strategy comparison. First, the same data can give different models: at budget 100 every strategy trains on the identical 100 pair groups, yet accuracy within a seed spans 0.25–0.89. Second, the result depends on the order of the selected pairs: 30 identical pair groups in two orders gave outer-test accuracies of 0.357 and 0.429 (training on a fixed ordered list is exactly repeatable; reordering the list changes the minibatches). Third, 34–342 labelled rows are very few for 11 million encoder parameters. Freezing the encoder and training only the reward head, with a loss that is a *sum* over rows, makes the trained head a function of the set of labelled pair groups rather than of their order.
+
+**Method.** The SimCLR ResNet-18 encoder is applied once to every image and never updated; its 512-d features are cached (444 images across all seeds). The reward head is the same Linear(512→256)–ReLU–Dropout(0.2)–Linear(256→5) as before, but is trained by full-batch AdamW (weight decay $10^{-4}$) on the sum of per-row losses divided by the number of rows, with no dropout during training (dropout remains in the head so that MC-dropout acquisition can still sample it at selection time). The losses are those of §2.1: Bradley–Terry for decisive winners, an absolute-difference term for ties, a push-down term for `not_apply`, reference-anchor ranking (weight 0.25), and bad-image anchors (weight 0.10). A sum over rows is invariant to row order, which is verified by `test_frozen_encoder_order_invariance.py`. Acquisition code is unchanged: strategies read the cached features and the head. The candidate pool is enlarged from 100 to 158 groups (all groups not in the initial 10), so every budget up to 100 is smaller than the pool and strategies can genuinely differ. Learning rate $\in\{10^{-3},3\cdot10^{-3},10^{-2}\}$ and number of full-batch steps $\in\{100,300,1000\}$ were selected per budget on utility-validation accuracy with a deterministic random batch, on seeds 42, 79, and 123 only (outer test unopened), as in Task 3b:
+
+| Budget | Selected lr | Selected steps | Mean validation accuracy |
+|---:|---:|---:|---:|
+| 10 | 0.01 | 300 | 0.857 |
+| 25 | 0.003 | 300 | 0.881 |
+| 50 | 0.01 | 100 | 0.905 |
+| 75 | 0.003 | 100 | 0.893 |
+| 100 | 0.001 | 300 | 0.869 |
+
+**Residual noise.** With the data fixed, only the head's random initialisation varies. Across 8 initialisations the within-seed standard deviation of outer-test accuracy is 0.013–0.051 (mean 0.039), against 0.09–0.18 between strategies at budget 100 for the fine-tuned model; the between-seed standard deviation of the mean is 0.065 and is dominated by which 28 images fall in the outer test. The frozen model therefore removes most of the training noise but not the test-set sampling noise.
+
+**Results: outer-test type accuracy.** Mean ± standard deviation over five seeds (same outer test, same identity-safe splits as §5.10; 200 cells; results in `results/frozen_encoder_task3/`):
+
+| Strategy | Budget 10 | Budget 25 | Budget 50 | Budget 75 | Budget 100 |
+|---|---:|---:|---:|---:|---:|
+| Random | 0.836 ± 0.020 | 0.829 ± 0.016 | 0.779 ± 0.077 | 0.807 ± 0.065 | 0.821 ± 0.044 |
+| Uncertainty | 0.821 ± 0.076 | 0.814 ± 0.047 | 0.843 ± 0.054 | 0.771 ± 0.054 | 0.807 ± 0.041 |
+| Core-set | 0.829 ± 0.069 | 0.843 ± 0.065 | 0.779 ± 0.047 | 0.786 ± 0.067 | 0.821 ± 0.051 |
+| Cluster-quota uncertainty | 0.807 ± 0.096 | 0.814 ± 0.105 | 0.757 ± 0.081 | 0.800 ± 0.070 | 0.807 ± 0.041 |
+| Uncertainty + diversity | 0.864 ± 0.053 | 0.821 ± 0.044 | 0.764 ± 0.082 | 0.771 ± 0.090 | 0.829 ± 0.039 |
+| Cluster-Margin | 0.843 ± 0.060 | 0.836 ± 0.054 | 0.786 ± 0.056 | 0.786 ± 0.098 | 0.793 ± 0.077 |
+| MC-dropout variance | 0.829 ± 0.077 | 0.807 ± 0.070 | 0.829 ± 0.059 | 0.793 ± 0.059 | 0.836 ± 0.070 |
+| MC-dropout mutual info | 0.807 ± 0.054 | 0.857 ± 0.044 | 0.729 ± 0.032 | 0.821 ± 0.036 | 0.829 ± 0.081 |
+
+No strategy differs reliably from random. The paired differences (strategy minus random, same seed and budget) lie between -0.050 and +0.064; the largest in magnitude is uncertainty at budget 50 (+0.064, paired t = 2.45, n = 5), which is not significant once 35 comparisons are considered. Training on the initial 10 pair groups alone, with no acquisition, gives 0.871 ± 0.065, as high as any cell. Frozen-head accuracy (0.73–0.86) is also far above the fine-tuned model (0.4–0.7) and matches the frozen-encoder nearest-neighbour baseline of §5.10 (0.871 ± 0.041).
+
+**Where the accuracy comes from.** The pattern above (more pair labels do not help, and the initial 10 groups already reach the plateau) suggests that type accuracy is determined by something other than the acquired pairs. Training the same frozen head with only some of its loss terms isolates the source (mean over five seeds, four head initialisations each):
+
+| Training signal | Utility-validation accuracy | Outer-test accuracy |
+|---|---:|---:|
+| anchors only (0 pair groups) | 0.848 | 0.848 ± 0.038 |
+| anchors + 10 groups | 0.864 | 0.852 ± 0.053 |
+| anchors + 110 groups | 0.832 | 0.805 ± 0.076 |
+| pairs only, 10 groups | 0.337 | 0.368 ± 0.114 |
+| pairs only, 110 groups | 0.543 | 0.554 ± 0.110 |
+| pairs only, all 168 groups | 0.389 | 0.409 ± 0.038 |
+
+With **no pair groups at all**, the reference-anchor term alone reaches 0.848. Pairwise preferences alone reach only 0.37–0.55, and adding 110 groups to the anchors slightly lowers accuracy (0.805 versus 0.848). The anchors use the absolute class labels of about 88 reference ideal images per seed; the pairwise labels say which of two trajectory images better shows a reconstruction, which is information about quality, not about class identity. Type accuracy on ideal images is therefore a poor endpoint for judging which pairs to label: it is nearly saturated by the anchors, and the strategy comparisons of §5.10 and of this section cannot rank acquisition rules on it. §5.12 evaluates the quantity pair labels do teach.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing. Task 3b (validation-selected schedules, §5.8) and Task 3c (eight-strategy budget curve, §5.10) are complete for all five seeds (42, 79, 123, 202, 303) under the SimCLR encoder. The pre-registered fixed-epoch comparison (§5.9) over five seeds confirms that 30-epoch training consistently exceeds 3-epoch training at budgets ≥ 25, with the exception of budget 75 uncertainty where the five-seed mean is equal (0.357 vs. 0.357). The five-seed Task 3c comparison does not identify a best acquisition strategy. Leaders differ by budget (Uncertainty+diversity at 10, Cluster-Margin at 25, MC-dropout mutual information at 50, Random tied with Cluster-quota uncertainty at 75), but the gaps are small relative to seed variance and to order-dependent training noise. Budget 100 cannot compare strategies because the candidate pool is exhausted, so all strategies train on identical data. The fine-tuned reward model (0.4–0.7 outer-test accuracy) is also well below a frozen-encoder nearest-neighbour baseline (0.871 ± 0.041), so the next step is to fix the training procedure (order-independent training, a larger candidate pool, and a decision on whether to freeze the encoder) before re-running the strategy comparison. Data freeze manifests are generated by `generate_data_freeze_manifest.py` and fail loudly on any overlap violation or unexpected partition size. Metadata fusion (§5.6) and trajectory integration (§5.7) are deferred pending structured process-variable data and a validated five-state classifier, respectively.
