@@ -107,3 +107,14 @@ def evaluate_model(exp: Experiment, features: FrozenFeatures, model: BTModel, sp
             ok += max(win, key=win.get) == truth
         by_class[truth] = {"correct": int(ok), "total": len(paths), "accuracy": ok / len(paths)}; correct += ok; total += len(paths)
     return {"test_accuracy": correct / total, "test_correct": int(correct), "test_total": total, "by_class": by_class}
+
+
+def save_feature_cache(cache: dict, path: Path, data_root: Path) -> None:
+    """Persist cached features keyed by path relative to the data root, so the cache is machine independent."""
+    root = str(Path(data_root).resolve()) + "/"
+    torch.save({k[len(root):] if k.startswith(root) else k: v for k, v in cache.items()}, path)
+
+
+def load_feature_cache(path: Path, data_root: Path) -> dict:
+    root = str(Path(data_root).resolve()) + "/"
+    return {root + k: v for k, v in torch.load(path).items()}
