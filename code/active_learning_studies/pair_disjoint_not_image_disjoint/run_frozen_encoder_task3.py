@@ -20,6 +20,7 @@ import pandas as pd
 import torch
 
 import frozen_encoder_reward_head as frozen
+from new_pair_strategies import NEW_STRATEGIES
 from pairwise_active_learning_pipeline import Config, Experiment
 
 HERE = Path(__file__).resolve().parent
@@ -68,8 +69,8 @@ def calibrate(data_root, scratch, cache) -> dict:
     return schedule
 
 
-def final(data_root, scratch, cache, schedule) -> None:
-    cells = OUT / "cells"; cells.mkdir(parents=True, exist_ok=True)
+def final(data_root, scratch, cache, schedule, strategies=STRATEGIES, folder="cells") -> None:
+    cells = OUT / folder; cells.mkdir(parents=True, exist_ok=True)
     for seed in ALL_SEEDS:
         exp = make_experiment(seed, data_root, scratch); initial, candidates = exp.load_and_split()
         features = frozen.FrozenFeatures(exp, cache); features.install()
@@ -78,11 +79,15 @@ def final(data_root, scratch, cache, schedule) -> None:
             lr, steps = schedule[str(budget)]["learning_rate"], schedule[str(budget)]["steps"]
             baseline = frozen.train_model(exp, features, initial, lr, steps)
             rows, cache_ = exp.candidates_with_clusters(candidates, baseline)
-            for strategy in STRATEGIES:
+            for strategy in strategies:
                 target = cells / f"seed{seed}_budget{budget}_{strategy}.json"
                 if target.exists(): continue
                 started = time.monotonic()
-                selected, _, _ = exp.select(strategy, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)
+                if strategy in NEW_STRATEGIES:
+                    labeled = [{"pair_id": i, "img1": exp.groups[i].iloc[0].resolved_img1, "img2": exp.groups[i].iloc[0].resolved_img2} for i in initial]
+                    selected = NEW_STRATEGIES[strategy](rows, labeled, baseline, cache_, budget, seed)
+                else:
+                    selected, _, _ = exp.select(strategy, rows, baseline, cache_, [], budget=budget, labeled_ids=initial)
                 ids = [item["pair_id"] for item in selected]
                 model = frozen.train_model(exp, features, initial + ids, lr, steps)
                 validation, outer = frozen.evaluate_model(exp, features, model, "utility_validation"), frozen.evaluate_model(exp, features, model)
@@ -101,7 +106,7 @@ def final(data_root, scratch, cache, schedule) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("action", choices=("calibrate", "final", "all"))
+    parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("action", choices=("calibrate", "final", "all", "extra"))
     parser.add_argument("--data-root", default=None); args = parser.parse_args()
     torch.set_num_threads(2); cache: dict = {}
     with tempfile.TemporaryDirectory() as scratch_name:
@@ -109,6 +114,7 @@ def main() -> None:
         if args.action in ("calibrate", "all"): schedule = calibrate(args.data_root, scratch, cache)
         else: schedule = json.loads((OUT / "schedule.json").read_text())["protocol_by_budget"]
         if args.action in ("final", "all"): final(args.data_root, scratch, cache, schedule)
+        if args.action == "extra": final(args.data_root, scratch, cache, schedule, tuple(NEW_STRATEGIES), "cells_extra")
 
 
 if __name__ == "__main__":
