@@ -36,7 +36,8 @@ def main():
             task = {"phase": "task3c_final", "seed": args.seed, "budget": budget, "strategy": strategy,
                     **schedule[str(budget)], "selector_parameters": selector}
             name = f"{stable_id(task)}.json"
-            if (destination / name).exists():
+            target = destination / name
+            if target.exists() and "strategy" in json.loads(target.read_text()):
                 existing += 1
             elif not (source / name).exists():
                 missing.append((budget, strategy, name))
