@@ -1,14 +1,17 @@
 """Reward-model training on a frozen, cached encoder.
 
-The encoder is applied once to every image and never updated.  Only the reward head is trained, by
-full-batch gradient descent on summed per-row losses.  A sum over rows does not depend on how rows are
-ordered, so the trained head is a function of the *set* of labelled pair groups (no minibatch order, no
-dropout masks tied to row order).  Losses mirror ``Experiment.train``: Bradley--Terry for decisive
-winners, an absolute-difference term for ties, a push-down term for ``not_apply``, reference-anchor
-ranking, and bad-image negative anchors.
+The SimCLR encoder is applied once to every image and never updated.  Only the reward head is trained,
+by full-batch gradient descent on a *sum* of per-row losses.  A sum does not depend on row order, and
+the head has no dropout while training, so the trained head is a function of the **set** of labelled
+pair groups: reordering the same pair groups cannot change the result (up to floating-point addition
+order).  Dropout stays in the head so MC-dropout acquisition can still sample it at selection time.
+
+Losses mirror ``Experiment.train``: Bradley--Terry for decisive winners, an absolute-difference term for
+ties, a push-down term for ``not_apply``, reference-anchor ranking, and bad-image negative anchors.
 """
 from __future__ import annotations
 
+import copy
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -21,13 +24,18 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "active_learning_program"))
-from pairwise_active_learning_pipeline import Experiment, TYPE_TO_INDEX, transform  # noqa: E402
+import pairwise_active_learning_pipeline as pipeline  # noqa: E402
+from pairwise_active_learning_pipeline import BTModel, Experiment, TYPE_TO_INDEX, transform  # noqa: E402
+
+LABELS = ("1", "2", "tie", "not_apply")
 
 
-class FeatureStore:
-    """Encodes each image path once with the experiment's initial (never-trained) encoder."""
+class FrozenFeatures:
+    """Encodes each image path once with the untrained-by-us SimCLR encoder and caches the 512-d result."""
     def __init__(self, exp: Experiment):
-        self.model = exp.make_model().eval(); self.tf = transform(); self.cache: dict[str, torch.Tensor] = {}
+        self.base_model: BTModel = exp.make_model().eval()
+        for parameter in self.base_model.encoder.parameters(): parameter.requires_grad_(False)
+        self.tf = transform(); self.cache: dict[str, torch.Tensor] = {}
 
     @torch.no_grad()
     def get(self, paths: Iterable) -> torch.Tensor:
@@ -35,70 +43,67 @@ class FeatureStore:
         for i in range(0, len(missing), 16):
             chunk = missing[i:i + 16]
             batch = torch.stack([self.tf(Image.open(k).convert("L")) for k in chunk])
-            for k, v in zip(chunk, self.model.encoder(batch)): self.cache[k] = v
+            for k, v in zip(chunk, self.base_model.encoder(batch)): self.cache[k] = v
         return torch.stack([self.cache[k] for k in keys]) if keys else torch.empty(0, 512)
 
+    def embedding_cache(self, candidates, model=None, device="cpu", symmetry_mode="none") -> dict[str, torch.Tensor]:
+        """Drop-in replacement for ``build_embedding_cache`` that never re-runs the encoder."""
+        paths = sorted({p for c in candidates for p in (c["img1"], c["img2"])}); self.get(paths)
+        return {p: self.cache[str(p)].cpu() for p in paths}
 
-def make_head(seed: int, hidden: int = 256, outputs: int = 5) -> nn.Module:
-    generator = torch.manual_seed(seed)
-    return nn.Sequential(nn.Linear(512, hidden), nn.ReLU(), nn.Linear(hidden, outputs))
-
-
-def _pair_loss(head, store: FeatureStore, exp: Experiment, pair_ids: list[str]) -> torch.Tensor:
-    rows = exp.rows_for(sorted(pair_ids))
-    xa, xb = head(store.get(rows.resolved_img1)), head(store.get(rows.resolved_img2))
-    index = torch.arange(len(rows)); typ = torch.tensor(rows.type_idx.to_numpy())
-    xa, xb = xa[index, typ], xb[index, typ]
-    weight = torch.tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32); winner = rows.Winner.to_numpy()
-    terms = torch.zeros(len(rows))
-    for label in ("1", "2", "tie", "not_apply"):
-        mask = torch.tensor(winner == label)
-        if not mask.any(): continue
-        term = (-F.logsigmoid(xa - xb) if label == "1" else -F.logsigmoid(xb - xa) if label == "2"
-                else (xa - xb).abs() if label == "tie" else F.relu(xa) + F.relu(xb))
-        terms = torch.where(mask, term, terms)
-    return (terms * weight).sum() / len(rows)
+    def install(self) -> None:
+        """Route the pipeline's acquisition code through the cache."""
+        pipeline.build_embedding_cache = self.embedding_cache
 
 
-def _anchor_loss(reference_scores: dict[str, torch.Tensor]) -> torch.Tensor:
-    """Mean over class pairs and reference pairs of -log sigmoid(score_p(ref of p) - score_p(ref of o))."""
-    values = []
-    for preferred, scores_p in reference_scores.items():
-        for other, scores_o in reference_scores.items():
-            if other == preferred: continue
-            column = TYPE_TO_INDEX[preferred]
-            values.append(-F.logsigmoid(scores_p[:, column][:, None] - scores_o[:, column][None, :]).mean())
-    return torch.stack(values).mean()
-
-
-def train_head(exp: Experiment, store: FeatureStore, pair_ids: list[str], lr: float, steps: int, seed: int | None = None,
-               anchor_weight: float = .25) -> nn.Module:
-    head = make_head(exp.cfg.seed if seed is None else seed)
-    optimizer = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=exp.cfg.weight_decay)
-    reference_features = {c: store.get(ps) for c, ps in exp.references.items()}
-    bad = store.get(exp.bad_paths) if exp.bad_paths else None
+def fit_head(head: nn.Module, xa: torch.Tensor, xb: torch.Tensor, type_index: torch.Tensor, weight: torch.Tensor,
+             winner: np.ndarray, reference_features: dict[str, torch.Tensor] | None, bad_features: torch.Tensor | None,
+             lr: float, steps: int, weight_decay: float = 1e-4, anchor_weight: float = .25, bad_weight: float = .10) -> nn.Module:
+    """Full-batch training on pre-computed features; invariant to the order of the rows."""
+    head.eval()  # no dropout while training
+    optimizer = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=weight_decay)
+    index = torch.arange(len(type_index)); masks = {label: torch.as_tensor(winner == label) for label in LABELS}
     for _ in range(steps):
-        loss = _pair_loss(head, store, exp, pair_ids)
-        if len(reference_features) > 1:
-            loss = loss + anchor_weight * _anchor_loss({c: head(f) for c, f in reference_features.items()})
-        if bad is not None: loss = loss + exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
+        a, b = head(xa)[index, type_index], head(xb)[index, type_index]
+        terms = (-F.logsigmoid(a - b) * masks["1"] - F.logsigmoid(b - a) * masks["2"] + (a - b).abs() * masks["tie"]
+                 + (F.relu(a) + F.relu(b)) * masks["not_apply"])
+        loss = (terms * weight).sum() / len(type_index)
+        if reference_features and len(reference_features) > 1:
+            scores = {name: head(f) for name, f in reference_features.items()}; values = []
+            for preferred, sp in scores.items():
+                column = TYPE_TO_INDEX[preferred]
+                for other, so in scores.items():
+                    if other != preferred: values.append(-F.logsigmoid(sp[:, column][:, None] - so[:, column][None, :]).mean())
+            loss = loss + anchor_weight * torch.stack(values).mean()
+        if bad_features is not None and len(bad_features): loss = loss + bad_weight * F.relu(head(bad_features) + 1.0).mean()
         optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
     return head.eval()
 
 
+def train_model(exp: Experiment, features: FrozenFeatures, pair_ids: list[str], lr: float, steps: int) -> BTModel:
+    """Return a BTModel whose reward head was trained on ``pair_ids`` (order of ``pair_ids`` is irrelevant)."""
+    model = copy.deepcopy(features.base_model); rows = exp.rows_for(sorted(pair_ids))
+    refs = {c: features.get(ps) for c, ps in exp.references.items()}
+    bad = features.get(exp.bad_paths) if exp.bad_paths else None
+    fit_head(model.reward_head, features.get(rows.resolved_img1), features.get(rows.resolved_img2),
+             torch.as_tensor(rows.type_idx.to_numpy()), torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32),
+             rows.Winner.to_numpy(), refs, bad, lr, steps, exp.cfg.weight_decay, bad_weight=exp.cfg.bad_anchor_weight)
+    return model.eval()
+
+
 @torch.no_grad()
-def evaluate_head(exp: Experiment, store: FeatureStore, head: nn.Module, split: str = "outer_test") -> dict:
-    """Same win-rate-against-references rule as ``Experiment.evaluate``, on cached features."""
+def evaluate_model(exp: Experiment, features: FrozenFeatures, model: BTModel, split: str = "outer_test") -> dict:
+    """Same win-rate-against-references rule as ``Experiment.evaluate``, computed on cached features."""
     images = exp.test_images if split == "outer_test" else exp.utility_images
-    refs = {c: head(store.get(ps)).numpy() for c, ps in exp.references.items()}
+    refs = {c: model.reward_head(features.get(ps)).numpy() for c, ps in exp.references.items()}
     correct = total = 0; by_class = {}
     for truth, paths in images.items():
         ok = 0
-        for score in head(store.get(paths)).numpy():
+        for score in model.reward_head(features.get(paths)).numpy():
             win = {}
             for candidate in refs:
                 opponents = np.concatenate([s for other, s in refs.items() if other != candidate]); idx = TYPE_TO_INDEX[candidate]
-                win[candidate] = float(np.mean(1 / (1 + np.exp(-(score[idx] - opponents[:, idx])))))
+                win[candidate] = float(np.mean(1 / (1 + np.exp(-np.clip(score[idx] - opponents[:, idx], -50, 50)))))
             ok += max(win, key=win.get) == truth
-        by_class[truth] = {"correct": ok, "total": len(paths), "accuracy": ok / len(paths)}; correct += ok; total += len(paths)
-    return {"accuracy": correct / total, "correct": correct, "total": total, "by_class": by_class}
+        by_class[truth] = {"correct": int(ok), "total": len(paths), "accuracy": ok / len(paths)}; correct += ok; total += len(paths)
+    return {"test_accuracy": correct / total, "test_correct": int(correct), "test_total": total, "by_class": by_class}
