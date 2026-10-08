@@ -84,3 +84,9 @@ probability of a decisive answer fitted on the labelled judgments only (so it is
 Related work found: [tie-aware DPO](https://arxiv.org/html/2409.17431v1) (Rao–Kupper/Davidson inside the loss), a [2026 preprint on active query synthesis](https://arxiv.org/html/2605.26072v1)
 with a confidence-aware response model (pairs of nearly identical or entirely dissimilar items give ambiguous answers), and cold-start work
 ([TypiClust](https://arxiv.org/abs/2202.02794), [k-means baseline](https://arxiv.org/pdf/2110.12033)) showing representative seeds beat random at tiny budgets.
+
+## Mechanism checks on the first five seeds (single-shot, analyze_selected_pairs.py and analyze_coverage_mechanism.py)
+- Uncertainty-type selectors do favour ambiguous comparisons: tie share 0.24–0.28 (random 0.14), decisive share 0.34–0.44 (random 0.51). Large-gap selectors (`delta_gap`, `delta_ucb`) pick 0.64–0.65 decisive.
+- But the decisive share does not predict held-out log-loss across cells (correlation -0.07), and the best five-seed strategy (Cluster-Margin) has a *low* decisive share (0.44, tie 0.20).
+- Coverage does not explain it either: the mean distance from held-out pairs to the nearest selected pair (relation-aware pair space) correlates 0.055 with log-loss within (seed, budget).
+- So the five-seed ranking has no mechanistic story yet; the extension to 30 more seeds tests whether the ranking itself is real.
