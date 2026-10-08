@@ -1,0 +1,15 @@
+{
+ "seed": 421,
+ "budget": 0,
+ "strategy": "initial_only",
+ "pool": 67,
+ "test_decisive_accuracy": 0.8333333333333334,
+ "test_decisive_log_loss": 0.3238923875231849,
+ "test_decisive_auc": 0.9443826473859844,
+ "test_calibrated_log_loss": 0.3814742012981933,
+ "fitted_temperature": 3.9931569885125078,
+ "test_decisive_rows": 60,
+ "validation_decisive_log_loss": 0.9213676017998628,
+ "validation_decisive_accuracy": 0.7878787878787878,
+ "type_accuracy": 0.8928571428571429
+}
