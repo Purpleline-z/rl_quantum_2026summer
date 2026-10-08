@@ -10,7 +10,7 @@ import judgment_unit_study as study
 import run_pair_endpoint_study as single
 
 run, condition, seed, strategy, budget = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
-split, initial_mode = run.split("_"); torch.set_num_threads(1)
+split, initial_mode = run.split("/")[-1].split("_")[:2]; torch.set_num_threads(1)  # run may be a sub-path such as replication/A_groups
 schedule = json.loads((single.OUT / "schedule.json").read_text()); cache = frozen.load_feature_cache(single.CACHE, single.DATA)
 with tempfile.TemporaryDirectory() as t:
     ctx = study.Context(seed, Path(t), cache, split, initial_mode, schedule["learning_rate"], schedule["steps"])
