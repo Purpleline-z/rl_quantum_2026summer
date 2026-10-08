@@ -845,9 +845,59 @@ The information-based rules that were significant in §5.12 are not here: Laplac
 
 Coverage-oriented rules lead at the smallest budgets: graph facility location (+0.072 log-loss) at 10 groups and core-set (+0.080) at 20, both significant, and deep-ensemble BALD has a significant AUC gain at 10 (+0.018). At 40 and 60 groups nothing is significant (core-set +0.047 at 40, p = 0.11; relation-aware core-set +0.031 at 60). The lowest budgets favouring coverage is in line with §5.12 (where Cluster-quota uncertainty and DPP led at 10), but the leading rule differs between the two splits, and each cell is again the best of 32 variants with correction only within the cell.
 
-<<SEQ_C2>>
+**Results: sequential, 35 seeds.** With rounds of 10 groups on this split, Random reaches log-loss 0.560, 0.481, 0.407, 0.366 and AUC 0.886, 0.902, 0.918, 0.928 at 10, 20, 40, and 60 acquired groups. The strategies differ overall (Friedman: p < 0.0001 for log-loss, AUC, and accuracy), and again **only core-set** is significantly better than Random after correction, on log-loss (+0.053, Holm p = 0.009); no strategy is significant on AUC or accuracy. Core-set is therefore the one rule whose advantage appears under both acquisition conditions on this split (+0.052 single-shot, +0.053 sequential).
 
-**What the two splits say together.** Two statements hold under both splits: no uncertainty-driven rule (Uncertainty, MC-dropout, BADGE-style, DropQuery) is significantly better than Random, and gains over Random are small (log-loss about 0.03–0.05, AUC at most 0.01). The statements that differ are the ones about which rules help: Laplace BALD and BALD × P(decisive) are significant under the small-pool split of §5.12 and not under this one, while core-set is significant here (+0.052) and not in §5.12 (+0.023); no rule is significant under both. The ranking of coverage-type and information-type rules therefore depends on the split, plausibly on the size of the candidate pool and of the test set, and the data do not support recommending one rule. A larger candidate pool and a second encoder are needed to settle it.
+| Strategy | log-loss gain | Holm p | AUC gain | Holm p | seeds better (log-loss) |
+|---|---:|---:|---:|---:|---:|
+| Core-set | +0.053 | 0.009 | +0.006 | 1.000 | 71% (35) |
+| Core-set, relation-aware pairs | +0.044 | 0.424 | +0.006 | 1.000 | 69% (35) |
+| BALD x P(decisive) | +0.043 | 0.877 | +0.011 | 0.114 | 69% (35) |
+| Gap + posterior std (DeltaUCB-style) | +0.041 | 0.922 | +0.005 | 1.000 | 60% (35) |
+| Largest predicted gap | +0.038 | 1.000 | +0.007 | 1.000 | 63% (35) |
+| Cluster-Margin, original code, all heads | +0.037 | 0.498 | +0.001 | 1.000 | 74% (35) |
+| Laplace BALD | +0.037 | 1.000 | +0.006 | 1.000 | 66% (35) |
+| ProbCover (pairs) | +0.032 | 1.000 | +0.008 | 0.380 | 66% (35) |
+| Graph facility location (uncertainty-weighted) | +0.032 | 0.969 | +0.006 | 1.000 | 66% (35) |
+| Deep-ensemble BALD (8 heads) | +0.031 | 1.000 | +0.009 | 0.147 | 63% (35) |
+| Deep-ensemble BALD x P(decisive) | +0.025 | 1.000 | +0.007 | 0.565 | 69% (35) |
+| Cluster-Margin | +0.022 | 1.000 | +0.000 | 1.000 | 66% (35) |
+| Fisher D-optimal (Active Reward Modeling) | +0.019 | 1.000 | +0.006 | 1.000 | 69% (35) |
+| BADGE (pairs) | +0.019 | 0.870 | +0.007 | 0.274 | 71% (35) |
+| TypiClust (pairs) | +0.015 | 1.000 | +0.009 | 0.689 | 46% (35) |
+| MaxHerding (pairs) | +0.015 | 1.000 | +0.006 | 1.000 | 54% (35) |
+| Uncertainty + diversity, original code, all heads | +0.010 | 1.000 | -0.001 | 1.000 | 66% (35) |
+| Cluster-quota uncertainty, original code, all heads | +0.001 | 1.000 | -0.006 | 1.000 | 57% (35) |
+| Cluster-quota uncertainty | -0.003 | 1.000 | -0.000 | 1.000 | 57% (35) |
+| MC-dropout mutual info, original code, all heads | -0.006 | 1.000 | -0.004 | 1.000 | 43% (35) |
+| FASS (pairs) | -0.007 | 1.000 | -0.005 | 1.000 | 51% (35) |
+| Image-coverage uncertainty | -0.011 | 1.000 | -0.007 | 0.277 | 43% (35) |
+| Uncertainty + diversity | -0.012 | 1.000 | -0.002 | 1.000 | 49% (35) |
+| MC-dropout variance | -0.014 | 1.000 | -0.002 | 1.000 | 49% (35) |
+| MC-dropout mutual info | -0.018 | 1.000 | -0.004 | 1.000 | 40% (35) |
+| DropQuery (pairs) | -0.018 | 1.000 | -0.008 | 0.359 | 43% (35) |
+| Uncertainty | -0.021 | 1.000 | -0.006 | 1.000 | 60% (35) |
+| DPP (quality x diversity) | -0.024 | 1.000 | -0.005 | 1.000 | 46% (35) |
+| Uncertainty, original code, all heads | -0.026 | 0.922 | -0.011 | 0.102 | 34% (35) |
+| Uncertainty, all heads | -0.026 | 0.922 | -0.011 | 0.102 | 34% (35) |
+| Graph cut (pairs) | -0.027 | 1.000 | +0.004 | 1.000 | 54% (35) |
+| MC-dropout variance, original code, all heads | -0.029 | 1.000 | -0.009 | 0.179 | 34% (35) |
+
+Laplace BALD (+0.037, Holm p = 1.0), BALD × P(decisive) (+0.043, p = 0.88), and deep-ensemble BALD (+0.031, p = 1.0) are positive but not significant on log-loss, and the uncertainty-driven rules are again at or below Random (Uncertainty −0.021, MC-dropout mutual information −0.018). Per budget (sequential, correction within each cell):
+
+| Budget | Metric | Three largest gains over Random (Holm p) | Significant after Holm correction within this cell |
+|---:|---|---|---|
+| 10 | log-loss | Graph facility location (uncertainty-weighted) +0.058 (0.36); Gap + posterior std (DeltaUCB-style) +0.057 (0.97); Core-set, relation-aware pairs +0.055 (1.00) | none |
+| 10 | AUC | Deep-ensemble BALD (8 heads) +0.017 (0.05); TypiClust (pairs) +0.014 (1.00); BALD x P(decisive) +0.012 (1.00) | Deep-ensemble BALD (8 heads) +0.017 |
+| 20 | log-loss | Core-set +0.076 (0.02); Cluster-Margin, original code, all heads +0.065 (0.16); Laplace BALD +0.063 (0.88) | Core-set +0.076 |
+| 20 | AUC | TypiClust (pairs) +0.011 (0.83); ProbCover (pairs) +0.011 (1.00); Deep-ensemble BALD (8 heads) +0.011 (1.00) | none |
+| 40 | log-loss | Core-set +0.062 (0.00); Core-set, relation-aware pairs +0.053 (0.11); Cluster-Margin, original code, all heads +0.051 (0.15) | Core-set +0.062 |
+| 40 | AUC | BALD x P(decisive) +0.015 (0.01); Cluster-Margin, original code, all heads +0.013 (0.21); Core-set +0.012 (0.34) | BALD x P(decisive) +0.015 |
+| 60 | log-loss | Largest predicted gap +0.040 (0.02); Core-set, relation-aware pairs +0.039 (0.10); BALD x P(decisive) +0.032 (0.21) | Largest predicted gap +0.040 |
+| 60 | AUC | Largest predicted gap +0.011 (0.01); Core-set, relation-aware pairs +0.009 (0.05); BALD x P(decisive) +0.008 (0.97) | Largest predicted gap +0.011; Core-set, relation-aware pairs +0.009 |
+
+Core-set is significant at 20 and 40 groups (+0.076, +0.062 log-loss); the largest-predicted-gap rule is significant at 60 (+0.040 log-loss, +0.011 AUC), BALD × P(decisive) has a significant AUC gain at 40 (+0.015), and deep-ensemble BALD at 10 (+0.017 AUC, p = 0.05). Each of these is the best of 32 variants in its cell.
+
+**What the two splits say together.** Two statements hold under both splits: no uncertainty-driven rule (Uncertainty, MC-dropout, BADGE-style, DropQuery) is significantly better than Random, and gains over Random are small (log-loss about 0.03–0.05, AUC at most 0.01). The statements that differ are the ones about which rules help: Laplace BALD and BALD × P(decisive) are significant under the small-pool split of §5.12 (single-shot only) and not under this one, while core-set is significant here under both acquisition conditions (+0.052, +0.053) and not in §5.12 (+0.023 single-shot, +0.010 sequential); no rule is significant under both splits. The ranking of coverage-type and information-type rules therefore depends on the split, plausibly on the size of the candidate pool and of the test set, and the data do not support recommending one rule. A larger candidate pool and a second encoder are needed to settle it.
 
 ## 6. Conclusion
 
