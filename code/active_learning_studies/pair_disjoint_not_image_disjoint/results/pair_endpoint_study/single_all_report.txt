@@ -1,231 +1,279 @@
-mode=single seeds=all: 35 seeds, 26 strategy families, 4095 cells
+mode=single seeds=all: 35 seeds, 32 strategy families, 4935 cells
 
-[test_decisive_log_loss] Friedman test across 25 strategies with data on all 35 seeds: chi2=64.6, p=0.0000
+[test_decisive_log_loss] Friedman test across 31 strategies with data on all 35 seeds: chi2=73.2, p=0.0000
 
 === log-loss (lower is better); gain = improvement over random, per seed averaged over budgets ===
-                                 mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
-family                                                                                            
-fisher_dopt                         0.0412  0.0827  35       0.6571      0.0060  0.1074    11.0821
-bald_decisive                       0.0382  0.0663  35       0.7714      0.0008  0.0193    11.4286
-cluster_quota_uncertainty           0.0380  0.0660  35       0.7429      0.0011  0.0242    12.1000
-laplace_bald                        0.0378  0.0610  35       0.8000      0.0007  0.0163    10.8393
-core_set_relation                   0.0358  0.0723  35       0.7429      0.0070  0.1194    11.8679
-cluster_margin_pairwise             0.0332  0.0907  35       0.6857      0.0124  0.1983    12.1857
-maxherding_pairs                    0.0307  0.0604  35       0.6857      0.0045  0.0858    12.6607
-dpp_pairs                           0.0281  0.0667  35       0.7714      0.0016  0.0341    12.0071
-fass_pairs                          0.0246  0.0666  35       0.6000      0.0700  1.0000    12.4071
-core_set                            0.0225  0.0808  35       0.6000      0.2585  1.0000    13.2357
-graph_facility_location             0.0202  0.0714  35       0.5143      0.1268  1.0000    12.8786
-mc_dropout_probability_variance     0.0193  0.0758  35       0.5714      0.1843  1.0000    12.3607
-typiclust_pairs                     0.0183  0.0736  35       0.5714      0.2071  1.0000    13.2929
-delta_gap                           0.0167  0.0559  35       0.6000      0.1397  1.0000    13.6179
-badge_pairs                         0.0162  0.0874  35       0.6000      0.3259  1.0000    12.8643
-probcover_pairs                     0.0156  0.0662  35       0.6571      0.1002  1.0000    13.3286
-uncertainty_diversity               0.0154  0.0599  35       0.6286      0.1187  1.0000    13.2964
-mc_dropout_mutual_information       0.0119  0.0963  35       0.5429      0.3180  1.0000    12.5464
-image_coverage_uncertainty          0.0105  0.0703  35       0.6286      0.3855  1.0000    13.3893
-uncertainty                         0.0070  0.0541  35       0.5143      0.5876  1.0000    13.7464
-uncertainty_all_heads               0.0032  0.0553  35       0.6000      0.5764  1.0000    13.4607
-delta_ucb                          -0.0012  0.0766  35       0.5714      0.8779  1.0000    14.3536
-dropquery_pairs                    -0.0158  0.0744  35       0.3714      0.3023  1.0000    14.6357
-graphcut_pairs                     -0.0584  0.1055  35       0.3143      0.0016  0.0341    15.7714
+                                    mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                               
+fisher_dopt                            0.0412  0.0827  35       0.6571      0.0060  0.1432    13.5821
+bald_decisive                          0.0382  0.0663  35       0.7714      0.0008  0.0243    14.0143
+cluster_quota_uncertainty              0.0380  0.0660  35       0.7429      0.0011  0.0307    14.7964
+laplace_bald                           0.0378  0.0610  35       0.8000      0.0007  0.0204    13.1607
+core_set_relation                      0.0358  0.0723  35       0.7429      0.0070  0.1615    14.4179
+cluster_margin_pairwise                0.0332  0.0907  35       0.6857      0.0124  0.2603    14.7679
+maxherding_pairs                       0.0307  0.0604  35       0.6857      0.0045  0.1129    15.4536
+cluster_quota_uncertainty_lf           0.0285  0.0582  35       0.7429      0.0070  0.1615    15.5250
+dpp_pairs                              0.0281  0.0667  35       0.7714      0.0016  0.0438    14.5786
+fass_pairs                             0.0246  0.0666  35       0.6000      0.0700  1.0000    15.1643
+core_set                               0.0225  0.0808  35       0.6000      0.2585  1.0000    16.2143
+graph_facility_location                0.0202  0.0714  35       0.5143      0.1268  1.0000    15.7571
+mc_dropout_probability_variance        0.0193  0.0758  35       0.5714      0.1843  1.0000    15.1393
+cluster_margin_pairwise_lf             0.0183  0.0682  35       0.6000      0.2516  1.0000    16.2393
+typiclust_pairs                        0.0183  0.0736  35       0.5714      0.2071  1.0000    16.1429
+delta_gap                              0.0167  0.0559  35       0.6000      0.1397  1.0000    16.5821
+badge_pairs                            0.0162  0.0874  35       0.6000      0.3259  1.0000    15.8643
+probcover_pairs                        0.0156  0.0662  35       0.6571      0.1002  1.0000    16.3786
+uncertainty_diversity                  0.0154  0.0599  35       0.6286      0.1187  1.0000    16.1750
+mc_dropout_mutual_information          0.0119  0.0963  35       0.5429      0.3180  1.0000    15.3321
+image_coverage_uncertainty             0.0105  0.0703  35       0.6286      0.3855  1.0000    16.4143
+uncertainty                            0.0070  0.0541  35       0.5143      0.5876  1.0000    16.7536
+uncertainty_lf                         0.0032  0.0553  35       0.6000      0.5764  1.0000    16.4357
+uncertainty_all_heads                  0.0032  0.0553  35       0.6000      0.5764  1.0000    16.4357
+uncertainty_diversity_lf               0.0020  0.0563  35       0.5714      0.6799  1.0000    16.8143
+delta_ucb                             -0.0012  0.0766  35       0.5714      0.8779  1.0000    17.5679
+mc_dropout_mutual_information_lf      -0.0149  0.0891  35       0.5429      0.6215  1.0000    17.1214
+dropquery_pairs                       -0.0158  0.0744  35       0.3714      0.3023  1.0000    17.9143
+mc_dropout_probability_variance_lf    -0.0190  0.0897  35       0.4857      0.4222  1.0000    16.9357
+graphcut_pairs                        -0.0584  0.1055  35       0.3143      0.0016  0.0438    19.2929
 by budget (mean):
-budget                              10     20     40     60
-family                                                     
-fisher_dopt                      0.541  0.454  0.354  0.342
-bald_decisive                    0.529  0.456  0.367  0.350
-cluster_quota_uncertainty        0.518  0.456  0.384  0.345
-laplace_bald                     0.542  0.457  0.382  0.324
-core_set_relation                0.556  0.433  0.380  0.343
-cluster_margin_pairwise          0.558  0.448  0.373  0.343
-maxherding_pairs                 0.530  0.457  0.386  0.359
-dpp_pairs                        0.533  0.495  0.376  0.339
-fass_pairs                       0.552  0.479  0.387  0.339
-core_set                         0.584  0.441  0.396  0.345
-graph_facility_location          0.578  0.469  0.377  0.350
-mc_dropout_probability_variance  0.580  0.468  0.385  0.346
-typiclust_pairs                  0.572  0.474  0.394  0.341
-delta_gap                        0.587  0.463  0.396  0.344
-badge_pairs                      0.590  0.484  0.369  0.347
-probcover_pairs                  0.576  0.462  0.402  0.353
-uncertainty_diversity            0.568  0.493  0.389  0.344
-mc_dropout_mutual_information    0.576  0.490  0.400  0.342
-image_coverage_uncertainty       0.571  0.495  0.396  0.352
-uncertainty                      0.567  0.512  0.384  0.364
-uncertainty_all_heads            0.601  0.501  0.388  0.353
-delta_ucb                        0.637  0.488  0.392  0.343
-dropquery_pairs                  0.634  0.514  0.412  0.358
-graphcut_pairs                   0.698  0.633  0.409  0.348
+budget                                 10     20     40     60
+family                                                        
+fisher_dopt                         0.541  0.454  0.354  0.342
+bald_decisive                       0.529  0.456  0.367  0.350
+cluster_quota_uncertainty           0.518  0.456  0.384  0.345
+laplace_bald                        0.542  0.457  0.382  0.324
+core_set_relation                   0.556  0.433  0.380  0.343
+cluster_margin_pairwise             0.558  0.448  0.373  0.343
+maxherding_pairs                    0.530  0.457  0.386  0.359
+cluster_quota_uncertainty_lf        0.523  0.475  0.396  0.347
+dpp_pairs                           0.533  0.495  0.376  0.339
+fass_pairs                          0.552  0.479  0.387  0.339
+core_set                            0.584  0.441  0.396  0.345
+graph_facility_location             0.578  0.469  0.377  0.350
+mc_dropout_probability_variance     0.580  0.468  0.385  0.346
+cluster_margin_pairwise_lf          0.557  0.463  0.411  0.350
+typiclust_pairs                     0.572  0.474  0.394  0.341
+delta_gap                           0.587  0.463  0.396  0.344
+badge_pairs                         0.590  0.484  0.369  0.347
+probcover_pairs                     0.576  0.462  0.402  0.353
+uncertainty_diversity               0.568  0.493  0.389  0.344
+mc_dropout_mutual_information       0.576  0.490  0.400  0.342
+image_coverage_uncertainty          0.571  0.495  0.396  0.352
+uncertainty                         0.567  0.512  0.384  0.364
+uncertainty_lf                      0.601  0.501  0.388  0.353
+uncertainty_all_heads               0.601  0.501  0.388  0.353
+uncertainty_diversity_lf            0.550  0.541  0.404  0.352
+delta_ucb                           0.637  0.488  0.392  0.343
+mc_dropout_mutual_information_lf    0.657  0.511  0.401  0.346
+dropquery_pairs                     0.634  0.514  0.412  0.358
+mc_dropout_probability_variance_lf  0.638  0.531  0.411  0.350
+graphcut_pairs                      0.698  0.633  0.409  0.348
 
-[test_calibrated_log_loss] Friedman test across 25 strategies with data on all 35 seeds: chi2=67.9, p=0.0000
+[test_calibrated_log_loss] Friedman test across 31 strategies with data on all 35 seeds: chi2=93.1, p=0.0000
 
 === calibrated log-loss (lower is better); gain = improvement over random, per seed averaged over budgets ===
-                                 mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
-family                                                                                            
-core_set_relation                   0.0381  0.0727  35       0.6857      0.0021  0.0501    11.4036
-typiclust_pairs                     0.0356  0.0724  35       0.5714      0.0101  0.2128    12.0857
-delta_gap                           0.0346  0.0729  35       0.6571      0.0034  0.0778    11.6321
-delta_ucb                           0.0288  0.0715  35       0.6571      0.0263  0.3945    12.6393
-cluster_margin_pairwise             0.0263  0.0592  35       0.6286      0.0200  0.3406    12.2643
-laplace_bald                        0.0245  0.0959  35       0.7714      0.0096  0.2118    10.8321
-probcover_pairs                     0.0226  0.1008  35       0.6857      0.0118  0.2358    12.2071
-maxherding_pairs                    0.0136  0.1323  35       0.7143      0.0124  0.2358    12.5964
-uncertainty_diversity               0.0129  0.0598  35       0.4857      0.3507  1.0000    13.7964
-dpp_pairs                           0.0124  0.0652  35       0.6857      0.0456  0.5698    12.4071
-fass_pairs                          0.0117  0.0791  35       0.5714      0.2726  1.0000    13.3571
-fisher_dopt                         0.0093  0.1429  35       0.6571      0.0341  0.4779    11.2679
-badge_pairs                         0.0091  0.0816  35       0.5143      0.3259  1.0000    12.4643
-mc_dropout_mutual_information       0.0084  0.0732  35       0.5714      0.2012  1.0000    13.2393
-bald_decisive                       0.0077  0.1200  35       0.6000      0.0438  0.5698    11.5643
-core_set                            0.0076  0.0708  35       0.5429      0.8398  1.0000    13.9071
-graph_facility_location             0.0031  0.0997  35       0.4857      0.6680  1.0000    13.1786
-cluster_quota_uncertainty           0.0028  0.0943  35       0.6857      0.1187  1.0000    12.6929
-mc_dropout_probability_variance     0.0028  0.0670  35       0.6571      0.4510  1.0000    12.9179
-uncertainty                         0.0004  0.0878  35       0.5429      0.7524  1.0000    13.6607
-graphcut_pairs                     -0.0104  0.1020  35       0.4857      0.8779  1.0000    14.3000
-image_coverage_uncertainty         -0.0137  0.0795  35       0.3714      0.0871  0.9578    14.9107
-dropquery_pairs                    -0.0195  0.0712  35       0.3143      0.0210  0.3406    15.1786
-uncertainty_all_heads              -0.0282  0.0974  35       0.3429      0.0182  0.3285    15.4393
+                                    mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                               
+core_set_relation                      0.0381  0.0727  35       0.6857      0.0021  0.0626    13.6964
+typiclust_pairs                        0.0356  0.0724  35       0.5714      0.0101  0.2736    14.4929
+delta_gap                              0.0346  0.0729  35       0.6571      0.0034  0.0982    13.9607
+delta_ucb                              0.0288  0.0715  35       0.6571      0.0263  0.5260    15.2607
+cluster_margin_pairwise                0.0263  0.0592  35       0.6286      0.0200  0.4407    14.7464
+laplace_bald                           0.0245  0.0959  35       0.7714      0.0096  0.2695    12.9393
+probcover_pairs                        0.0226  0.1008  35       0.6857      0.0118  0.3066    14.7357
+maxherding_pairs                       0.0136  0.1323  35       0.7143      0.0124  0.3099    15.0464
+uncertainty_diversity                  0.0129  0.0598  35       0.4857      0.3507  1.0000    16.6679
+dpp_pairs                              0.0124  0.0652  35       0.6857      0.0456  0.7889    14.8929
+fass_pairs                             0.0117  0.0791  35       0.5714      0.2726  1.0000    16.1071
+fisher_dopt                            0.0093  0.1429  35       0.6571      0.0341  0.6486    13.5893
+badge_pairs                            0.0091  0.0816  35       0.5143      0.3259  1.0000    15.2286
+cluster_margin_pairwise_lf             0.0091  0.0496  35       0.4286      0.8146  1.0000    16.3179
+mc_dropout_mutual_information          0.0084  0.0732  35       0.5714      0.2012  1.0000    15.9250
+bald_decisive                          0.0077  0.1200  35       0.6000      0.0438  0.7889    14.0857
+core_set                               0.0076  0.0708  35       0.5429      0.8398  1.0000    16.6929
+graph_facility_location                0.0031  0.0997  35       0.4857      0.6680  1.0000    15.8929
+cluster_quota_uncertainty              0.0028  0.0943  35       0.6857      0.1187  1.0000    15.2393
+mc_dropout_probability_variance        0.0028  0.0670  35       0.6571      0.4510  1.0000    15.5393
+cluster_quota_uncertainty_lf           0.0015  0.1245  35       0.6571      0.1633  1.0000    15.7679
+uncertainty                            0.0004  0.0878  35       0.5429      0.7524  1.0000    16.6250
+graphcut_pairs                        -0.0104  0.1020  35       0.4857      0.8779  1.0000    17.3000
+image_coverage_uncertainty            -0.0137  0.0795  35       0.3714      0.0871  1.0000    18.1429
+uncertainty_diversity_lf              -0.0138  0.0835  35       0.4571      0.4222  1.0000    17.3643
+dropquery_pairs                       -0.0195  0.0712  35       0.3143      0.0210  0.4407    18.3286
+mc_dropout_mutual_information_lf      -0.0204  0.0808  35       0.4857      0.3180  1.0000    17.9429
+mc_dropout_probability_variance_lf    -0.0239  0.0954  35       0.4857      0.1898  1.0000    17.6714
+uncertainty_all_heads                 -0.0282  0.0974  35       0.3429      0.0182  0.4380    18.8286
+uncertainty_lf                        -0.0282  0.0974  35       0.3429      0.0182  0.4380    18.8286
 by budget (mean):
-budget                              10     20     40     60
-family                                                     
-core_set_relation                0.463  0.411  0.376  0.356
-typiclust_pairs                  0.447  0.436  0.387  0.348
-delta_gap                        0.453  0.415  0.396  0.357
-delta_ucb                        0.472  0.434  0.385  0.353
-cluster_margin_pairwise          0.477  0.435  0.398  0.345
-laplace_bald                     0.486  0.440  0.405  0.330
-probcover_pairs                  0.507  0.411  0.387  0.365
-maxherding_pairs                 0.450  0.416  0.462  0.377
-uncertainty_diversity            0.494  0.441  0.413  0.359
-dpp_pairs                        0.453  0.475  0.397  0.385
-fass_pairs                       0.481  0.482  0.409  0.342
-fisher_dopt                      0.540  0.444  0.372  0.366
-badge_pairs                      0.465  0.492  0.398  0.367
-mc_dropout_mutual_information    0.471  0.449  0.411  0.395
-bald_decisive                    0.478  0.450  0.413  0.387
-core_set                         0.490  0.461  0.404  0.374
-graph_facility_location          0.469  0.510  0.391  0.377
-cluster_quota_uncertainty        0.453  0.472  0.439  0.384
-mc_dropout_probability_variance  0.470  0.470  0.423  0.385
-uncertainty                      0.466  0.478  0.414  0.400
-graphcut_pairs                   0.489  0.476  0.430  0.406
-image_coverage_uncertainty       0.512  0.469  0.429  0.405
-dropquery_pairs                  0.499  0.524  0.423  0.391
-uncertainty_all_heads            0.536  0.468  0.461  0.407
+budget                                 10     20     40     60
+family                                                        
+core_set_relation                   0.463  0.411  0.376  0.356
+typiclust_pairs                     0.447  0.436  0.387  0.348
+delta_gap                           0.453  0.415  0.396  0.357
+delta_ucb                           0.472  0.434  0.385  0.353
+cluster_margin_pairwise             0.477  0.435  0.398  0.345
+laplace_bald                        0.486  0.440  0.405  0.330
+probcover_pairs                     0.507  0.411  0.387  0.365
+maxherding_pairs                    0.450  0.416  0.462  0.377
+uncertainty_diversity               0.494  0.441  0.413  0.359
+dpp_pairs                           0.453  0.475  0.397  0.385
+fass_pairs                          0.481  0.482  0.409  0.342
+fisher_dopt                         0.540  0.444  0.372  0.366
+badge_pairs                         0.465  0.492  0.398  0.367
+cluster_margin_pairwise_lf          0.474  0.457  0.419  0.373
+mc_dropout_mutual_information       0.471  0.449  0.411  0.395
+bald_decisive                       0.478  0.450  0.413  0.387
+core_set                            0.490  0.461  0.404  0.374
+graph_facility_location             0.469  0.510  0.391  0.377
+cluster_quota_uncertainty           0.453  0.472  0.439  0.384
+mc_dropout_probability_variance     0.470  0.470  0.423  0.385
+cluster_quota_uncertainty_lf        0.473  0.493  0.430  0.358
+uncertainty                         0.466  0.478  0.414  0.400
+graphcut_pairs                      0.489  0.476  0.430  0.406
+image_coverage_uncertainty          0.512  0.469  0.429  0.405
+uncertainty_diversity_lf            0.472  0.516  0.436  0.391
+dropquery_pairs                     0.499  0.524  0.423  0.391
+mc_dropout_mutual_information_lf    0.511  0.477  0.418  0.436
+mc_dropout_probability_variance_lf  0.508  0.487  0.439  0.422
+uncertainty_all_heads               0.536  0.468  0.461  0.407
+uncertainty_lf                      0.536  0.468  0.461  0.407
 
-[test_decisive_auc] Friedman test across 25 strategies with data on all 35 seeds: chi2=47.2, p=0.0032
+[test_decisive_auc] Friedman test across 31 strategies with data on all 35 seeds: chi2=67.4, p=0.0001
 
 === AUC (higher is better); gain = improvement over random, per seed averaged over budgets ===
-                                 mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
-family                                                                                            
-bald_decisive                       0.0101  0.0158  35       0.7714      0.0008  0.0201    11.0964
-laplace_bald                        0.0096  0.0141  35       0.7714      0.0010  0.0230    10.7500
-fisher_dopt                         0.0081  0.0199  35       0.6000      0.0313  0.6580    11.3643
-maxherding_pairs                    0.0074  0.0169  35       0.6286      0.0200  0.4407    12.3714
-typiclust_pairs                     0.0056  0.0175  35       0.6571      0.0475  0.9504    12.5464
-core_set_relation                   0.0055  0.0166  35       0.6286      0.0601  1.0000    12.1179
-delta_gap                           0.0055  0.0171  35       0.6000      0.0601  1.0000    12.8036
-probcover_pairs                     0.0050  0.0152  35       0.6286      0.0902  1.0000    13.3786
-cluster_quota_uncertainty           0.0050  0.0191  35       0.7143      0.0557  1.0000    12.1643
-dpp_pairs                           0.0048  0.0182  35       0.6286      0.1073  1.0000    12.3214
-graph_facility_location             0.0038  0.0160  35       0.5143      0.2726  1.0000    12.5143
-mc_dropout_mutual_information       0.0035  0.0202  35       0.4857      0.3855  1.0000    12.7679
-mc_dropout_probability_variance     0.0034  0.0166  35       0.5429      0.3678  1.0000    12.7429
-fass_pairs                          0.0033  0.0180  35       0.5429      0.3423  1.0000    13.0214
-badge_pairs                         0.0023  0.0190  35       0.5429      0.4413  1.0000    13.2929
-cluster_margin_pairwise             0.0016  0.0181  35       0.5143      0.7524  1.0000    13.0179
-delta_ucb                           0.0013  0.0184  35       0.5714      0.7038  1.0000    13.9321
-uncertainty                         0.0013  0.0146  35       0.5714      0.6563  1.0000    13.1964
-uncertainty_diversity               0.0008  0.0138  35       0.5143      0.7158  1.0000    13.5893
-graphcut_pairs                     -0.0001  0.0192  35       0.5143      0.6918  1.0000    13.7643
-image_coverage_uncertainty         -0.0003  0.0178  35       0.6000      0.7402  1.0000    14.0071
-core_set                           -0.0019  0.0199  35       0.5429      0.5223  1.0000    14.1500
-uncertainty_all_heads              -0.0036  0.0174  35       0.4286      0.3855  1.0000    14.4714
-dropquery_pairs                    -0.0038  0.0203  35       0.4571      0.3101  1.0000    14.4179
+                                    mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                               
+bald_decisive                          0.0101  0.0158  35       0.7714      0.0008  0.0251    13.4071
+laplace_bald                           0.0096  0.0141  35       0.7714      0.0010  0.0289    12.8143
+fisher_dopt                            0.0081  0.0199  35       0.6000      0.0313  0.8461    13.7357
+maxherding_pairs                       0.0074  0.0169  35       0.6286      0.0200  0.5609    14.8536
+typiclust_pairs                        0.0056  0.0175  35       0.6571      0.0475  1.0000    15.1464
+core_set_relation                      0.0055  0.0166  35       0.6286      0.0601  1.0000    14.6036
+delta_gap                              0.0055  0.0171  35       0.6000      0.0601  1.0000    15.4143
+probcover_pairs                        0.0050  0.0152  35       0.6286      0.0902  1.0000    16.0286
+cluster_quota_uncertainty              0.0050  0.0191  35       0.7143      0.0557  1.0000    14.5786
+dpp_pairs                              0.0048  0.0182  35       0.6286      0.1073  1.0000    14.8429
+graph_facility_location                0.0038  0.0160  35       0.5143      0.2726  1.0000    15.1821
+mc_dropout_mutual_information          0.0035  0.0202  35       0.4857      0.3855  1.0000    15.4714
+mc_dropout_probability_variance        0.0034  0.0166  35       0.5429      0.3678  1.0000    15.4000
+fass_pairs                             0.0033  0.0180  35       0.5429      0.3423  1.0000    15.6250
+badge_pairs                            0.0023  0.0190  35       0.5429      0.4413  1.0000    16.0750
+cluster_margin_pairwise                0.0016  0.0181  35       0.5143      0.7524  1.0000    15.6143
+cluster_quota_uncertainty_lf           0.0015  0.0195  35       0.5429      0.5118  1.0000    16.5357
+delta_ucb                              0.0013  0.0184  35       0.5714      0.7038  1.0000    16.8321
+uncertainty                            0.0013  0.0146  35       0.5714      0.6563  1.0000    15.9357
+uncertainty_diversity                  0.0008  0.0138  35       0.5143      0.7158  1.0000    16.2357
+graphcut_pairs                        -0.0001  0.0192  35       0.5143      0.6918  1.0000    16.5750
+image_coverage_uncertainty            -0.0003  0.0178  35       0.6000      0.7402  1.0000    16.8393
+core_set                              -0.0019  0.0199  35       0.5429      0.5223  1.0000    17.1214
+cluster_margin_pairwise_lf            -0.0027  0.0157  35       0.4571      0.4036  1.0000    17.4321
+uncertainty_all_heads                 -0.0036  0.0174  35       0.4286      0.3855  1.0000    17.4036
+uncertainty_lf                        -0.0036  0.0174  35       0.4286      0.3855  1.0000    17.4036
+dropquery_pairs                       -0.0038  0.0203  35       0.4571      0.3101  1.0000    17.3714
+uncertainty_diversity_lf              -0.0062  0.0192  35       0.4000      0.1310  1.0000    17.9500
+mc_dropout_mutual_information_lf      -0.0066  0.0252  35       0.4286      0.2947  1.0000    17.9429
+mc_dropout_probability_variance_lf    -0.0067  0.0274  35       0.4000      0.2254  1.0000    17.4321
 by budget (mean):
-budget                              10     20     40     60
-family                                                     
-bald_decisive                    0.899  0.913  0.932  0.935
-laplace_bald                     0.897  0.908  0.927  0.945
-fisher_dopt                      0.898  0.908  0.931  0.935
-maxherding_pairs                 0.901  0.912  0.925  0.931
-typiclust_pairs                  0.895  0.908  0.923  0.935
-core_set_relation                0.887  0.910  0.927  0.936
-delta_gap                        0.888  0.911  0.925  0.937
-probcover_pairs                  0.896  0.909  0.922  0.932
-cluster_quota_uncertainty        0.894  0.908  0.922  0.935
-dpp_pairs                        0.898  0.897  0.925  0.938
-graph_facility_location          0.884  0.907  0.929  0.934
-mc_dropout_mutual_information    0.891  0.907  0.921  0.934
-mc_dropout_probability_variance  0.889  0.907  0.922  0.934
-fass_pairs                       0.883  0.906  0.927  0.936
-badge_pairs                      0.885  0.901  0.929  0.933
-cluster_margin_pairwise          0.877  0.904  0.929  0.936
-delta_ucb                        0.880  0.902  0.925  0.937
-uncertainty                      0.888  0.900  0.923  0.933
-uncertainty_diversity            0.884  0.901  0.921  0.936
-graphcut_pairs                   0.890  0.889  0.923  0.936
-image_coverage_uncertainty       0.884  0.901  0.920  0.933
-core_set                         0.873  0.900  0.921  0.937
-uncertainty_all_heads            0.876  0.892  0.924  0.932
-dropquery_pairs                  0.877  0.898  0.919  0.930
+budget                                 10     20     40     60
+family                                                        
+bald_decisive                       0.899  0.913  0.932  0.935
+laplace_bald                        0.897  0.908  0.927  0.945
+fisher_dopt                         0.898  0.908  0.931  0.935
+maxherding_pairs                    0.901  0.912  0.925  0.931
+typiclust_pairs                     0.895  0.908  0.923  0.935
+core_set_relation                   0.887  0.910  0.927  0.936
+delta_gap                           0.888  0.911  0.925  0.937
+probcover_pairs                     0.896  0.909  0.922  0.932
+cluster_quota_uncertainty           0.894  0.908  0.922  0.935
+dpp_pairs                           0.898  0.897  0.925  0.938
+graph_facility_location             0.884  0.907  0.929  0.934
+mc_dropout_mutual_information       0.891  0.907  0.921  0.934
+mc_dropout_probability_variance     0.889  0.907  0.922  0.934
+fass_pairs                          0.883  0.906  0.927  0.936
+badge_pairs                         0.885  0.901  0.929  0.933
+cluster_margin_pairwise             0.877  0.904  0.929  0.936
+cluster_quota_uncertainty_lf        0.889  0.901  0.920  0.935
+delta_ucb                           0.880  0.902  0.925  0.937
+uncertainty                         0.888  0.900  0.923  0.933
+uncertainty_diversity               0.884  0.901  0.921  0.936
+graphcut_pairs                      0.890  0.889  0.923  0.936
+image_coverage_uncertainty          0.884  0.901  0.920  0.933
+core_set                            0.873  0.900  0.921  0.937
+cluster_margin_pairwise_lf          0.875  0.903  0.917  0.933
+uncertainty_all_heads               0.876  0.892  0.924  0.932
+uncertainty_lf                      0.876  0.892  0.924  0.932
+dropquery_pairs                     0.877  0.898  0.919  0.930
+uncertainty_diversity_lf            0.881  0.882  0.917  0.934
+mc_dropout_mutual_information_lf    0.866  0.891  0.922  0.934
+mc_dropout_probability_variance_lf  0.872  0.884  0.921  0.935
 
-[test_decisive_accuracy] Friedman test across 25 strategies with data on all 35 seeds: chi2=41.5, p=0.0147
+[test_decisive_accuracy] Friedman test across 31 strategies with data on all 35 seeds: chi2=56.1, p=0.0026
 
 === accuracy (higher is better); gain = improvement over random, per seed averaged over budgets ===
-                                 mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
-family                                                                                            
-laplace_bald                        0.0117  0.0211  35       0.7143      0.0063  0.1513    10.8750
-bald_decisive                       0.0084  0.0260  35       0.5714      0.1037  1.0000    12.1250
-fisher_dopt                         0.0084  0.0293  35       0.6286      0.0840  1.0000    11.9071
-image_coverage_uncertainty          0.0079  0.0217  35       0.6286      0.0557  1.0000    11.9500
-dpp_pairs                           0.0077  0.0246  35       0.6000      0.0654  1.0000    12.1893
-badge_pairs                         0.0073  0.0243  35       0.6286      0.0404  0.9286    12.4250
-maxherding_pairs                    0.0068  0.0231  35       0.5143      0.1843  1.0000    12.5464
-delta_gap                           0.0066  0.0210  35       0.6286      0.0421  0.9286    12.1286
-dropquery_pairs                     0.0059  0.0230  35       0.5714      0.1788  1.0000    12.2107
-typiclust_pairs                     0.0052  0.0212  35       0.6000      0.0968  1.0000    12.8143
-uncertainty_all_heads               0.0041  0.0232  35       0.4571      0.5104  1.0000    12.5000
-graphcut_pairs                      0.0037  0.0262  35       0.5429      0.2872  1.0000    12.8250
-fass_pairs                          0.0036  0.0261  35       0.5143      0.5223  1.0000    12.9036
-graph_facility_location             0.0034  0.0218  35       0.5143      0.4036  1.0000    13.3107
-probcover_pairs                     0.0032  0.0220  35       0.5429      0.4222  1.0000    13.1929
-core_set_relation                   0.0030  0.0213  35       0.5429      0.6215  1.0000    13.4750
-cluster_quota_uncertainty           0.0022  0.0236  35       0.5143      0.4266  1.0000    13.4179
-cluster_margin_pairwise             0.0020  0.0222  35       0.5143      0.6799  1.0000    13.1643
-uncertainty                         0.0012  0.0190  35       0.5143      0.6101  1.0000    13.7357
-uncertainty_diversity               0.0007  0.0204  35       0.5143      0.8525  1.0000    13.7071
-delta_ucb                          -0.0018  0.0230  35       0.4571      0.5668  1.0000    14.1893
-mc_dropout_mutual_information      -0.0035  0.0278  35       0.4000      0.3507  1.0000    13.8607
-core_set                           -0.0054  0.0261  35       0.3429      0.2254  1.0000    14.4464
-mc_dropout_probability_variance    -0.0058  0.0216  35       0.4286      0.1584  1.0000    14.6250
+                                    mean_gain      sd   n  frac_better  wilcoxon_p  holm_p  mean_rank
+family                                                                                               
+laplace_bald                           0.0117  0.0211  35       0.7143      0.0063  0.1891    13.1571
+bald_decisive                          0.0084  0.0260  35       0.5714      0.1037  1.0000    14.5464
+fisher_dopt                            0.0084  0.0293  35       0.6286      0.0840  1.0000    14.4321
+image_coverage_uncertainty             0.0079  0.0217  35       0.6286      0.0557  1.0000    14.3750
+dpp_pairs                              0.0077  0.0246  35       0.6000      0.0654  1.0000    14.7321
+badge_pairs                            0.0073  0.0243  35       0.6286      0.0404  1.0000    15.2000
+maxherding_pairs                       0.0068  0.0231  35       0.5143      0.1843  1.0000    15.2214
+delta_gap                              0.0066  0.0210  35       0.6286      0.0421  1.0000    14.7857
+dropquery_pairs                        0.0059  0.0230  35       0.5714      0.1788  1.0000    14.9607
+typiclust_pairs                        0.0052  0.0212  35       0.6000      0.0968  1.0000    15.4393
+uncertainty_lf                         0.0041  0.0232  35       0.4571      0.5104  1.0000    15.1571
+uncertainty_all_heads                  0.0041  0.0232  35       0.4571      0.5104  1.0000    15.1571
+graphcut_pairs                         0.0037  0.0262  35       0.5429      0.2872  1.0000    15.6393
+fass_pairs                             0.0036  0.0261  35       0.5143      0.5223  1.0000    15.6036
+graph_facility_location                0.0034  0.0218  35       0.5143      0.4036  1.0000    16.1036
+probcover_pairs                        0.0032  0.0220  35       0.5429      0.4222  1.0000    15.9714
+core_set_relation                      0.0030  0.0213  35       0.5429      0.6215  1.0000    16.2786
+cluster_quota_uncertainty              0.0022  0.0236  35       0.5143      0.4266  1.0000    16.2786
+cluster_margin_pairwise                0.0020  0.0222  35       0.5143      0.6799  1.0000    15.9071
+uncertainty                            0.0012  0.0190  35       0.5143      0.6101  1.0000    16.6036
+uncertainty_diversity                  0.0007  0.0204  35       0.5143      0.8525  1.0000    16.5357
+cluster_quota_uncertainty_lf          -0.0005  0.0268  35       0.4286      0.7158  1.0000    17.1607
+delta_ucb                             -0.0018  0.0230  35       0.4571      0.5668  1.0000    17.1429
+uncertainty_diversity_lf              -0.0024  0.0260  35       0.4857      0.6799  1.0000    17.1036
+mc_dropout_mutual_information         -0.0035  0.0278  35       0.4000      0.3507  1.0000    16.9500
+mc_dropout_probability_variance_lf    -0.0043  0.0284  35       0.4286      0.6215  1.0000    16.9393
+cluster_margin_pairwise_lf            -0.0048  0.0215  35       0.4286      0.1442  1.0000    17.8893
+core_set                              -0.0054  0.0261  35       0.3429      0.2254  1.0000    17.6571
+mc_dropout_probability_variance       -0.0058  0.0216  35       0.4286      0.1584  1.0000    17.7929
+mc_dropout_mutual_information_lf      -0.0060  0.0237  35       0.4571      0.2872  1.0000    17.8357
 by budget (mean):
-budget                              10     20     40     60
-family                                                     
-laplace_bald                     0.828  0.839  0.852  0.876
-bald_decisive                    0.820  0.841  0.855  0.868
-fisher_dopt                      0.832  0.834  0.858  0.859
-image_coverage_uncertainty       0.820  0.840  0.855  0.867
-dpp_pairs                        0.829  0.830  0.856  0.866
-badge_pairs                      0.825  0.833  0.860  0.860
-maxherding_pairs                 0.828  0.847  0.844  0.857
-delta_gap                        0.819  0.837  0.854  0.866
-dropquery_pairs                  0.821  0.832  0.855  0.865
-typiclust_pairs                  0.823  0.835  0.847  0.865
-uncertainty_all_heads            0.820  0.827  0.854  0.866
-graphcut_pairs                   0.830  0.814  0.855  0.865
-fass_pairs                       0.815  0.836  0.853  0.860
-graph_facility_location          0.815  0.841  0.850  0.858
-probcover_pairs                  0.821  0.836  0.848  0.858
-core_set_relation                0.823  0.829  0.850  0.860
-cluster_quota_uncertainty        0.821  0.833  0.846  0.857
-cluster_margin_pairwise          0.806  0.832  0.854  0.865
-uncertainty                      0.819  0.831  0.851  0.853
-uncertainty_diversity            0.811  0.842  0.839  0.860
-delta_ucb                        0.809  0.817  0.855  0.861
-mc_dropout_mutual_information    0.807  0.825  0.851  0.853
-core_set                         0.799  0.823  0.848  0.858
-mc_dropout_probability_variance  0.807  0.825  0.841  0.853
+budget                                 10     20     40     60
+family                                                        
+laplace_bald                        0.828  0.839  0.852  0.876
+bald_decisive                       0.820  0.841  0.855  0.868
+fisher_dopt                         0.832  0.834  0.858  0.859
+image_coverage_uncertainty          0.820  0.840  0.855  0.867
+dpp_pairs                           0.829  0.830  0.856  0.866
+badge_pairs                         0.825  0.833  0.860  0.860
+maxherding_pairs                    0.828  0.847  0.844  0.857
+delta_gap                           0.819  0.837  0.854  0.866
+dropquery_pairs                     0.821  0.832  0.855  0.865
+typiclust_pairs                     0.823  0.835  0.847  0.865
+uncertainty_lf                      0.820  0.827  0.854  0.866
+uncertainty_all_heads               0.820  0.827  0.854  0.866
+graphcut_pairs                      0.830  0.814  0.855  0.865
+fass_pairs                          0.815  0.836  0.853  0.860
+graph_facility_location             0.815  0.841  0.850  0.858
+probcover_pairs                     0.821  0.836  0.848  0.858
+core_set_relation                   0.823  0.829  0.850  0.860
+cluster_quota_uncertainty           0.821  0.833  0.846  0.857
+cluster_margin_pairwise             0.806  0.832  0.854  0.865
+uncertainty                         0.819  0.831  0.851  0.853
+uncertainty_diversity               0.811  0.842  0.839  0.860
+cluster_quota_uncertainty_lf        0.817  0.823  0.843  0.865
+delta_ucb                           0.809  0.817  0.855  0.861
+uncertainty_diversity_lf            0.820  0.818  0.844  0.858
+mc_dropout_mutual_information       0.807  0.825  0.851  0.853
+mc_dropout_probability_variance_lf  0.811  0.818  0.842  0.861
+cluster_margin_pairwise_lf          0.794  0.821  0.852  0.863
+core_set                            0.799  0.823  0.848  0.858
+mc_dropout_probability_variance     0.807  0.825  0.841  0.853
+mc_dropout_mutual_information_lf    0.802  0.825  0.837  0.862
 
 initial only (10 groups): {'test_decisive_log_loss': np.float64(0.715), 'test_calibrated_log_loss': np.float64(0.482), 'test_decisive_auc': np.float64(0.872), 'test_decisive_accuracy': np.float64(0.813)}

@@ -25,5 +25,5 @@ Written at the end of an unattended session. Everything below ran on CPU; nothin
 1. **Second encoder** for the held-out-preference study (ImageNet ResNet-18, DINOv2 or another self-supervised model): re-run `build_feature_cache.py` with that encoder and the same two study scripts; checks whether the Fisher/Laplace-posterior advantage is encoder-specific.
 2. **End-to-end fine-tuning with order-independent training** (full-batch via gradient accumulation) on the held-out-preference endpoint, to see whether the frozen-head conclusions transfer to the fine-tuned model that the original Task 3 used.
 3. **Strategy-specific hyper-parameters** (learning rate/steps per strategy) for the top five strategies, selected on validation only.
-4. **More candidates**: re-split with a larger candidate pool by moving groups from the unused part of the 168 (or label the 58 groups of the original CSV that Task 3 left unused) to test budgets beyond 60.
-5. **Matching the original eight to the label-free typing** (remove the first-row-type quirk) and re-run, so all 25 strategies are on the same footing.
+4. **More candidates**: re-split with a larger candidate pool by moving groups from the unused part of the 168 (or use the 58 pair groups that the original Task 3 pool left unused) to test budgets beyond 60.
+5. (Done in this session, `_lf` variants; see §5.12.) Re-deriving the original rules natively for four heads rather than silencing the Twinned head.

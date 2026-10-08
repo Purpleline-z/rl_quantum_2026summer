@@ -36,7 +36,7 @@ def main() -> None:
                 rows[family] = (v.mean(), *np.percentile(boots, [2.5, 97.5]), table.loc[family, "holm_p"] < 0.05)
             data[(mode, metric)] = rows
             if order is None: order = sorted(rows, key=lambda f: rows[f][0])   # single-shot log-loss gain, worst to best (best at top)
-    fig, axes = plt.subplots(2, 2, figsize=(11.5, 9.6), sharey=True)
+    fig, axes = plt.subplots(2, 2, figsize=(11.5, 11.4), sharey=True)
     for r, mode in enumerate(("single", "sequential")):
         for c, (metric, lower, label) in enumerate(PANELS):
             ax = axes[r, c]; rows = data[(mode, metric)]
@@ -44,7 +44,7 @@ def main() -> None:
                 mean, lo, hi, sig = rows[family]
                 ax.plot([lo, hi], [y, y], color=MARK, lw=1.6, solid_capstyle="round", alpha=.85)
                 ax.plot(mean, y, marker="o", ms=7, mfc=MARK if sig else "white", mec=MARK, mew=1.8, ls="none")
-            ax.axvline(0, color=INK, lw=1.2); ax.set_yticks(range(len(order))); ax.set_yticklabels([NAMES.get(f, f) for f in order], fontsize=8, color=INK)
+            ax.axvline(0, color=INK, lw=1.2); ax.set_yticks(range(len(order))); ax.set_yticklabels([NAMES.get(f, f) for f in order], fontsize=7.5, color=INK)
             ax.grid(axis="x", color=MUTED, alpha=.18, lw=.8); ax.set_axisbelow(True)
             for side in ("top", "right", "left"): ax.spines[side].set_visible(False)
             ax.spines["bottom"].set_color(MUTED); ax.tick_params(axis="both", colors=MUTED, length=0); ax.tick_params(axis="y", labelcolor=INK)
