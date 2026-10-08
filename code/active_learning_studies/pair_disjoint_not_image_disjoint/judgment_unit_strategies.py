@@ -274,6 +274,8 @@ def make_selector(name: str, exp):
     if name == "core_set": return via_experiment(False, "core_set", True)
     if name.endswith("_lf"): return via_experiment(True, name[:-3], True)
     if name in ORIGINAL_ROW: return via_experiment(False, name, False)
+    import graph_strategies  # graph-aware rules (branch claude/graph-active-selection); imported lazily because that module imports this one
+    if name in graph_strategies.GRAPH_NAMES: return graph_strategies.make_selector(name)
     raise ValueError(name)
 
 

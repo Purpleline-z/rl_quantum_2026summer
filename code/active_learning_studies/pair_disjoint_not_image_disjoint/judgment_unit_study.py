@@ -39,7 +39,10 @@ ENSEMBLE_SIZE = 8
 def strategy_names() -> list[str]:
     reps = lambda base: [base] + [f"{base}_r{r}" for r in range(1, ju.RANDOM_REPLICATES)]
     non_random = [n for n in ju.STRATEGY_FAMILY if n != "random"]
-    return reps("random") + non_random + reps(ju.EXTRA_BASELINE)
+    names = reps("random") + non_random + reps(ju.EXTRA_BASELINE)
+    if os.environ.get("JU_GRAPH"):  # graph-aware strategies are opt-in; JU_ONLY then restricts the run (e.g. to the graph names only)
+        import graph_strategies; names += list(graph_strategies.GRAPH_NAMES)
+    return names
 
 
 def family_of(name: str) -> str:
