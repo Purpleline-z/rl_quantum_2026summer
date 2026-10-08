@@ -1,0 +1,7 @@
+{
+ "seed": 123,
+ "budget": 0,
+ "strategy": "initial_only",
+ "utility_validation_accuracy": 0.8571428571428571,
+ "outer_test_accuracy": 0.8214285714285714
+}

@@ -67,7 +67,7 @@ def fit_head(head: nn.Module, xa: torch.Tensor, xb: torch.Tensor, type_index: to
         a, b = head(xa)[index, type_index], head(xb)[index, type_index]
         terms = (-F.logsigmoid(a - b) * masks["1"] - F.logsigmoid(b - a) * masks["2"] + (a - b).abs() * masks["tie"]
                  + (F.relu(a) + F.relu(b)) * masks["not_apply"])
-        loss = (terms * weight).sum() / len(type_index)
+        loss = (terms * weight).sum() / max(len(type_index), 1)
         if reference_features and len(reference_features) > 1:
             scores = {name: head(f) for name, f in reference_features.items()}; values = []
             for preferred, sp in scores.items():
@@ -80,14 +80,24 @@ def fit_head(head: nn.Module, xa: torch.Tensor, xb: torch.Tensor, type_index: to
     return head.eval()
 
 
-def train_model(exp: Experiment, features: FrozenFeatures, pair_ids: list[str], lr: float, steps: int) -> BTModel:
-    """Return a BTModel whose reward head was trained on ``pair_ids`` (order of ``pair_ids`` is irrelevant)."""
+def train_model(exp: Experiment, features: FrozenFeatures, pair_ids: list[str], lr: float, steps: int,
+                head_seed: int | None = None, anchor_weight: float = .25) -> BTModel:
+    """Return a BTModel whose reward head was trained on ``pair_ids`` (order of ``pair_ids`` is irrelevant).
+
+    ``head_seed`` re-initialises the head (default: the experiment seed's initialisation); ``anchor_weight`` scales the reference-ranking loss."""
     model = copy.deepcopy(features.base_model); rows = exp.rows_for(sorted(pair_ids))
+    if head_seed is not None:
+        torch.manual_seed(head_seed)
+        for layer in model.reward_head:
+            if hasattr(layer, "reset_parameters"): layer.reset_parameters()
     refs = {c: features.get(ps) for c, ps in exp.references.items()}
     bad = features.get(exp.bad_paths) if exp.bad_paths else None
-    fit_head(model.reward_head, features.get(rows.resolved_img1), features.get(rows.resolved_img2),
-             torch.as_tensor(rows.type_idx.to_numpy()), torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32),
-             rows.Winner.to_numpy(), refs, bad, lr, steps, exp.cfg.weight_decay, bad_weight=exp.cfg.bad_anchor_weight)
+    if rows.empty:  # no labelled pairs: only the reference and bad-image anchors train the head
+        xa = xb = torch.empty(0, 512); typ = torch.empty(0, dtype=torch.long); weight = torch.empty(0); winner = np.array([], dtype=object)
+    else:
+        xa, xb, typ = features.get(rows.resolved_img1), features.get(rows.resolved_img2), torch.as_tensor(rows.type_idx.to_numpy())
+        weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
+    fit_head(model.reward_head, xa, xb, typ, weight, winner, refs, bad, lr, steps, exp.cfg.weight_decay, anchor_weight=anchor_weight, bad_weight=exp.cfg.bad_anchor_weight)
     return model.eval()
 
 

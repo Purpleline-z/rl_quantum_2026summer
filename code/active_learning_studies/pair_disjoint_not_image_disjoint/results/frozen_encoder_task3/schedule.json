@@ -1,0 +1,31 @@
+{
+  "selection": "mean utility-validation accuracy, seeds 42/79/123; ties: fewer steps then lower lr",
+  "outer_test_used": false,
+  "protocol_by_budget": {
+    "10": {
+      "learning_rate": 0.01,
+      "steps": 300,
+      "mean_utility_validation_accuracy": 0.8571428571428571
+    },
+    "25": {
+      "learning_rate": 0.003,
+      "steps": 300,
+      "mean_utility_validation_accuracy": 0.8809523809523809
+    },
+    "50": {
+      "learning_rate": 0.01,
+      "steps": 100,
+      "mean_utility_validation_accuracy": 0.9047619047619048
+    },
+    "75": {
+      "learning_rate": 0.003,
+      "steps": 100,
+      "mean_utility_validation_accuracy": 0.8928571428571429
+    },
+    "100": {
+      "learning_rate": 0.001,
+      "steps": 300,
+      "mean_utility_validation_accuracy": 0.8690476190476191
+    }
+  }
+}
