@@ -46,3 +46,11 @@ RHEED reconstruction images (STO, four active types: (1x1), c(6x2), (√13x√13
 1. Is (pair, type) the real query unit, and should the budget count judgments rather than groups?
 2. Are held-out preference prediction metrics (log-loss, AUC) acceptable as the primary endpoint, given that ideal-image type accuracy is saturated by the reference anchors?
 3. Second encoder and a larger candidate pool before recommending any strategy; no PR or merge to `main` yet.
+
+## Update (judgment-unit rerun, merged into this branch)
+- The labelling software asks one pair and one type per query, so the real query unit is one (pair, type) judgment. The earlier study selected whole groups (about 3.1 judgments each) and counted the budget in groups: a design flaw of the earlier simulation, now acknowledged to advisors.
+- Rerun (35 seeds, both splits, single-shot and sequential, budgets 10/20/40/60 judgments, 32 variants + Random + random_pair_type): `code/active_learning_studies/pair_disjoint_not_image_disjoint/JUDGMENT_UNIT_RESULTS.md`, report §5.14. Code `judgment_unit_*.py`, results `results/judgment_unit_study/`.
+- Findings: still no robust winner; the earlier significant rules (Laplace BALD, BALD x P(decisive), core-set) do not reproduce; only all-head Cluster-quota (log-loss) and ensemble BALD x P(decisive) (AUC) in Split B sequential; secondary decisive-accuracy hypothesis for ensemble BALD / Fisher D-optimal.
+- The pair-level strategy adaptations (one judgment per chosen pair, random or most-uncertain type) are my own decisions and may matter; budget 100 was not run.
+- Slack-style advisor update: `UPDATE_SLACK_STYLE.md` (written before the rerun finished; needs a line about the rerun result). Advisor update `UPDATE_FOR_ADVISORS.md` likewise.
+- Working-tree note: foreground edits were done in a git worktree (`/home/user/wt_fg`) because the background agent used the main checkout.
