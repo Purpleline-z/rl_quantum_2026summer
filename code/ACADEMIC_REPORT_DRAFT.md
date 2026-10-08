@@ -692,7 +692,44 @@ With **no pair groups at all**, the reference-anchor term alone reaches 0.848. P
 
 Only **Laplace BALD** and **BALD × P(decisive)** beat Random on both log-loss and AUC after correction (Holm p = 0.016 and 0.019 on log-loss, 0.023 and 0.020 on AUC). Two further strategies are significant on log-loss alone, Cluster-quota uncertainty (Holm p = 0.024) and the DPP selector (0.034); graph cut is significantly *worse* than Random (−0.058, p = 0.034). On calibrated log-loss no strategy survives correction (the best, relation-aware core-set, has Holm p = 0.050), so part of the raw log-loss gain comes from the scale of the scores rather than from a better ordering of the pairs. The effects are small: Laplace BALD lowers log-loss from 0.600 to 0.542 at 10 groups and from 0.356 to 0.324 at 60, and raises AUC by about 0.01, and the gains are largest at the smallest budgets. Pure uncertainty rules do not help: Uncertainty (+0.007), MC-dropout mutual information (+0.012), and the all-head entropy rule (+0.003) are indistinguishable from Random, and DropQuery (−0.016) is no better. The five-seed ranking that first suggested a large advantage for Cluster-Margin (+0.110) and core-set (+0.076) did not replicate: over 35 seeds they are +0.033 and +0.023 and neither is significant after correction, an instance of the noise that a five-seed, 28-image comparison cannot exclude.
 
-<<SEQUENTIAL_5_12>>
+**Results: sequential, 35 seeds.** With rounds of 10 groups and retraining between rounds, Random reaches log-loss 0.578, 0.474, 0.398, 0.354 and AUC 0.891, 0.907, 0.922, 0.933 at 10, 20, 40, and 60 acquired groups. The strategies again differ overall (Friedman: log-loss p = 0.0006, calibrated log-loss p < 0.0001, AUC p = 0.013, accuracy p = 0.047), but **no strategy is significantly better than Random on any of the four metrics after Holm correction**, and the gains are smaller than in the single-shot condition:
+
+| Strategy | log-loss gain | Holm p | cal. log-loss gain | Holm p | AUC gain | Holm p | seeds better (log-loss) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Core-set, relation-aware pairs | +0.023 | 1.000 | +0.027 | 0.400 | +0.002 | 1.000 | 66% (35) |
+| MaxHerding (pairs) | +0.021 | 1.000 | +0.008 | 1.000 | +0.004 | 1.000 | 66% (35) |
+| BALD x P(decisive) | +0.017 | 1.000 | +0.004 | 1.000 | +0.004 | 1.000 | 60% (35) |
+| Laplace BALD | +0.016 | 1.000 | +0.013 | 1.000 | +0.004 | 1.000 | 57% (35) |
+| Cluster-quota uncertainty | +0.015 | 1.000 | +0.001 | 1.000 | -0.002 | 1.000 | 60% (35) |
+| FASS (pairs) | +0.013 | 1.000 | +0.003 | 1.000 | -0.001 | 1.000 | 66% (35) |
+| Fisher D-optimal (Active Reward Modeling) | +0.013 | 1.000 | -0.015 | 1.000 | +0.002 | 1.000 | 54% (35) |
+| Cluster-Margin | +0.012 | 1.000 | +0.001 | 1.000 | -0.005 | 1.000 | 60% (35) |
+| Core-set | +0.010 | 1.000 | -0.004 | 1.000 | -0.005 | 1.000 | 54% (35) |
+| Largest predicted gap | +0.001 | 1.000 | +0.019 | 0.926 | +0.001 | 1.000 | 49% (35) |
+| MC-dropout variance | -0.000 | 1.000 | -0.008 | 1.000 | -0.001 | 1.000 | 63% (35) |
+| Uncertainty + diversity | -0.000 | 1.000 | -0.003 | 1.000 | -0.002 | 1.000 | 51% (35) |
+| Graph facility location (uncertainty-weighted) | -0.000 | 1.000 | -0.007 | 1.000 | -0.001 | 1.000 | 51% (35) |
+| DPP (quality x diversity) | -0.002 | 1.000 | +0.009 | 1.000 | -0.002 | 1.000 | 46% (35) |
+| ProbCover (pairs) | -0.004 | 1.000 | +0.008 | 1.000 | +0.002 | 1.000 | 57% (35) |
+| TypiClust (pairs) | -0.007 | 1.000 | +0.019 | 1.000 | +0.001 | 1.000 | 46% (35) |
+| Image-coverage uncertainty | -0.007 | 1.000 | -0.011 | 1.000 | -0.004 | 1.000 | 54% (35) |
+| BADGE (pairs) | -0.009 | 1.000 | +0.002 | 1.000 | -0.001 | 1.000 | 49% (35) |
+| MC-dropout mutual info | -0.009 | 1.000 | -0.021 | 1.000 | -0.003 | 1.000 | 54% (35) |
+| Uncertainty | -0.011 | 1.000 | -0.010 | 1.000 | -0.005 | 1.000 | 43% (35) |
+| Gap + posterior std (DeltaUCB-style) | -0.020 | 1.000 | +0.001 | 1.000 | -0.005 | 1.000 | 37% (35) |
+| Uncertainty, all heads | -0.023 | 1.000 | -0.034 | 0.108 | -0.009 | 0.108 | 49% (35) |
+| DropQuery (pairs) | -0.039 | 0.364 | -0.023 | 1.000 | -0.008 | 1.000 | 37% (35) |
+| Graph cut (pairs) | -0.049 | 0.011 | -0.025 | 1.000 | -0.001 | 1.000 | 23% (35) |
+
+Laplace BALD's log-loss gain falls from +0.038 (single-shot) to +0.016, BALD × P(decisive) from +0.038 to +0.017, and Cluster-quota uncertainty from +0.038 to +0.015, none of them significant. The relation-aware core-set (+0.023) and MaxHerding (+0.021) lead, also not significant (Holm p = 1.0). Graph cut is again significantly worse than Random (−0.049, Holm p = 0.011), and the uncertainty-driven rules (Uncertainty −0.011, all-head entropy −0.023, DropQuery −0.039, DeltaUCB-style −0.020) are at or below Random. Retraining between rounds therefore did not help the model-based rules; the one effect that appears in both conditions is that graph cut is harmful.
+
+**Cold start.** Replacing the study's default initial set (a random draw with greedy reconstruction-type coverage) by label-free choices (farthest-first, k-means, TypiClust in the relation-aware pair space, or a random draw) changes the initial model's AUC by at most 0.012 (35 seeds; paired Wilcoxon p ≥ 0.25 against the default). The raw log-loss of the initial model is lower for farthest-first and k-means (0.567 and 0.599 versus 0.715), but calibrated log-loss is the same for all sets, so this difference reflects score scale rather than ranking quality. After 30 further random groups all initial sets are within noise (`notes/literature_and_new_strategy_ideas.md`). A first analysis on five seeds had suggested that the type-covering default is better; that did not replicate and is not claimed.
+
+**Reading the two conditions together.** On a preference endpoint that the labels can move, the choice among 25 acquisition rules matters little at this scale. The strongest evidence is for a small benefit of information-based rules built on the last-layer Fisher/Laplace posterior (Laplace BALD, BALD × P(decisive)) when one batch is chosen from the 10-group model: log-loss is lower by about 0.04 and AUC higher by about 0.01 at budgets of 10–60 groups, significant after correction within that condition but not reproduced with sequential retraining, so it should be treated as suggestive. The finding that is consistent across conditions is negative: uncertainty-driven selection (including MC-dropout, BADGE-style gradient embeddings, and DropQuery) is no better than random choice, and graph cut is worse. Differences between all other rules are below what 35 seeds can resolve.
+
+**Limitations.** (i) The endpoint is prediction of held-out *human* judgments in this data set, with about 60 decisive test rows per seed; it is not the downstream type classification of §5.11, which the anchors saturate. (ii) The eight original strategies score only the head of each group's first judgment row (a label-derived type), whereas the seventeen added strategies aggregate over heads; the two sets are not matched in how they use type information. (iii) Hyper-parameters were tuned on random batches (learning rate 0.01, 100 steps), not for each strategy. (iv) The per-seed gain is averaged over four budgets, so a strategy that helps only at one budget is diluted. (v) Seeds 42, 79, and 123 informed the hyper-parameter choice, and Holm correction is applied within each condition, not across the two. (vi) The 25 strategies include implementations of published methods adapted to a Bradley–Terry head (e.g. TypiClust, BADGE, FASS, ProbCover); we did not tune their own hyper-parameters, and a different adaptation could change their ranking.
+
+
 
 
 
