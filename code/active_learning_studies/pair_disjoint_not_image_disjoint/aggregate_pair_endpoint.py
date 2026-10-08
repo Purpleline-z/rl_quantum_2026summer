@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import wilcoxon
+from scipy.stats import friedmanchisquare, wilcoxon
 
 OUT = Path(__file__).resolve().parent / "results" / "pair_endpoint_study"
 STUDY_SEEDS = {42, 79, 123, 202, 303}
@@ -62,6 +62,10 @@ def analyse(cells: pd.DataFrame, metric: str, lower: bool, tag: str) -> None:
     stats = seed_level.groupby("family").gain.agg(mean_gain="mean", sd="std", n="count", frac_better=lambda x: (x > 0).mean()); stats["wilcoxon_p"] = pd.Series(tests); stats["holm_p"] = pd.Series(adjusted)
     stats = stats.sort_values("mean_gain", ascending=False); stats.to_csv(OUT / f"{tag}_{metric}_vs_random.csv")
     per_seed["rank"] = per_seed.groupby(["seed", "budget"])[metric].rank(ascending=lower); ranks = per_seed.groupby("family")["rank"].mean().sort_values()
+    wide = per_seed.groupby(["seed", "family"])[metric].mean().unstack()  # one number per seed and strategy (mean over budgets)
+    complete = wide.dropna(axis=1)
+    friedman = friedmanchisquare(*[complete[c].to_numpy() for c in complete.columns]) if complete.shape[0] >= 5 and complete.shape[1] >= 3 else None
+    if friedman is not None: print(f"\n[{metric}] Friedman test across {complete.shape[1]} strategies with data on all {complete.shape[0]} seeds: chi2={friedman.statistic:.1f}, p={friedman.pvalue:.4f}")
     print(f"\n=== {METRICS[metric][0]} ({'lower' if lower else 'higher'} is better); gain = improvement over random, per seed averaged over budgets ===")
     out = stats.join(ranks.rename("mean_rank")); print(out.round(4).to_string())
     print("by budget (mean):"); print(summary.pivot(index="family", columns="budget", values="mean").round(3).loc[out.index].to_string())
