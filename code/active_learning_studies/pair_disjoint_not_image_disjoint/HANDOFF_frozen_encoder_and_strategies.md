@@ -16,7 +16,7 @@ Written at the end of an unattended session. Everything below ran on CPU; nothin
 - Two earlier five-seed impressions did not survive 35 seeds (Cluster-Margin / core-set advantage; type-covering initial set), and are stated as non-replications.
 
 ## Things to be aware of
-- The eight original strategies read the type of the group's *first judgment row* (label-derived) via `Experiment.candidates_with_clusters`; the 17 new ones do not (tested). Not yet matched.
+- The eight original strategies score a candidate with the type of the group's *first judgment row* (`Experiment.candidates_with_clusters`), which the author confirmed is the type the system queries (the annotator judges one type per query), so this is legitimate. The 17 new strategies instead aggregate over the four heads (tested), and `_lf` variants of the originals do the same. Remaining mismatch: a selected group yields all its judgments (about 3.1) while the budget counts groups.
 - Hyper-parameters (lr 0.01, 100 steps) were tuned on random batches on seeds 42/79/123, not per strategy.
 - The feature cache `results/frozen_encoder_task3/simclr_feature_cache.pt` (SimCLR encoder, 444 images) is committed so CPU experiments start instantly; delete it and run `build_feature_cache.py` to rebuild.
 - Running the experiment scripts rewrites manifests under `results/active_learning_v1.8_seed*/manifests`; the scripts now send manifests to a temporary directory, but older scripts do not.

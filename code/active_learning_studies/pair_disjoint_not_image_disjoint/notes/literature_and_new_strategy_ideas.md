@@ -50,9 +50,7 @@ No RHEED-specific active learning or contrastive-pretraining paper turned up in 
 - 38% of pairs have both images in the same trajectory folder (same day/run).
 
 ## Implementation observation (existing strategies)
-`Experiment.candidates_with_clusters` attaches `type_idx = groups[pair_id].iloc[0].type_idx`, the type of the *first label row* of the group, and the
-original uncertainty/MC-dropout rules score only that head. Because a group usually has several types, this (a) reads label information during selection and
-(b) ignores most of the group's judgments. The new selectors aggregate over the four active heads and do not read `type_idx` (tested).
+`Experiment.candidates_with_clusters` attaches `type_idx = groups[pair_id].iloc[0].type_idx`, the type of the *first judgment row* of the group, and the original uncertainty/MC-dropout rules score only that head. In the intended labeling protocol the system chooses which reconstruction type the annotator judges, so this type is part of the query and scoring it is legitimate (an earlier version of this note called it a leak; that was wrong for this protocol). Two caveats remain: the first row is simply the row that comes first in the CSV for the pair, and a selected group brings *all* of its judgments (about 3.1 on average) while the budget counts groups. The new selectors aggregate over the four active heads and do not assume a queried type (tested); `_lf` variants of the original rules do the same.
 
 ## Third round: what the literature says about frozen features and tiny budgets
 - [Revisiting Active Learning in the Era of Vision Foundation Models, 2024](https://arxiv.org/html/2401.14555v2): on frozen DINOv2 features with a linear classifier, uncertainty sampling is competitive from the first iteration, and in ultra-low-budget settings starting from representative samples (centroids) improved accuracy by more than 20% over random; the proposed DropQuery combines centroid initialisation with uncertainty-style querying. -> `dropquery_pairs`.
