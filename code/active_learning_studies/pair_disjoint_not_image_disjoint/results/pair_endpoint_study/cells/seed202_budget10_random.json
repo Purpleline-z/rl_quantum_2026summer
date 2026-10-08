@@ -1,0 +1,25 @@
+{
+ "seed": 202,
+ "budget": 10,
+ "strategy": "random",
+ "pool": 74,
+ "selected_pair_ids": [
+  "Trajectories/2022-02-04/048_RR220204A_245C_0201.bmp || Trajectories/2022-02-04/192_RR220204A_607C_1831.bmp",
+  "Trajectories/2022-02-04/085_RR220204A_378C_1720.bmp || Trajectories/2022-02-04/382_RR220204A_935C_2330.bmp",
+  "Trajectories/2022-02-04/103_RR220204A_408C_1733.bmp || Trajectories/2022-02-04/346_RR220204A_957C_2123.bmp",
+  "Trajectories/2022-02-04/139_RR220204A_470C_1758.bmp || Trajectories/2022-04-11/094_RR220411A_484C_1532.bmp",
+  "Trajectories/2022-02-04/152_RR220204A_488C_1805-02.bmp || Trajectories/2022-04-11/173_RR220411A_755C_1643.bmp",
+  "Trajectories/2022-02-04/156_RR220204A_490C_1808.bmp || Trajectories/2022-02-04/383_RR220204A_937C_2331.bmp",
+  "Trajectories/2022-02-04/324_RR220204A_913C_2047.bmp || Trajectories/2022-04-11/057_RR220411A_389C_1506-01.bmp",
+  "Trajectories/2022-02-06/048_RR220206A_175C_1736.bmp || Trajectories/2022-04-11/189_RR220411A_822C_1703.bmp",
+  "Trajectories/2022-02-06/055_RR220206A_239C_1742.bmp || Trajectories/2022-04-11/409_RR220411A_474C_1953.bmp",
+  "Trajectories/2022-02-06/163_RR220206A_1105C_2015.bmp || Trajectories/2022-02-06/249_RR220206A_638C_2210.bmp"
+ ],
+ "test_decisive_accuracy": 0.8305084705352783,
+ "test_decisive_log_loss": 0.6913354396820068,
+ "test_decisive_rows": 59,
+ "validation_decisive_accuracy": 0.7714285850524902,
+ "validation_decisive_log_loss": 0.5000772476196289,
+ "validation_decisive_rows": 35,
+ "type_accuracy": 0.7142857142857143
+}
