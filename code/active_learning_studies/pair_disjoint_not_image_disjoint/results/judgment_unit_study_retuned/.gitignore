@@ -1,0 +1,3 @@
+# raw per-cell JSON files stay local; they are committed as cells_<run>.tar.xz archives (see judgment_unit_pack.sh)
+*/single/
+*/sequential/
