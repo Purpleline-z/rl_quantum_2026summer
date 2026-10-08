@@ -23,14 +23,14 @@ Report findings separately from hypotheses; use per-seed gain over Random, Wilco
 ## To-do
 Status key: [ ] open, [x] done.
 - [x] Feasibility diagnostics (structure, boundary, signal test) committed in `graph_exploration/`.
-- [ ] Rebuild the feature cache (`build_feature_cache.py`; `simclr_feature_cache.pt` is not in the repository, the SimCLR checkpoint is) and run `pytest` on the existing tests to get a baseline (56 pass in the notes).
-- [ ] Build `image_graph.py`: label-free graph over all images (kNN k in {5,10}, optional temporal chain flag), cached on disk, with tests (symmetry, no test/validation label information used; images of held-out groups may appear as unlabeled nodes only if that is label-free, but check the identity-safety assertion in `judgment_unit_study.Context`: the held-out images must not be reachable from the labelled set or candidate pool — decide whether graph context may include them and document it; the safe default is to build the graph from pool, labelled and ideal images only).
-- [ ] Step 1 strategies in a new `graph_strategies.py` (row-level selectors with the existing signature `select(cands, labeled, model, cache, budget, seed)`):
+- [x] Rebuild the feature cache (`build_feature_cache.py`; `simclr_feature_cache.pt` is not in the repository, the SimCLR checkpoint is) and run `pytest` on the existing tests to get a baseline (56 pass in the notes).
+- [x] (done inside `graph_strategies.py`, graph built only from candidate+labelled images) Build the image graph: label-free graph over all images (kNN k in {5,10}, optional temporal chain flag), cached on disk, with tests (symmetry, no test/validation label information used; images of held-out groups may appear as unlabeled nodes only if that is label-free, but check the identity-safety assertion in `judgment_unit_study.Context`: the held-out images must not be reachable from the labelled set or candidate pool — decide whether graph context may include them and document it; the safe default is to build the graph from pool, labelled and ideal images only).
+- [x] Step 1 strategies in a new `graph_strategies.py` (row-level selectors with the existing signature `select(cands, labeled, model, cache, budget, seed)`):
   - `graph_centrality_uncertainty`: own-head uncertainty x PageRank/degree centrality of the pair's images in the kNN graph.
   - `graph_boundary_uncertainty`: uncertainty x boundary score (share of an image's kNN that belong to other types, using ideal images as typed anchors).
   - controls: the same with a shuffled graph (graph carries information?), and uncertainty alone (already `uncertainty`).
-- [ ] Step 2: replace the mean-pair embedding of core-set/DPP/facility location by SGC-propagated embeddings (`kind="graph"` in `pair_features`), keep |a-b|.
-- [ ] Register the new names in `judgment_unit_strategies.py` (`make_selector`, family list), run single-shot + sequential for both splits, aggregate with Holm/Friedman, per-budget tables.
+- [x] Step 2 (`graph_core_set`, SGC k-centre): replace the mean-pair embedding of core-set/DPP/facility location by SGC-propagated embeddings (`kind="graph"` in `pair_features`), keep |a-b|.
+- [x] Register the new names in `judgment_unit_strategies.py` (`make_selector`, family list), run single-shot + sequential for both splits, aggregate with Holm/Friedman, per-budget tables.
 - [ ] Only if steps 1–2 show a signal that survives both splits: Step 3, a trained 2-layer GCN encoder with per-type BT heads (watch over-fitting with 168 groups; early stopping on validation only).
 - [ ] Write a short report section (separate findings from hypotheses; mention the 669-vs-168 discrepancy and the ceiling of the endpoint) and update `notes/literature_and_new_strategy_ideas.md` with the graph sources below.
 - [ ] Open question for the user/prof: whether the new trajectories from Yao should be added as unlabeled graph nodes.
@@ -42,3 +42,13 @@ Status key: [ ] open, [x] done.
 - FeatProp https://arxiv.org/abs/1910.07567, GRAIN https://arxiv.org/html/2108.00219v1, Graph Policy Network https://arxiv.org/html/2006.13463 (node selection for GNNs; AGE and ANRMAB only seen in search summaries).
 - Already in the notes: ASAP, Just Sort It!, Active Learning with Label Comparisons (2204.04670), Long et al. 2008 label propagation.
 - No paper found that combines a graph-regularised Bradley–Terry model, a kNN graph and active choice of comparisons.
+
+## Results of the first graph run (35 seeds, both splits, single-shot and sequential; `results/judgment_unit_study/graph_vs_random_report.txt`)
+Strategies: `graph_centrality_uncertainty`, `graph_bridge_uncertainty`, `graph_core_set`, each with a shuffled-graph control, plus Random (5 draws) and `uncertainty`. Holm is over the 7 non-random rows of each table only;
+there are 8 tables (2 splits x 2 conditions x 2 metrics) and no correction across them.
+- Nothing is significantly better than Random after Holm in any table, except `graph_core_set_shuffled` in split B sequential log-loss (+0.056, Holm 0.013), i.e. the *control*.
+- `graph_centrality_uncertainty` is the only candidate: split A log-loss gain +0.034 single-shot / +0.048 sequential (raw p 0.015 / 0.012, Holm 0.11 / 0.08); AUC +0.006 / +0.011. It does not replicate in split B (log-loss -0.021 single-shot, +0.032 sequential, not significant; real minus shuffled is 0.0 there).
+- Real graph minus shuffled graph for centrality is significant in split A sequential (log-loss +0.081, p 0.0004; AUC +0.011, p 0.031), but part of that is the shuffled control being worse than Random (-0.03); not tested across 6 comparisons.
+- `graph_bridge_uncertainty` is never better than Random and is significantly worse in split B single-shot (log-loss -0.066, Holm 0.007; AUC -0.017, Holm 0.004), as is uncertainty alone (-0.047, Holm 0.055).
+- `graph_core_set` equals its shuffled control in both splits: the propagation graph adds nothing over a relation-aware coverage rule; the coverage gain in split B (sequential) is not graph-specific.
+- Reading: no evidence that graph structure helps selection here; one weak, split-A-only hint for centrality weighting. Hypotheses not tested: trained GNN, graph with all 1124 trajectory images, ideal images as typed anchors.
