@@ -145,3 +145,12 @@ Additional: lr 0.001 with 300 steps (lr x steps = 0.3): Random 0.535 / 0.898 / 0
 | fisher_dopt | +0.0317 | +0.0149 | +0.0174 | 86% / 83% / 91% |
 | bald_decisive | +0.0276 | +0.0150 | +0.0152 | 89% / 89% / 86% |
 Absolute levels (pooled over budgets and cells): Random 0.423 / 0.900 / 0.829; vopt_u 0.378 / 0.921 / 0.850 (log-loss / AUC / accuracy) -- the best absolute performance of the whole study; Random itself is not weakened by the gentle schedule (its AUC 0.900 equals that under the re-tuned schedule; its log-loss 0.423 is better than 0.448).
+
+## Schedule scan on dev seeds 600-609 (vopt_u vs Random, 10 seeds, pooled over 4 cells; descriptive)
+| schedule (lr x steps) | Random ll / AUC / acc | vopt_u ll / AUC / acc | gain ll / AUC / acc |
+| 0.0001 x 100 (0.01) | 0.466 / 0.896 / 0.816 | 0.438 / 0.909 / 0.831 | +0.029 / +0.013 / +0.014 |
+| 0.0003 x 100 (0.03) | 0.405 / 0.910 / 0.835 | 0.384 / 0.917 / 0.851 | +0.022 / +0.006 / +0.015 |
+| 0.0001 x 300 (0.03) | 0.399 / 0.911 / 0.837 | 0.378 / 0.919 / 0.849 | +0.022 / +0.008 / +0.012 |
+| 0.0003 x 300 (0.09) | 0.416 / 0.909 / 0.841 | 0.397 / 0.916 / 0.851 | +0.019 / +0.007 / +0.010 |
+| re-tuned (about 0.1) | 0.428 / 0.907 / 0.839 | 0.410 / 0.913 / 0.855 | +0.019 / +0.006 / +0.016 |
+=> Among gentle schedules (lr x steps 0.01-0.1) the gain is about the same (AUC +0.006 to +0.013, accuracy +0.010 to +0.016); the earlier impression that "gentler is larger" (seeds 700-714: AUC +0.017 at 0.03 vs +0.008 re-tuned) is not reproduced on seeds 600-609 and is confounded with seed-set variation (gains of the same rule differ between seed sets: AUC +0.006 on 700-734, +0.013 on 800-834, +0.021 on 1300-1334). Established: gains vanish at lr x steps = 1.0 and are present from 0.01 to 0.3. The absolute best (Random-independent) level on these seeds is reached by the gentlest settings (vopt_u log-loss 0.378-0.384, AUC 0.917-0.919).
