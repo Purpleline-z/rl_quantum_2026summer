@@ -113,6 +113,29 @@ def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty
     return select
 
 
+def typed_decisive_probcover(refs, shuffle=False, delta_q: float = 0.05, uncertainty_power: float = 0.0):
+    """ProbCover-style (Yehuda et al. 2022) greedy weighted maximum cover in the graph-propagated pair space.
+    A candidate covers the candidates within radius delta (delta = the delta_q quantile of all pairwise distances); the gain of a pick is the summed P(decisive) (times the head's
+    uncertainty factor if uncertainty_power > 0) of the not-yet-covered candidates it covers.  Revealed judgments start as covered centres.  Unlike farthest-first it prefers dense regions, not outliers.
+    When everything is covered the remaining picks fall back to the highest weight."""
+    def select(cands, labeled, model, cache, budget, seed=0):
+        g = _graph(cands, labeled, cache, refs, seed, shuffle); w = decisive_probability(g, cands, labeled)
+        if uncertainty_power: w = w * (0.25 + ju._own_uncertainty(model, cands, cache)) ** uncertainty_power
+        allp = _pair_space(g, cands + labeled); allp = (allp - allp.mean(0)) / (allp.std(0) + 1e-6); allp = allp / np.sqrt(allp.shape[1])
+        onehot = np.eye(5)[[int(x["type_idx"]) for x in cands + labeled]][:, list(TYPES)]; allp = np.concatenate([allp, onehot], axis=1)
+        cand, lab = allp[:len(cands)], allp[len(cands):]; n = len(cands)
+        d = np.sqrt(((cand[:, None] - cand[None]) ** 2).sum(2)); delta = np.quantile(d[np.triu_indices(n, 1)], delta_q); near = d <= delta
+        covered = np.zeros(n, bool)
+        if len(lab): covered |= (np.sqrt(((cand[:, None] - lab[None]) ** 2).sum(2)) <= delta).any(1)
+        chosen = []
+        for _ in range(min(budget, n)):
+            gain = (near & ~covered[None]).astype(float) @ w; gain[chosen] = -1
+            pick = int(np.argmax(gain)) if gain.max() > 0 else int(np.argmax(np.where(np.isin(np.arange(n), chosen), -1, w)))
+            chosen.append(pick); covered |= near[pick]
+        return [cands[i] for i in chosen]
+    return select
+
+
 def typed_decisive_sampling(refs, shuffle=False, gamma: float = 2.0):
     """Random-like selection that favours judgments likely to be decisive: Gumbel-top-k sampling without replacement with weights P(decisive)^gamma (keeps Random's representativeness)."""
     def select(cands, labeled, model, cache, budget, seed=0):
@@ -164,7 +187,13 @@ def _gcn_pair_rule(kind: str, lr: float = 1e-3):
     return rule
 
 
-FACTORIES = {"typed_decisive_uncertainty": lambda refs: typed_decisive_uncertainty(refs), "typed_decisive_bald": lambda refs: typed_decisive_bald(refs),
+FACTORIES = {
+             "typed_decisive_probcover_q02": lambda refs: typed_decisive_probcover(refs, delta_q=0.02), "typed_decisive_probcover_q05": lambda refs: typed_decisive_probcover(refs, delta_q=0.05),
+             "typed_decisive_probcover_q10": lambda refs: typed_decisive_probcover(refs, delta_q=0.10), "typed_decisive_probcover_unc_q05": lambda refs: typed_decisive_probcover(refs, delta_q=0.05, uncertainty_power=1.0),
+             "typed_decisive_probcover_q05_typeonly": lambda refs: typed_decisive_probcover({}, delta_q=0.05), "typed_decisive_probcover_q05_shuffled": lambda refs: typed_decisive_probcover(refs, True, delta_q=0.05),
+             "typed_decisive_probcover_q10_typeonly": lambda refs: typed_decisive_probcover({}, delta_q=0.10), "typed_decisive_probcover_q10_shuffled": lambda refs: typed_decisive_probcover(refs, True, delta_q=0.10),
+             "typed_decisive_probcover_q02_typeonly": lambda refs: typed_decisive_probcover({}, delta_q=0.02), "typed_decisive_probcover_q02_shuffled": lambda refs: typed_decisive_probcover(refs, True, delta_q=0.02),
+             "typed_decisive_uncertainty": lambda refs: typed_decisive_uncertainty(refs), "typed_decisive_bald": lambda refs: typed_decisive_bald(refs),
              "typed_decisive_coverage": lambda refs: typed_decisive_coverage(refs), "typed_decisive_sampling": lambda refs: typed_decisive_sampling(refs),
              "typed_decisive_sampling_g1": lambda refs: typed_decisive_sampling(refs, gamma=1.0), "typed_decisive_sampling_g4": lambda refs: typed_decisive_sampling(refs, gamma=4.0),
              "typed_decisive_sampling_shuffled": lambda refs: typed_decisive_sampling(refs, True),

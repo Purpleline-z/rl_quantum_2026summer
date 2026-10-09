@@ -71,3 +71,20 @@ Success criterion NOT MET. Log-loss gain over Random (A-single / A-seq / B-singl
 - Controls of coverage_unc: typeonly +0.026 / +0.030 / -0.005 / +0.040; shuffled +0.040 / +0.006 / +0.031 / +0.081 (B-seq p<0.001). coverage_unc minus shuffled is negative in B.
 - The DEV split-A gains (+0.11 to +0.14) did not replicate -> winner's curse on 10 seeds. Only plain coverage in B-seq passes Holm, and it is not attributable to the graph (shuffled control equally good); shuffled control for plain coverage not run.
 - Next ideas (not run): shuffled/typeonly control for plain `typed_decisive_coverage`; per-type quotas; understanding why B (20% hold-out) differs from A; a model-side change (GCN reward model) needs an advisor decision.
+
+## Phase 2 (after the failed confirmation): literature-driven plan, decided by Claude on user's delegation
+Literature: low budget -> coverage/typicality beats uncertainty (TypiClust, Hacohen 2022; ProbCover, Yehuda 2022); labeler with blind spots -> weight by P(answerable) (Du & Ling, AAAI 2013 "knowledge blind spot"); abstention-aware active learning is a thin literature.
+Our farthest-first coverage prefers outliers, which those papers argue against at low budget. New rule: `typed_decisive_probcover` (greedy weighted max cover in the propagated pair space, weight = P(decisive); radius = delta_q quantile of pairwise distances).
+Protocol: DEV on seeds 400-409 (variants q02/q05/q10 + unc_q05, controls typeonly/shuffled of the chosen radius); freeze <= 3 candidates; CONFIRM on FRESH seeds 430-449 (never used), Random included in the run; Holm over candidates x 4 blocks; same success criterion.
+Also pre-registered: the graph claim needs real minus shuffled AND real minus typeonly > 0; otherwise the gain is attributed to type-aware decisive weighting / coverage, not the graph.
+
+### Phase 2 DEV result (seeds 400-409; log-loss gain; A-single / A-seq / B-single / B-seq)
+probcover_q02 -0.009 / +0.059 / +0.015 / +0.065; q05 -0.037 / +0.012 / -0.004 / +0.097; q10 -0.002 / +0.041 / -0.002 / +0.071; unc_q05 +0.002 / +0.060 / +0.003 / +0.041.
+Reference: typed_decisive_coverage (farthest-first) +0.095 / +0.109 / +0.024 / +0.105. ProbCover-style covering is NOT better than farthest-first on DEV -> dropped, no more tuning.
+
+### FROZEN PHASE 2 TEST (written before seeds 430-449 were run; these seeds were never used)
+Question: is the only confirmed signal of phase 1 (plain typed_decisive_coverage, B-sequential +0.083, B-single +0.062) real, and is it due to the graph?
+- Candidate (single): typed_decisive_coverage. Holm over its 4 blocks (log-loss). Replication success: Holm p < 0.05 and positive in BOTH B-single and B-sequential, AUC gain >= 0.
+- Graph claim (separate, requires replication first): paired difference coverage minus typed_decisive_coverage_shuffled > 0 and minus typed_decisive_coverage_typeonly > 0 (Wilcoxon p < 0.05 in B blocks). Otherwise attribute the gain to coverage / type-aware decisive weighting, not the graph.
+- Non-candidate references run on the same seeds: core_set_relation, typiclust_pairs (embedding coverage baselines without graph) -> tells whether the graph rule beats plain coverage.
+- Seeds 430-449, both splits, both conditions, Random in the same run.
