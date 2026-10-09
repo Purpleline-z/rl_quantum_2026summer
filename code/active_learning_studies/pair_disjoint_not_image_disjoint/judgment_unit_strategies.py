@@ -276,6 +276,8 @@ def make_selector(name: str, exp):
     if name in ORIGINAL_ROW: return via_experiment(False, name, False)
     import graph_strategies  # graph-aware rules (branch claude/graph-active-selection); imported lazily because that module imports this one
     if name in graph_strategies.GRAPH_NAMES: return graph_strategies.make_selector(name)
+    import graph_typed
+    if name in graph_typed.TYPED_NAMES: return graph_typed.make_selector(name, exp)
     raise ValueError(name)
 
 

@@ -72,3 +72,41 @@ def test_graph_strategies_obey_the_judgment_unit_invariants_on_real_data(split, 
         picks = study.choose(ctx, name, ju.make_selector(name, ctx.exp), ctx.pool, ctx.initial, model, 10, 42, state)
         assert len(set(picks)) == 10 and set(picks) <= set(ctx.pool), name
         assert len(study.rows_of(ctx.exp, ctx.initial + picks)) == len(ctx.initial) + 10, name
+
+
+# ------------------------------------------------------------------ type-aware rules (graph_typed.py)
+import graph_typed as gt  # noqa: E402
+
+
+class _Exp:
+    """Minimal stand-in: typed reference images that exist in the synthetic cache."""
+    references = {"(1 x 1)": [Path("i70"), Path("i71"), Path("i72")], "c(6 x 2)": [Path("i73"), Path("i74"), Path("i75")], "(√13 x √13)": [Path("i76"), Path("i77")], "HTR": [Path("i78"), Path("i79")]}
+
+
+@pytest.mark.parametrize("name", gt.TYPED_NAMES)
+def test_typed_selectors_return_budget_distinct_judgments_reproducibly(name):
+    cands, labeled, cache = _judgments(); select = ju.make_selector(name, _Exp())
+    first = [x["pair_id"] for x in select(cands, labeled, _Model(), cache, 12, 3)]; second = [x["pair_id"] for x in select(cands, labeled, _Model(), cache, 12, 3)]
+    assert first == second and len(first) == 12 and len(set(first)) == 12 and set(first) <= {x["pair_id"] for x in cands}
+
+
+def test_type_posterior_is_a_distribution_and_references_vote_for_their_own_type():
+    cands, labeled, cache = _judgments(); refs = gt.reference_types(_Exp()); g = gt.ImageGraph(cands, labeled, cache, refs)
+    assert np.allclose(g.q.sum(1), 1) and (g.q >= 0).all()
+    assert all(g.q[g.index[p]].argmax() == gt.TYPES.index(t) for p, t in refs.items())   # an image's own label dominates its posterior
+
+
+def test_graph_nodes_include_references_but_never_images_outside_candidates_labeled_references():
+    cands, labeled, cache = _judgments(); cache = dict(cache); cache["held_out_image"] = torch.randn(512); g = gt.ImageGraph(cands, labeled, cache, gt.reference_types(_Exp()))
+    assert "held_out_image" not in g.index and "i70" in g.index
+
+
+def test_decisive_probability_is_half_without_both_outcomes_and_a_probability_otherwise():
+    cands, labeled, cache = _judgments(); g = gt.ImageGraph(cands, labeled, cache, gt.reference_types(_Exp()))
+    assert np.all(gt.decisive_probability(g, cands, []) == .5)
+    one_class = [dict(x, outcomes=[(x["type_idx"], True)]) for x in labeled]; assert np.all(gt.decisive_probability(g, cands, one_class) == .5)
+    mixed = [dict(x, outcomes=[(x["type_idx"], i % 2 == 0)]) for i, x in enumerate(labeled)]; p = gt.decisive_probability(g, cands, mixed); assert ((p > 0) & (p < 1)).all()
+
+
+def test_no_references_gives_a_uniform_posterior():
+    cands, labeled, cache = _judgments(); g = gt.ImageGraph(cands, labeled, cache, {}); assert np.allclose(g.q, .25)

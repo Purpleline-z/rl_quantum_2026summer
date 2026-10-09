@@ -41,7 +41,7 @@ def strategy_names() -> list[str]:
     non_random = [n for n in ju.STRATEGY_FAMILY if n != "random"]
     names = reps("random") + non_random + reps(ju.EXTRA_BASELINE)
     if os.environ.get("JU_GRAPH"):  # graph-aware strategies are opt-in; JU_ONLY then restricts the run (e.g. to the graph names only)
-        import graph_strategies; names += list(graph_strategies.GRAPH_NAMES)
+        import graph_strategies, graph_typed; names += list(graph_strategies.GRAPH_NAMES) + list(graph_typed.TYPED_NAMES)
     return names
 
 
@@ -104,7 +104,8 @@ def make_candidates(ctx: Context, remaining, labeled, model, order_seed):
     pair_ids = sorted({p for p, _ in remaining}); pairs, _ = ctx.exp.candidates_with_clusters(pair_ids, model); cluster = {x["pair_id"]: x["cluster1"] for x in pairs}
     order = list(remaining); random.Random(order_seed * 7919 + 3).shuffle(order)
     cands = [ctx.item(j, cluster[j[0]]) for j in order]; labeled_items = [ctx.item(j) for j in labeled]
-    return cands, labeled_items, ctx.features.embedding_cache(cands + labeled_items)
+    reference_items = [{"img1": str(p), "img2": str(p)} for paths in ctx.exp.references.values() for p in paths]  # typed reference (ideal) images: training anchors of every strategy
+    return cands, labeled_items, ctx.features.embedding_cache(cands + labeled_items + reference_items)
 
 
 def random_picks(ctx, name, remaining, budget, key):
