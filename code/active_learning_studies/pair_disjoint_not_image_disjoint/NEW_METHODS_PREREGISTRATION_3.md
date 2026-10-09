@@ -15,3 +15,4 @@ Identical to the judgment-unit study with the re-tuned per-budget head schedule,
 New random splits and initial draws of the same 168 pair groups; not new data. The cold-start protocol (10 random judgments, no type-coverage guarantee) is a different starting point from the main protocol and is reported as such.
 
 Pre-run commit: (recorded below)
+36777ecaff2f450c792ef2757a26dd29788b5209
