@@ -165,6 +165,25 @@ def ntk_vopt_t1(*a, **kw): return ntk_vopt(*a, tau=1.0, **kw)
 def ntk_vopt_t300(*a, **kw): return ntk_vopt(*a, tau=300.0, **kw)
 
 
+# ------------------------------------------------------------------------------------------ type-targeted rules (HTR = head 4)
+def _restrict(rule, type_idx, fill=None):
+    """Apply ``rule`` to the candidates of one reconstruction type only; if the budget exceeds them, fill the rest with ``fill`` (default: ``rule``) on the others."""
+    def select(cands, labeled, model, cache, budget, seed=0, **kw):
+        own = [x for x in cands if int(x["type_idx"]) == type_idx]; picked = rule(own, labeled, model, cache, min(budget, len(own)), seed) if own else []
+        if len(picked) < budget:
+            ids = {x["pair_id"] for x in picked}; rest = [x for x in cands if x["pair_id"] not in ids]
+            picked = picked + (fill or rule)(rest, labeled + picked, model, cache, budget - len(picked), seed)
+        return picked
+    return select
+
+
+def random_htr(cands, labeled, model, cache, budget, seed=0):
+    rng = np.random.default_rng(seed * 7919 + len(labeled)); own = [x for x in cands if int(x["type_idx"]) == 4]; rest = [x for x in cands if int(x["type_idx"]) != 4]
+    take = list(rng.permutation(len(own))[:budget]); picked = [own[i] for i in take]
+    if len(picked) < budget: picked += [rest[i] for i in rng.permutation(len(rest))[: budget - len(picked)]]
+    return picked
+
+
 def vopt_u(*a, **kw): return vopt(*a, sensitivity=False, **kw)
 def vopt_u_quota(*a, **kw): return vopt(*a, sensitivity=False, quota=True, **kw)
 def vopt_u_inf1_quota(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v1, quota=True, **kw)
@@ -173,6 +192,10 @@ def vopt_u_dec2(*a, **kw): return vopt(*a, sensitivity=False, informative=decisi
 def vopt_u_inf1(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v1, **kw)
 
 
-NEW = {"ntk_vopt_t1": ntk_vopt_t1, "ntk_vopt_t300": ntk_vopt_t300, "vopt_u_quota": vopt_u_quota, "vopt_u_inf1_quota": vopt_u_inf1_quota, "aopt": aopt, "vopt_u": vopt_u, "vopt_u_inf2": vopt_u_inf2, "vopt_u_dec2": vopt_u_dec2, "vopt_u_inf1": vopt_u_inf1,
+NEW = {"random_htr": random_htr, "vopt_htr": None, "fisher_htr": None, "ntk_vopt_t1": ntk_vopt_t1, "ntk_vopt_t300": ntk_vopt_t300, "vopt_u_quota": vopt_u_quota, "vopt_u_inf1_quota": vopt_u_inf1_quota, "aopt": aopt, "vopt_u": vopt_u, "vopt_u_inf2": vopt_u_inf2, "vopt_u_dec2": vopt_u_dec2, "vopt_u_inf1": vopt_u_inf1,
        "vopt_r03": _with(vopt, ridge=0.3), "vopt_r3": _with(vopt, ridge=3.0), "vopt_r10": _with(vopt, ridge=10.0), "vopt_uniform": vopt_uniform,
        "vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}
+
+
+NEW["vopt_htr"] = _restrict(vopt_u, 4, fill=vopt_u)
+NEW["fisher_htr"] = _restrict(ju.fisher_dopt, 4, fill=vopt_u)

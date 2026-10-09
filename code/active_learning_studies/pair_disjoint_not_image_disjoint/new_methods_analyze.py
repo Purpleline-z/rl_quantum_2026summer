@@ -9,7 +9,7 @@ import numpy as np, pandas as pd
 from scipy.stats import wilcoxon
 
 ROOT = Path(__file__).resolve().parent / "results" / "new_methods"
-METRICS = (("test_decisive_log_loss", -1, "logloss"), ("test_decisive_auc", 1, "AUC"), ("test_decisive_accuracy", 1, "acc"), ("test_calibrated_log_loss", -1, "callogloss"))
+METRICS = (("test_decisive_log_loss", -1, "logloss"), ("test_decisive_auc", 1, "AUC"), ("test_decisive_accuracy", 1, "acc"), ("test_calibrated_log_loss", -1, "callogloss"), ("htr_acc", 1, "htr_acc"), ("htr_auc", 1, "htr_auc"), ("htr_ll", -1, "htr_ll"), ("t13_acc", 1, "t13_acc"), ("tc6x2_acc", 1, "tc6x2_acc"), ("t1x1_acc", 1, "t1x1_acc"))
 
 
 def load(run):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     run = sys.argv[1]; only = set(sys.argv[2].split(",")) if len(sys.argv) > 2 else None
     f = load(run); g = gains(f, only); s = summarize(g)
     pd.set_option("display.width", 200); pd.set_option("display.float_format", lambda x: f"{x:+.4f}" if abs(x) < 10 else f"{x}")
-    for metric in ("logloss", "AUC", "acc", "callogloss"):
+    for metric in ("logloss", "AUC", "acc", "callogloss", "htr_acc", "htr_auc", "htr_ll"):
         t = s[s.metric == metric].drop(columns="metric").set_index("method"); t["pooled_p"] = t.pooled_p.map(lambda x: f"{x:.3f}"); t["pooled_share"] = t.pooled_share.map(lambda x: f"{x:.2f}")
         print(f"\n== {metric}: mean gain over Random (A/B x single/sequential cells, pooled over the 4 cells per seed; one-sided p, uncorrected)"); print(t.sort_values("pooled", ascending=False, key=lambda c: c.astype(float) if c.dtype != object else c).to_string())
     s.to_csv(ROOT / run / "summary.csv", index=False)
