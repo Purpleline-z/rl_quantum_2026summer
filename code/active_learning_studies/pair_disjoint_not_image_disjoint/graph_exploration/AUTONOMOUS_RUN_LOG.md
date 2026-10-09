@@ -48,3 +48,16 @@ Honesty rules: report failure if it happens; no tuning on confirmation seeds; ev
 - Control typeonly (decisive predictor from the type one-hot only; same coverage): +0.082 / +0.101 / +0.022 / +0.056 with AUC about 0 (+0.001 / 0.000 / +0.001 / +0.009). So most of the log-loss gain comes from type-aware decisive weighting; the graph features (label-propagated type posterior) add about +0.013 / +0.008 / +0.002 / +0.049 log-loss and +0.012 / +0.010 / -0.003 / +0.006 AUC for the plain coverage rule.
 - Decisive-weighted random sampling (gamma 1/2/4) is not good (B-single -0.06 to -0.10): coverage is needed.
 - Round 3: variants around coverage_unc (gamma 2, uncertainty power 2, q-coordinates in the coverage space) plus its type-only and shuffled controls. Then freeze <= 4 candidates.
+
+### Round 3 (DEV 400-409): log-loss gain over Random, blocks A-single, A-seq, B-single, B-seq
+- coverage_unc +0.108 / +0.138 / +0.029 / +0.091 (AUC +0.019 / +0.022 / +0.005 / +0.020); its type-only control +0.119 / +0.056 / -0.017 / +0.056 (AUC +0.010 / -0.005 / -0.006 / +0.001); its shuffled-posterior control +0.103 / +0.096 / -0.043 / +0.022 (AUC +0.008 / +0.009 / -0.006 / +0.003).
+  So on DEV the real graph posterior beats both controls in A-seq, B-single and B-seq on log-loss and in all four blocks on AUC; in A-single the type-only control is as good.
+- Variants not better than coverage_unc: unc_u2 (uncertainty squared) +0.116 / +0.145 / -0.009 / +0.070; unc_g2 +0.098 / +0.109 / -0.003 / +0.067; unc_q (type-posterior coordinates in the coverage space) +0.077 / +0.088 / +0.009 / +0.034.
+
+### FROZEN CANDIDATES (written before any confirmation seed was run; DEV selection only)
+1. `typed_decisive_coverage_unc`   (primary)
+2. `typed_decisive_coverage`       (plain coverage x P(decisive); strongest in B-sequential on DEV)
+3. `typed_decisive_bald`           (Laplace-BALD x P(decisive); information-based variant)
+Controls reported alongside, not candidates: `typed_decisive_coverage_unc_typeonly`, `typed_decisive_coverage_unc_shuffled`. Embedding baselines on the same confirm cells (second wave): core_set_relation, bald_decisive, typiclust_pairs, laplace_bald, uncertainty.
+Test: seed-level Wilcoxon on the log-loss gain over Random (mean over budgets 10/20/40/60), Holm over the 3 candidates within each of the four blocks; AUC reported. Success criterion as fixed at the top of this file.
+CONFIRM seeds: 410-429 and 42, 79, 123, 202, 303 (25 seeds). No changes to the candidates after this point.
