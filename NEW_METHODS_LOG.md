@@ -70,3 +70,11 @@ fisher_dopt: AUC +0.0073, acc +0.0140, ll +0.0038; bald_decisive: AUC +0.0083 (o
 
 ## Wave 2: NTK I-optimal design (kernelised variance reduction over ALL head parameters; first-layer NTK part is 1.3x the last-layer part, so cross-type information through the shared first layer is not negligible)
 Implemented as `ntk_vopt_t1`, `ntk_vopt_t300` (tau = prior precision); dev run on seeds 600-629 in progress.
+
+## Wave 2 dev results (seeds 600-629, 30 seeds x 4 cells)
+NTK I-optimal design (tau=1 / 300): AUC +0.0071 / +0.0071, acc +0.0141 / +0.0156, ll +0.0078 / -0.0001 -> not better than last-layer vopt_u (AUC +0.0089, acc +0.0167), Fisher D-optimal (AUC +0.0095, acc +0.0184) or BALD x P(dec). The extra first-layer part of the kernel does not help.
+Hindsight utility diagnostic (Spearman between observable candidate features and the TRUE single-judgment test-log-loss utility, Split A seeds 600-607, 8 seeds): |rho| <= 0.06 for phi norm, p(1-p), leverage, EGL, predicted/true decisiveness, anchor scores, unseen images, type indicators. The true marginal utility of one judgment is not predictable from these features => there is no learnable per-candidate score (LAL-style learned acquisition is not promising); the family gains come from batch-level geometry (coverage of the representation), not from ranking individual judgments.
+
+## Robustness of the pre-registered methods (seeds 700-719, 20 seeds, pooled over 4 cells)
+- Old head schedule (lr 0.01, 100 steps): vopt_u AUC +0.0007, acc +0.0042 (n.s.); vopt_u_inf1 AUC +0.0055, acc +0.0082 (Holm 0.17 / 0.06). The benefit depends on a well-trained Random baseline / head.
+- Cold start (10 RANDOM initial judgments instead of the 10 initial groups, about 30 judgments): vopt_u log-loss +0.063, AUC +0.023, acc +0.028 (85-95% of seeds, Holm <= 0.0002); vopt_u_inf1 log-loss +0.050, AUC +0.019, acc +0.027. Large effect when the starting model is weak (post hoc discovery -> pre-registration 3 on seeds 900-934).
