@@ -1020,6 +1020,57 @@ n seeds per cell: [25]
 
 **Limitations.** Only three candidates and two controls were confirmed; variants tried on DEV (g2, u2, q-coordinates, decisive-weighted sampling, GCN baselines) were not. The shuffled/typeonly controls were run only for `coverage_unc`. Seeds 42, 79, 123, 202, 303 were also used in §5.14, so they are not independent of the first-generation rules, but they were not used to tune the new rules.
 
+### 5.16 Replication test of the type-aware coverage rule on fresh seeds
+
+**Why.** In §5.15 only plain `typed_decisive_coverage` passed Holm (B-sequential), and its shuffled-graph control was just as good for a related rule, so we could not tell whether the effect was real or caused by the graph. Before running, we wrote down (AUTONOMOUS_RUN_LOG.md): one candidate, `typed_decisive_coverage`; replication = Holm p < 0.05 and positive log-loss gain in both B-single and B-sequential with non-negative AUC gain; seeds 430-449, never used before; its shuffled-posterior and type-only controls and two non-graph coverage baselines (`core_set_relation`, `typiclust_pairs`) run on the same seeds. A graph claim additionally requires beating both controls.
+
+**Literature check that preceded it.** Low-budget active learning is reported to favour coverage/typicality over uncertainty (TypiClust, Hacohen et al. 2022; ProbCover, Yehuda et al. 2022), and an oracle that cannot answer some queries is handled by weighting selection with the probability that the oracle answers (Du and Ling, "Active learning from oracle with knowledge blind spot", AAAI 2013). Our P(decisive) weighting is of the second kind; we read these only through search summaries, not the full papers. Because our farthest-first coverage prefers outliers, we also tried a ProbCover-style weighted maximum-cover rule (radius = 2%, 5%, 10% quantile of pairwise distances). On development seeds 400-409 it was not better than farthest-first (log-loss gain A-single/A-seq/B-single/B-seq: q02 -0.009/+0.059/+0.015/+0.065, q05 -0.037/+0.012/-0.004/+0.097, q10 -0.002/+0.041/-0.002/+0.071, against +0.095/+0.109/+0.024/+0.105 for farthest-first) and was dropped without confirmation.
+
+**Result (20 fresh seeds).**
+
+#### log-loss: gain over Random, seeds 430-449 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over the 4 blocks for the candidate))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage | +0.039 [-0.004, +0.077] (65%, p 0.064, Holm 0.255) | +0.019 [-0.016, +0.054] (70%, p 0.216, Holm 0.432) | +0.041 [+0.004, +0.081] (65%, p 0.097, Holm 0.292) | +0.042 [-0.012, +0.102] (55%, p 0.330, Holm 0.432) |
+| typed_decisive_coverage_typeonly (control/reference) | +0.033 [-0.016, +0.073] (75%, p 0.083) | +0.046 [+0.004, +0.094] (60%, p 0.058) | +0.042 [-0.004, +0.088] (70%, p 0.105) | +0.030 [-0.027, +0.086] (55%, p 0.368) |
+| typed_decisive_coverage_shuffled (control/reference) | +0.048 [+0.022, +0.073] (85%, p 0.002) | +0.062 [+0.013, +0.118] (70%, p 0.015) | +0.062 [+0.023, +0.103] (80%, p 0.009) | +0.050 [-0.008, +0.109] (65%, p 0.154) |
+| core_set_relation (control/reference) | +0.072 [+0.039, +0.106] (80%, p 0.001) | +0.072 [+0.021, +0.129] (80%, p 0.004) | -0.027 [-0.082, +0.026] (45%, p 0.546) | -0.048 [-0.102, +0.006] (35%, p 0.097) |
+| typiclust_pairs (control/reference) | -0.010 [-0.091, +0.048] (75%, p 0.114) | +0.016 [-0.025, +0.059] (55%, p 0.388) | -0.064 [-0.118, -0.012] (30%, p 0.070) | -0.052 [-0.129, +0.012] (40%, p 0.349) |
+
+n seeds per cell: [20]
+
+#### AUC: gain over Random, seeds 430-449 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over the 4 blocks for the candidate))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage | +0.006 [-0.003, +0.015] (55%, p 0.261, Holm 1.000) | +0.001 [-0.008, +0.010] (45%, p 0.985, Holm 1.000) | +0.007 [-0.004, +0.019] (60%, p 0.498, Holm 1.000) | +0.011 [-0.002, +0.026] (50%, p 0.277, Holm 1.000) |
+| typed_decisive_coverage_typeonly (control/reference) | -0.000 [-0.011, +0.009] (55%, p 0.756) | +0.000 [-0.008, +0.009] (55%, p 0.898) | +0.006 [-0.007, +0.019] (50%, p 0.596) | +0.001 [-0.013, +0.016] (45%, p 0.956) |
+| typed_decisive_coverage_shuffled (control/reference) | +0.005 [-0.002, +0.011] (70%, p 0.177) | +0.005 [-0.005, +0.014] (60%, p 0.368) | +0.009 [-0.001, +0.020] (65%, p 0.154) | +0.006 [-0.005, +0.017] (60%, p 0.349) |
+| core_set_relation (control/reference) | +0.008 [-0.002, +0.018] (75%, p 0.083) | +0.006 [-0.005, +0.017] (55%, p 0.294) | -0.006 [-0.019, +0.007] (40%, p 0.498) | -0.014 [-0.031, +0.002] (60%, p 0.452) |
+| typiclust_pairs (control/reference) | -0.006 [-0.017, +0.005] (45%, p 0.648) | -0.008 [-0.016, +0.000] (45%, p 0.133) | -0.010 [-0.022, +0.001] (30%, p 0.133) | -0.011 [-0.027, +0.004] (45%, p 0.294) |
+
+n seeds per cell: [20]
+
+#### Paired differences, log-loss (positive = coverage rule is better than the comparison)
+
+| coverage minus | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage_typeonly | +0.006 [-0.045, +0.052] (p 0.546) | -0.027 [-0.083, +0.020] (p 0.596) | -0.001 [-0.042, +0.038] (p 0.927) | +0.013 [-0.034, +0.063] (p 0.956) |
+| typed_decisive_coverage_shuffled | -0.009 [-0.066, +0.043] (p 0.812) | -0.043 [-0.108, +0.016] (p 0.165) | -0.021 [-0.069, +0.022] (p 0.571) | -0.007 [-0.056, +0.037] (p 0.956) |
+| core_set_relation | -0.034 [-0.098, +0.024] (p 0.452) | -0.053 [-0.121, +0.007] (p 0.216) | +0.068 [+0.010, +0.129] (p 0.083) | +0.090 [+0.028, +0.157] (p 0.024) |
+| typiclust_pairs | +0.048 [-0.002, +0.108] (p 0.231) | +0.003 [-0.049, +0.053] (p 0.869) | +0.105 [+0.032, +0.178] (p 0.021) | +0.094 [+0.016, +0.180] (p 0.123) |
+
+Replication criterion (Holm p < 0.05, positive log-loss gain and AUC gain >= 0 in both B-single and B-sequential): NOT met
+
+**What this shows.**
+- The B-split result of §5.15 did **not** replicate: gains of +0.041 (B-single) and +0.042 (B-sequential) with raw p 0.097 and 0.330, Holm p 0.29 and 0.43. The earlier +0.062 / +0.083 were probably inflated by choosing this rule after seeing its result (regression to the mean).
+- There is no evidence for a graph effect: the shuffled-posterior control is as good or better in all four blocks (coverage minus shuffled -0.043 to -0.007, none significant), and the type-only control is equal within noise.
+- The three variants (real, type-only, shuffled graph) all give roughly +0.03 to +0.06 log-loss in every block, which is the same type-aware decisive weighting plus coverage. That is suggestive of a small real gain from this common ingredient, but it was not a pre-registered claim, and each single block is not significant after Holm; we do not claim it.
+- The non-graph coverage baseline `core_set_relation` is better than the graph rule in split A (+0.072 / +0.072) and worse in split B; `typiclust_pairs` is not better than Random. AUC gains are within +/-0.015 everywhere.
+
+**Overall conclusion of the graph exploration.** Across 4 frozen candidates and 2 fresh confirmation sets (45 seeds in total for the §5.15 candidates, 20 for this test), no graph-aware rule showed a significant, reproducible improvement over Random that could be attributed to the graph. The graph features predict whether a judgment is decisive (AUC 0.83 on all 521 rows, a data-level diagnostic), but that predictor did not translate into better held-out preference prediction at these budgets. Possible reasons, not tested: the head sees only 10-60 judgments so selection effects are small compared with seed variance (sd about 0.1), and the comparison graph is nearly a matching (§5.14), leaving no ranking structure to exploit.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.

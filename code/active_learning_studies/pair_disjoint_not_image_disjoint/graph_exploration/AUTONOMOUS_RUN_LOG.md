@@ -88,3 +88,9 @@ Question: is the only confirmed signal of phase 1 (plain typed_decisive_coverage
 - Graph claim (separate, requires replication first): paired difference coverage minus typed_decisive_coverage_shuffled > 0 and minus typed_decisive_coverage_typeonly > 0 (Wilcoxon p < 0.05 in B blocks). Otherwise attribute the gain to coverage / type-aware decisive weighting, not the graph.
 - Non-candidate references run on the same seeds: core_set_relation, typiclust_pairs (embedding coverage baselines without graph) -> tells whether the graph rule beats plain coverage.
 - Seeds 430-449, both splits, both conditions, Random in the same run.
+
+### PHASE 2 RESULT (seeds 430-449, run once; `aggregate_phase2.py`; report §5.16): replication NOT met
+typed_decisive_coverage log-loss gain A-single / A-seq / B-single / B-seq: +0.039 / +0.019 / +0.041 / +0.042 (Holm .26 / .43 / .29 / .43); B-split phase-1 effect (+0.062 / +0.083) did not replicate.
+Controls: typeonly +0.033 / +0.046 / +0.042 / +0.030; shuffled +0.048 / +0.062 / +0.062 / +0.050 (shuffled is as good or better -> no graph effect). core_set_relation +0.072 / +0.072 / -0.027 / -0.048; typiclust_pairs ~ Random or worse.
+Conclusion: no graph-attributable improvement. Common ingredient of real/typeonly/shuffled (type-aware decisive weighting + coverage) gives a consistent ~+0.03..+0.06, not pre-registered, not significant per block after Holm.
+Untried: per-type quotas, joint multinomial outcome model / expected-information formulation, graph with unlabelled trajectory images, GCN as reward model (advisor decision), second encoder (GPU).
