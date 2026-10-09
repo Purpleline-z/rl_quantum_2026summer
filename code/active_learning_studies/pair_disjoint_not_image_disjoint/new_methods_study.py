@@ -29,5 +29,14 @@ def _evaluate(self, model):
 study.Context.evaluate = _evaluate
 
 
+import os
+import run_frozen_encoder_task3 as _harness
+if os.environ.get("NM_INITIAL_GROUPS"):   # larger initial set (labels already in hand), e.g. 60 groups
+    _make = _harness.make_experiment
+    def _make_big(*a, **k):
+        exp = _make(*a, **k); exp.cfg.initial_pairs = int(os.environ["NM_INITIAL_GROUPS"]); return exp
+    _harness.make_experiment = _make_big
+
+
 if __name__ == "__main__":
     study.main()
