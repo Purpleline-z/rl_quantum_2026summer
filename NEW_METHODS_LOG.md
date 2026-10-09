@@ -98,3 +98,11 @@ Same 168 groups in every seed -> sensitivity to split draw, not new data.
 | fisher_dopt | +0.0378 | +0.0172 | +0.0211 | 69% / 86% / 83% |
 | bald_decisive | +0.0561 | +0.0193 | +0.0193 | 86% / 91% / 83% |
 All Holm p < 0.001 (smallest effect: fisher_dopt log-loss, Holm 0.0003). Gains are 2-3x larger than with the type-coverage-initialised start of the main protocol.
+
+## CONFIRMATION 4 (pre-registration 4: HTR-targeted design, seeds 1000-1034, 35 seeds, groups-initial; Holm over 12 tests): ALL 12 SIGNIFICANT
+| method | vs | HTR acc | HTR AUC | HTR log-loss |
+| vopt_htr | Random (all types) | +0.0705 (86% seeds) | +0.0736 (80%) | +0.2499 (100%) |
+| vopt_htr | random_htr (same allocation) | +0.0206 (Holm 0.0008) | +0.0111 (0.009) | +0.0428 (<0.0001) |
+| fisher_htr | Random | +0.0662 | +0.0715 | +0.2347 |
+| fisher_htr | random_htr | +0.0164 (0.005) | +0.0090 (0.011) | +0.0276 (0.009) |
+Price paid by the other types (vs Random, uncorrected): vopt_htr c6x2 accuracy -0.030, 1x1 -0.015, sqrt13 -0.005; all-type accuracy +0.002, AUC +0.003, log-loss -0.010 (n.s.). The un-targeted `vopt_u` on the same seeds: all-type acc +0.020, AUC +0.0125, ll +0.028 and every single type up (+0.010 to +0.022).
