@@ -32,7 +32,12 @@ def build() -> str:
     out = buffer.getvalue(); verdict, table = out.split("\n\n", 1) if "Success criterion" not in out.split("\n\n")[0] else (None, None)
     head, rest = out.split("Success criterion", 1); verdict_text = "Success criterion" + rest.split("| Split")[0]; table = "| Split" + rest.split("| Split", 1)[1]
     narrative = NARRATIVE.read_text() if NARRATIVE.exists() else "(Interpretation paragraph not yet written.)\n"
-    return INTRO + table.strip() + "\n\n**Verdict against the pre-registered criterion.**\n\n```\n" + verdict_text.strip() + "\n```\n\n" + narrative + "\n"
+    replication = ""
+    if (HERE / "graph_exploration" / "replication_narrative.md").exists():
+        import aggregate_replication as rep
+        replication = ("\n\n**Replication on fresh seeds (split B only).** Because the plain rule was significant in split B but its own controls had not been run, a replication was pre-registered in `graph_exploration/AUTONOMOUS_RUN_LOG.md` before it ran: seeds 430-459 (30 seeds never used before), split B, both conditions, with no change to the rule, plus its type-only and shuffled-posterior controls and the Core-set baseline. Gains are over Random as above; p-values are raw seed-level Wilcoxon tests (the paired differences are not corrected for multiplicity; H1 is corrected over the two conditions).\n\n"
+                       + rep.markdown() + "\n" + (HERE / "graph_exploration" / "replication_narrative.md").read_text())
+    return INTRO + table.strip() + "\n\n**Verdict against the pre-registered criterion.**\n\n```\n" + verdict_text.strip() + "\n```\n\n" + narrative + replication + "\n"
 
 
 if __name__ == "__main__":

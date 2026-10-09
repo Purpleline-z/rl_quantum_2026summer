@@ -1031,6 +1031,33 @@ Success criterion (Holm p < 0.05 for log-loss in >= 2 blocks incl. both splits, 
 
 **Limits.** One encoder (SimCLR features of one set of three sessions), one value of k and one propagation weight, a linear decisive predictor fitted to 30-100 revealed judgments, selectors that see the typed reference images, and a graph restricted to the images of candidates, revealed judgments and references (no unlabelled trajectory frames, no temporal edges). A trained graph network, a second encoder and the unlabelled trajectory images remain untested.
 
+
+**Replication on fresh seeds (split B only).** Because the plain rule was significant in split B but its own controls had not been run, a replication was pre-registered in `graph_exploration/AUTONOMOUS_RUN_LOG.md` before it ran: seeds 430-459 (30 seeds never used before), split B, both conditions, with no change to the rule, plus its type-only and shuffled-posterior controls and the Core-set baseline. Gains are over Random as above; p-values are raw seed-level Wilcoxon tests (the paired differences are not corrected for multiplicity; H1 is corrected over the two conditions).
+
+| Condition | Rule | log-loss gain | raw p | AUC gain | seeds better |
+|---|---|---:|---:|---:|---:|
+| single-shot | Type-aware graph coverage x P(decisive) | +0.042 | 0.029 | +0.0078 | 67% (30) |
+| single-shot | (control) decisive predictor from the type only | +0.038 | 0.038 | +0.0043 | 70% (30) |
+| single-shot | (control) type posterior shuffled over images | +0.060 | <0.001 | +0.0093 | 80% (30) |
+| single-shot | (baseline) Core-set, relation-aware pairs | -0.015 | 0.715 | -0.0008 | 50% (30) |
+| sequential | Type-aware graph coverage x P(decisive) | +0.030 | 0.393 | +0.0071 | 50% (30) |
+| sequential | (control) decisive predictor from the type only | +0.038 | 0.158 | +0.0008 | 60% (30) |
+| sequential | (control) type posterior shuffled over images | +0.034 | 0.221 | +0.0024 | 63% (30) |
+| sequential | (baseline) Core-set, relation-aware pairs | -0.019 | 0.503 | -0.0093 | 50% (30) |
+
+| Condition | Paired difference (log-loss) | mean | raw p |
+|---|---|---:|---:|
+| single-shot | rule minus type-only control | +0.004 | 0.968 |
+| single-shot | rule minus shuffled-posterior control | -0.018 | 0.529 |
+| single-shot | rule minus Core-set baseline | +0.057 | 0.058 |
+| sequential | rule minus type-only control | -0.008 | 0.440 |
+| sequential | rule minus shuffled-posterior control | -0.003 | 0.919 |
+| sequential | rule minus Core-set baseline | +0.049 | 0.124 |
+
+H1 (gain over Random, Holm over the two conditions): single-shot p = 0.059, sequential p = 0.393.
+
+In single-shot selection the plain rule again has a positive gain over Random (+0.042 log-loss, raw p = 0.029, Holm p = 0.059 over the two conditions, AUC +0.008, 67% of seeds better), smaller than in the confirmation (+0.062); in sequential selection the gain is +0.030 (Holm p = 0.39). The replication therefore does not reach significance after correction, and the point estimates are about half of those of the confirmation, as expected when a rule has been selected for a good result. The controls are as good as the rule: using only the type to predict decisiveness gives +0.038 in both conditions, shuffling the type posterior gives +0.060 and +0.034, and the paired differences between the rule and its controls are +0.004 / −0.008 (type-only) and −0.018 / −0.003 (shuffled) log-loss, none distinguishable from zero. The Core-set baseline, which gained +0.063 in the confirmation, has −0.015 and −0.019 here; the rule minus Core-set difference is +0.057 (raw p = 0.058) and +0.049 (raw p = 0.12). The supported statement is therefore narrow: weighting a coverage rule by a predicted probability that the judgment will be decisive, even when that probability uses only the reconstruction type, gives a small gain of about 0.03-0.06 log-loss over Random in the classifier2-style split B, at the edge of detectability with 25-30 seeds; the graph-derived type posterior does not add to it in these data, and the effect is not present in the small-pool split A.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.

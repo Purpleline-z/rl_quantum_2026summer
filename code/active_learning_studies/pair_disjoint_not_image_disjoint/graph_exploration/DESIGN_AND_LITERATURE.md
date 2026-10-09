@@ -1,6 +1,6 @@
 # Design of the type-aware graph acquisition rules, results so far, and how they relate to the literature
 
-Status 2026-10-09 evening: development results (10 seeds) are final for the frozen candidates; confirmation seeds (25) are still running, so **no claim about significance versus Random is made here**. Sources are cited only where a search result stated them; "(summary)" means only a search summary was read, not the paper.
+Status 2026-10-09 night: the development table in section 2 is superseded by the confirmation (25 unseen seeds) and the replication (30 fresh seeds, split B) in the report section 5.15 and in AUTONOMOUS_RUN_LOG.md: the pre-registered criterion was not met, the plain coverage rule has a small gain in split B (about +0.03 to +0.06 log-loss) that its type-only and shuffled controls reproduce, and split A shows no gain; treat the section-2 numbers as optimistic development estimates. Sources are cited only where a search result stated them; "(summary)" means only a search summary was read, not the paper.
 
 ## 1. What the method does (graph_typed.py)
 Setting: each query is one (image pair, reconstruction type) judgment; the annotator may answer decisively (a wins / b wins), "tie", or "not_apply" (35% of judgments; 64% for HTR). The evaluated endpoint (held-out preference log-loss / AUC) only scores decisive judgments, while every outcome is used in training.
