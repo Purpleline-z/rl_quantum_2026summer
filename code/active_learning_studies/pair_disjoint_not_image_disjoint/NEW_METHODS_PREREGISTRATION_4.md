@@ -15,3 +15,4 @@ Judgment-unit protocol, re-tuned head schedule, groups-initial set, budgets 10/2
 New random splits of the same 168 pair groups; HTR test sets are small (about 13-16 decisive judgments per seed), so single-seed HTR metrics are very noisy; at budgets 40-60 the HTR candidates of the pool are nearly exhausted, so there is little room for selection.
 
 Pre-run commit: (recorded below)
+7fc1a3399202aba142733efc75c6483d52cfa202
