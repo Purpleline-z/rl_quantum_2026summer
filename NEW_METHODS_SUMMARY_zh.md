@@ -3,7 +3,7 @@
 分支 `claude/new-methods`（已合并进 `claude/frozen-encoder-strategies`，报告新增 §5.15）。详细英文版：`code/active_learning_studies/pair_disjoint_not_image_disjoint/NEW_METHODS_RESULTS.md`；过程日志：`NEW_METHODS_LOG.md`。
 
 ## 一句话结论
-在 judgment 单位、重新调好的 head 训练参数下，**“最小化候选池整体预测方差”的最优设计类规则（I-optimal 设计 `vopt_u`，以及之前的 Fisher D-optimal、BALD×P(decisive)）显著优于随机选择**；这个结论在多组预先登记（pre-registered）的新种子上复现。但这是一个**方法族**的效应，不是新规则独有；效应不大（主协议下 accuracy +1~2 个点，AUC +0.006~0.013）；而且**只在已有标注很少时存在**。
+在 judgment 单位、重新调好的 head 训练参数下，**“最小化候选池整体预测方差”的最优设计类规则（I-optimal 设计 `vopt_u`，以及之前的 Fisher D-optimal、BALD×P(decisive)）显著优于随机选择**；这个结论在多组预先登记（pre-registered）的新种子上复现。但这是一个**方法族**的效应（`vopt_u` 在探索性配对比较里对 Fisher/BALD 略占优，温和 head 下最明显，但不是每个设置都显著）；效应不大（主协议下 accuracy +1~2 个点，AUC +0.006~0.013）；而且**只在已有标注很少时存在**。
 
 ## 具体数字（均为相对 Random 的平均增益，4 个 split×条件格子合并；Holm 校正）
 | 实验（新种子，预先登记） | 结果 |
