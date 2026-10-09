@@ -81,4 +81,23 @@ def vopt_dec2(*a, **kw): return vopt(*a, informative=decisive_v2, target_decisiv
 def vopt_inf2(*a, **kw): return vopt(*a, informative=decisive_v2, **kw)
 
 
-NEW = {"vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2}
+# ------------------------------------------------------------------------------------------ BALD / Fisher with the improved outcome model
+def bald_dec2(cands, labeled, model, cache, budget, seed=0, ridge=1.0, samples=64):
+    """BALD of the own head under the Laplace posterior x P(decisive) from decisive_v2 (type + pair statistics + anchor-only head scores)."""
+    return ju._bald_greedy(cands, labeled, model, cache, budget, seed, ridge, samples, decisive_v2(cands, labeled, cache))
+
+
+def fisher_dec(cands, labeled, model, cache, budget, seed=0, ridge=1.0, decisive=decisive_v1):
+    """Greedy D-optimal Fisher design of the own head with the gain multiplied by the predicted probability of a decisive answer."""
+    items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p); inverse = ju._inverses(h, w, k, n, ridge)
+    d = decisive(cands, labeled, cache); chosen = []; remaining = list(range(n))
+    for _ in range(min(budget, n)):
+        gains = [d[i] * np.log1p(w[i] * h[i] @ inverse[k[i]] @ h[i]) for i in remaining]; pick = remaining[int(np.argmax(gains))]
+        inverse[k[pick]] = _rank_one(inverse[k[pick]], h[pick], w[pick]); chosen.append(pick); remaining.remove(pick)
+    return [cands[i] for i in chosen]
+
+
+def fisher_dec2(*a, **kw): return fisher_dec(*a, decisive=decisive_v2, **kw)
+
+
+NEW = {"vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}

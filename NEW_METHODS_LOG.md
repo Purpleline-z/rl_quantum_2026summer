@@ -23,3 +23,16 @@ Branch `claude/new-methods` (from `claude/frozen-encoder-strategies`). Started 2
 - Learned acquisition function (LAL, Konyushkova 2017) with group-wise cross-fitting.
 - Type-quota / type-matching to the test distribution.
 - Expected-error-reduction via linearised retraining.
+
+## Literature notes (round 1)
+- Active Reward Modeling (Shen et al., ICML 2025): Fisher information on the last layer, pairs with moderate reward differences + exploration of representation space; our `fisher_dopt` implements this and showed a replicated decisive-accuracy gain.
+- Schein & Ungar, A-optimality for logistic regression: variance-reduction designs are the most likely AL methods to match/beat random in their evaluation; Yang & Loog benchmark: uncertainty sampling is strong but random is rarely overwhelmed. Motivates pool-wide predictive-variance reduction (`vopt`).
+- Hacohen & Weinshall (ICML 2022) / Uncertainty Herding (Bae et al., ICLR 2025) / SelectAL: low budgets favour coverage/typicality, high budgets uncertainty; no single rule works at all budgets without adaptation.
+- Tripp (blog, 2025): AL cannot beat random when all candidates are about equally informative; the smaller the set, the stronger random. In our data the main source of variation in informativeness is whether a judgment is decisive (51%) versus tie / not_apply (49%), plus type-specific heads.
+- Direct Acquisition Optimization (Zhao et al. 2024): expected error reduction with influence functions for low budgets; our `vopt` is the linearised last-layer analogue.
+- LAL (Konyushkova et al., NeurIPS 2017): learn the acquisition function as a regressor on state/candidate features; planned as idea 3 (cross-fitted over seeds).
+- Tie models (Rao-Kupper, Davidson): no published tie-aware active selection found; here the outcome is {win, win, tie, not applicable} and only decisive outcomes count for the endpoint, so the informativeness of a query is P(decisive) x BT information.
+
+## Diagnostics
+- Predicting a decisive outcome before asking (group-wise 5-fold CV on the pool, 10 dev seeds): AUC type only 0.57-0.58; + pair distance/cosine 0.67-0.70; + anchor-only head scores 0.71-0.74; all 0.73-0.75 (`explore_decisive_predictability.py`).
+- Smoke test of `vopt`: with only the 30 initial judgments the variance-reduction picks have a LOWER decisive share (0.42-0.45) than the pool (0.52), i.e. high-leverage pairs are disproportionately tie / not_apply.
