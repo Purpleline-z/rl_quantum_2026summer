@@ -90,3 +90,11 @@ Per-type held-out metrics added (`new_methods_study.py`; HTR = head 4, about 13-
 | bald_decisive | +0.0098 (66%, 0.0013) | +0.0153 (89%, <0.0001) | +0.0215 |
 All 8 primary tests are significant after Holm: the family effect replicates on fresh splits. Post hoc pooling of seeds 700-734 and 800-834 (70 seeds): vopt_u AUC +0.0093, accuracy +0.0131, log-loss +0.0211 (p 0.002); vopt_u_inf1 AUC +0.0083, acc +0.0135, ll +0.0148; fisher AUC +0.0072, acc +0.0150, ll +0.0027 (n.s.); bald_decisive AUC +0.0091, acc +0.0143, ll +0.0173.
 Same 168 groups in every seed -> sensitivity to split draw, not new data.
+
+## CONFIRMATION 3 (pre-registration 3: cold start = 10 random initial judgments, seeds 900-934, 35 seeds; Holm over 12 tests): ALL 12 TESTS SIGNIFICANT
+| method | log-loss gain | AUC gain | accuracy gain | (seeds better: ll / AUC / acc) |
+| vopt_u | +0.0554 | +0.0180 | +0.0188 | 77% / 86% / 83% |
+| vopt_u_inf1 | +0.0608 | +0.0203 | +0.0238 | 86% / 89% / 91% |
+| fisher_dopt | +0.0378 | +0.0172 | +0.0211 | 69% / 86% / 83% |
+| bald_decisive | +0.0561 | +0.0193 | +0.0193 | 86% / 91% / 83% |
+All Holm p < 0.001 (smallest effect: fisher_dopt log-loss, Holm 0.0003). Gains are 2-3x larger than with the type-coverage-initialised start of the main protocol.
