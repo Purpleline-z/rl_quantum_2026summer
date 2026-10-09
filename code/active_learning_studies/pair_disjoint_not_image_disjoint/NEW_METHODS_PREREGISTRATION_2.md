@@ -15,3 +15,4 @@ For each method, gain over Random (per-seed, averaged over budgets then over the
 New random splits of the same 168 pair groups; not new data.
 
 Pre-run commit: (recorded below)
+1c0b606a8cdb11eafcec715be212d44fcfd20be3
