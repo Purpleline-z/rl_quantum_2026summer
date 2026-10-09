@@ -154,3 +154,6 @@ Absolute levels (pooled over budgets and cells): Random 0.423 / 0.900 / 0.829; v
 | 0.0003 x 300 (0.09) | 0.416 / 0.909 / 0.841 | 0.397 / 0.916 / 0.851 | +0.019 / +0.007 / +0.010 |
 | re-tuned (about 0.1) | 0.428 / 0.907 / 0.839 | 0.410 / 0.913 / 0.855 | +0.019 / +0.006 / +0.016 |
 => Among gentle schedules (lr x steps 0.01-0.1) the gain is about the same (AUC +0.006 to +0.013, accuracy +0.010 to +0.016); the earlier impression that "gentler is larger" (seeds 700-714: AUC +0.017 at 0.03 vs +0.008 re-tuned) is not reproduced on seeds 600-609 and is confounded with seed-set variation (gains of the same rule differ between seed sets: AUC +0.006 on 700-734, +0.013 on 800-834, +0.021 on 1300-1334). Established: gains vanish at lr x steps = 1.0 and are present from 0.01 to 0.3. The absolute best (Random-independent) level on these seeds is reached by the gentlest settings (vopt_u log-loss 0.378-0.384, AUC 0.917-0.919).
+
+## Label-set size with the gentle schedule (lr 0.0003 x 100; dev seeds 600-614, 15 seeds; vopt_u gain over Random pooled over 4 cells)
+30 initial groups (~90 judgments): log-loss +0.0065, AUC +0.0016, accuracy +0.0015 (n.s.); 60 initial groups (~175 judgments): -0.0006, -0.0003, +0.0006 (n.s.). The gentle schedule does not rescue the large-initial regime: the benefit is gone by about 60-90 labelled judgments.

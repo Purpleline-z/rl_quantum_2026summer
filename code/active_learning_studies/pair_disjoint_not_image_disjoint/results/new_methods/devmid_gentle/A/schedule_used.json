@@ -1,0 +1,22 @@
+{
+ "initial": {
+  "learning_rate": 0.0003,
+  "steps": 100
+ },
+ "10": {
+  "learning_rate": 0.0003,
+  "steps": 100
+ },
+ "20": {
+  "learning_rate": 0.0003,
+  "steps": 100
+ },
+ "40": {
+  "learning_rate": 0.0003,
+  "steps": 100
+ },
+ "60": {
+  "learning_rate": 0.0003,
+  "steps": 100
+ }
+}
