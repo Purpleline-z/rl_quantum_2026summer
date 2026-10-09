@@ -38,5 +38,63 @@ if os.environ.get("NM_INITIAL_GROUPS"):   # larger initial set (labels already i
     _harness.make_experiment = _make_big
 
 
+if os.environ.get("NM_HALF"):   # restrict the whole study to one of two image-disjoint halves of the 168 pair groups (independent data worlds)
+    import random as _random
+    _make_half_base = _harness.make_experiment
+    def _make_half(*a, **k):
+        exp = _make_half_base(*a, **k); _load = exp.load_and_split
+        def load():
+            initial, cands = _load(); ids = list(dict.fromkeys(list(initial) + list(cands))); imgs = {g: {exp.groups[g].iloc[0].resolved_img1, exp.groups[g].iloc[0].resolved_img2} for g in ids}
+            parent = {g: g for g in ids}
+            def find(x):
+                while parent[x] != x: parent[x] = parent[parent[x]]; x = parent[x]
+                return x
+            owner = {}
+            for g in sorted(ids):
+                for im in sorted(imgs[g]):
+                    if im in owner: parent[find(g)] = find(owner[im])
+                    else: owner[im] = g
+            comps = {}
+            for g in sorted(ids): comps.setdefault(find(g), []).append(g)
+            order = sorted(comps); _random.Random(2026).shuffle(order); half1, size = set(), 0
+            for key in order:
+                if size >= len(ids) // 2: break
+                half1 |= set(comps[key]); size += len(comps[key])
+            keep = half1 if os.environ["NM_HALF"] == "1" else set(ids) - half1
+            ini = [g for g in initial if g in keep]; rest = [g for g in cands if g in keep]
+            while len(ini) < 10 and rest: ini.append(rest.pop(0))
+            return ini[:10], rest + ini[10:]
+        exp.load_and_split = load; return exp
+    _harness.make_experiment = _make_half
+
+
+if os.environ.get("NM_CROSS"):   # train world = image-disjoint half NM_CROSS (initial set and pool); test set = ALL groups of the other half
+    import random as _random2
+    import pair_preference_endpoint as _endpoint
+    _orig_split = _endpoint.split_classifier2_style
+    def _halves(exp, ids):
+        imgs = {g: {exp.groups[g].iloc[0].resolved_img1, exp.groups[g].iloc[0].resolved_img2} for g in ids}; parent = {g: g for g in ids}
+        def find(x):
+            while parent[x] != x: parent[x] = parent[parent[x]]; x = parent[x]
+            return x
+        owner = {}
+        for g in sorted(ids):
+            for im in sorted(imgs[g]):
+                if im in owner: parent[find(g)] = find(owner[im])
+                else: owner[im] = g
+        comps = {}
+        for g in sorted(ids): comps.setdefault(find(g), []).append(g)
+        order = sorted(comps); _random2.Random(2026).shuffle(order); half1, size = set(), 0
+        for key in order:
+            if size >= len(ids) // 2: break
+            half1 |= set(comps[key]); size += len(comps[key])
+        return half1, set(ids) - half1
+    def _cross_split(exp, initial, candidates, **kw):
+        ids = list(dict.fromkeys(list(initial) + list(candidates))); h1, h2 = _halves(exp, ids); train, test = (h1, h2) if os.environ["NM_CROSS"] == "1" else (h2, h1)
+        tr = [g for g in ids if g in train]; ini, pool, _, _ = _orig_split(exp, tr[:10], tr[10:], test_fraction=0.0)
+        return ini, pool, [], [g for g in ids if g in test]
+    _endpoint.split_classifier2_style = _cross_split
+
+
 if __name__ == "__main__":
     study.main()

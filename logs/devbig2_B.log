@@ -1,17 +1,11 @@
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
-Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=25.
+Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=21.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
 /home/user/wt_new/code/active_learning_studies/pair_disjoint_not_image_disjoint/frozen_encoder_reward_head.py:100: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
   xa, xb, typ = features.get(rows.resolved_img1), features.get(rows.resolved_img2), torch.as_tensor(rows.type_idx.to_numpy())
-split A initial groups seed 600: pool 103 judgments, 28 pairs, finished in 84s
+split B initial groups seed 615: pool 166 judgments, 54 pairs, finished in 77s
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
-Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=24.
+Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=21.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
-split A initial groups seed 601: pool 99 judgments, 33 pairs, finished in 77s
+split B initial groups seed 616: pool 147 judgments, 50 pairs, finished in 82s
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
-Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=23.
-Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
-split A initial groups seed 602: pool 97 judgments, 30 pairs, finished in 81s
-Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
-Validated 521 rows / 168 pairs. Pretrain=60, candidate=108, pairwise image overlap=22.
-Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
