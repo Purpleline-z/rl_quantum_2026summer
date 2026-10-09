@@ -109,6 +109,15 @@ def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0):
     return select
 
 
+def typed_decisive_sampling(refs, shuffle=False, gamma: float = 2.0):
+    """Random-like selection that favours judgments likely to be decisive: Gumbel-top-k sampling without replacement with weights P(decisive)^gamma (keeps Random's representativeness)."""
+    def select(cands, labeled, model, cache, budget, seed=0):
+        g = _graph(cands, labeled, cache, refs, seed, shuffle); p = decisive_probability(g, cands, labeled)
+        key = gamma * np.log(np.clip(p, 1e-6, 1)) + np.random.default_rng(seed * 1_000_003 + 29).gumbel(size=len(cands))
+        return [cands[i] for i in np.argsort(-key, kind="stable")[:budget]]
+    return select
+
+
 # ---------------------------------------------------------------------------------------------------- Sequential GCN (Caramalau et al. 2021)
 class _GCN(nn.Module):
     def __init__(self, nfeat, nhid=128, dropout=.3):
@@ -152,7 +161,9 @@ def _gcn_pair_rule(kind: str, lr: float = 1e-3):
 
 
 FACTORIES = {"typed_decisive_uncertainty": lambda refs: typed_decisive_uncertainty(refs), "typed_decisive_bald": lambda refs: typed_decisive_bald(refs),
-             "typed_decisive_coverage": lambda refs: typed_decisive_coverage(refs),
+             "typed_decisive_coverage": lambda refs: typed_decisive_coverage(refs), "typed_decisive_sampling": lambda refs: typed_decisive_sampling(refs),
+             "typed_decisive_sampling_g1": lambda refs: typed_decisive_sampling(refs, gamma=1.0), "typed_decisive_sampling_g4": lambda refs: typed_decisive_sampling(refs, gamma=4.0),
+             "typed_decisive_sampling_shuffled": lambda refs: typed_decisive_sampling(refs, True),
              "typed_decisive_uncertainty_shuffled": lambda refs: typed_decisive_uncertainty(refs, True), "typed_decisive_bald_shuffled": lambda refs: typed_decisive_bald(refs, True),
              "typed_decisive_coverage_shuffled": lambda refs: typed_decisive_coverage(refs, True)}
 PAIR_FACTORIES = {"coregcn": lambda refs: ju.pair_level(_gcn_pair_rule("core"), False), "uncertaingcn": lambda refs: ju.pair_level(_gcn_pair_rule("uncertain"), False)}
