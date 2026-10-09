@@ -157,3 +157,4 @@ Absolute levels (pooled over budgets and cells): Random 0.423 / 0.900 / 0.829; v
 
 ## Label-set size with the gentle schedule (lr 0.0003 x 100; dev seeds 600-614, 15 seeds; vopt_u gain over Random pooled over 4 cells)
 30 initial groups (~90 judgments): log-loss +0.0065, AUC +0.0016, accuracy +0.0015 (n.s.); 60 initial groups (~175 judgments): -0.0006, -0.0003, +0.0006 (n.s.). The gentle schedule does not rescue the large-initial regime: the benefit is gone by about 60-90 labelled judgments.
+20 initial groups (gentle schedule, 15 seeds): log-loss +0.0135, AUC +0.0036, accuracy +0.0052 (n.s.); i.e. with the gentle schedule the gain at about 60 judgments is already small, and ~0 from about 90.
