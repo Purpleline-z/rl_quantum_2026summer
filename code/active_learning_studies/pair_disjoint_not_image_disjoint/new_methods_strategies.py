@@ -55,7 +55,7 @@ def decisive_v2(cands, labeled, cache, C=0.3):
 
 
 # ------------------------------------------------------------------------------------------ pool-wide variance reduction
-def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None, sensitivity=True, quota=False, flip=False):
+def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None, sensitivity=True, quota=False, flip=False, head_weight=None):
     items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p)
     inverse = ju._inverses(h, w, k, n, ridge)
     info = np.ones(n) if informative is None else informative(cands, labeled, cache)
@@ -65,7 +65,7 @@ def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=No
         idx = members[kk]
         if len(idx) == 0: return idx, np.zeros(0)
         P = h[idx]; G = P @ inverse[kk] @ P.T; own = np.diag(G); cj = c[idx]
-        return idx, info[idx] * w[idx] / (1 + w[idx] * own) * ((cj[:, None] * G ** 2).sum(0))
+        return idx, (1.0 if head_weight is None else head_weight.get(kk, 1.0)) * info[idx] * w[idx] / (1 + w[idx] * own) * ((cj[:, None] * G ** 2).sum(0))
     score = np.full(n, -np.inf); table = {}
     for kk in ACTIVE_HEADS: idx, g = gains(kk); score[idx] = g
     alive = np.ones(n, bool); chosen = []
@@ -199,3 +199,7 @@ NEW = {"random_htr": random_htr, "vopt_htr": None, "fisher_htr": None, "ntk_vopt
 
 NEW["vopt_htr"] = _restrict(vopt_u, 4, fill=vopt_u)
 NEW["fisher_htr"] = _restrict(ju.fisher_dopt, 4, fill=vopt_u)
+
+
+def _hw(lam): return lambda *a, **kw: vopt(*a, sensitivity=False, head_weight={4: lam}, **kw)
+NEW["vopt_hw2"] = _hw(2.0); NEW["vopt_hw4"] = _hw(4.0)
