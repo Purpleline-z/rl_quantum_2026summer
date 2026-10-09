@@ -85,3 +85,10 @@ Environment: `JU_THREADS=1 OMP_NUM_THREADS=1` per process (4 cores). Tests: `cod
 - Second encoder (ImageNet or a larger self-supervised model) and larger pool: GPU/network work (the CPU container cannot download weights).
 - Decide the HTR priority weight with the lab (the weight is a knob; 4 was fixed from development, not tuned further).
 - Combine the design rule with the better-trained head (e.g. order-independent end-to-end fine-tuning) once available.
+
+## 9. Using the rule on new data (sketch)
+1. Cache the frozen SimCLR features of all images (`frozen_encoder_reward_head.FrozenFeatures`, `save_feature_cache`), including the new unlabelled ones.
+2. Train the head on every judgment labelled so far plus the reference/bad-image anchors with the per-budget gentle schedule (`results/pair_endpoint_study/schedule_judgment_unit.json`, or lr 0.0003 / 100 steps, see pre-registration 7): `frozen.train_model(exp, features, [], lr, steps, rows=<DataFrame of labelled judgment rows>)`.
+3. Build candidates: one dict per (image pair, type in {1x1, c6x2, sqrt13, HTR}) not yet labelled, with keys `pair_id` (unique judgment id), `base_pair`, `img1`, `img2`, `type_idx`; the already labelled judgments are passed as dicts with the same keys plus `outcomes=[(type_idx, was_decisive)]`.
+4. `import new_methods_study` (registers the rules), then `picked = new_methods_strategies.NEW["vopt_u"](cands, labeled, model, cache, budget=10, seed=0)` (or `NEW["vopt_hw4"]` for the HTR priority); send the `picked` (pair, type) judgments to the labelling GUI, retrain with the returned labels and repeat in rounds of 10 (the sequential protocol).
+5. For a prospective test keep a random arm: draw the same number of (pair, type) judgments uniformly from the same candidate list for the control group, evaluate both on a fixed held-out set of expert judgments.
