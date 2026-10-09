@@ -12,3 +12,4 @@ The 168 pair groups are split once into two image-disjoint halves H1 and H2 (con
 The two worlds are image-disjoint but come from the same experiment sessions and labelling process; the seeds only resample the initial set and pool order within a world, so Wilcoxon p-values are optimistic and the two direction-level tests are the more informative check; the head hyper-parameters were calibrated on data that include both halves.
 
 Pre-run commit: (recorded below)
+0f006f441ff5ba969da70014a29e52bbf855786e
