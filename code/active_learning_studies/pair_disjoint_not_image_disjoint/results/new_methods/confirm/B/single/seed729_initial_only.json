@@ -1,0 +1,1 @@
+{"seed": 729, "strategy": "initial_only", "pool_judgments": 320, "initial_judgments": 30, "test_decisive_accuracy": 0.8363636363636363, "test_decisive_log_loss": 0.4875815806078967, "test_decisive_auc": 0.9159663865546218, "test_calibrated_log_loss": NaN, "fitted_temperature": NaN, "test_decisive_rows": 55, "validation_decisive_log_loss": NaN, "validation_decisive_accuracy": NaN}

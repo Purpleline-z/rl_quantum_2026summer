@@ -42,3 +42,31 @@ Branch `claude/new-methods` (from `claude/frozen-encoder-strategies`). Started 2
 - Ridge (0.3, 1, 3, 10) matters little; unit target weights (`vopt_u`, minimise the summed logit variance over the pool) is as good as or better than sensitivity-weighted targets and has no knobs.
 - Outcome-informativeness factors P(decisive) (v1, v2) add little on top of the variance reduction itself (acc +0.01 to +0.02 relative to Random for both).
 - Reference rules on 3 seeds only so far; full reference runs (600-629) are in progress.
+
+## Dev, 30 seeds x 4 cells (seeds 600-629; mean gain over Random; Holm over 15-21 tests within the dev table, descriptive only)
+vopt (I-optimal, sensitivity-weighted): AUC +0.0093, acc +0.0202, log-loss +0.0043; vopt_inf2: AUC +0.0114, acc +0.0205, ll +0.0170; vopt_u: AUC +0.0089, acc +0.0167 (97% of seeds), ll +0.0172; vopt_u_inf1: AUC +0.0101, acc +0.0143, ll +0.0214.
+Earlier rules under the same re-tuned schedule on the same seeds: fisher_dopt AUC +0.0095, acc +0.0184, ll +0.0109; bald_decisive AUC +0.0089, acc +0.0129, ll +0.0159; laplace_bald AUC +0.0092, acc +0.0120, ll +0.0173; core_set_relation AUC +0.0066, acc +0.0050 (n.s.), ll +0.0233; plain uncertainty about 0 on all (-0.001 to +0.004).
+=> The gain is a property of the whole last-layer optimal-design family (Fisher / Laplace-BALD / variance reduction), not specific to vopt; uncertainty sampling does not share it.
+Mechanism (budget 60, share of picks): decisive 0.49-0.52 (Random 0.51-0.52), tie 0.09-0.11 (Random 0.13-0.15), not_apply 0.39-0.40 (Random 0.34-0.35); fewer distinct pairs (37 vs 42); type mix tilted away from (1x1) (0.18-0.20 vs 0.25) towards (sqrt13) (0.33 vs 0.28). So the gain does not come from choosing decisive judgments.
+
+## CONFIRMATORY RESULT (pre-registered, seeds 700-734, 35 seeds, pooled over the 4 split x condition cells; one-sided Wilcoxon; Holm over 6 tests)
+| method | metric | mean gain | seeds better | p | Holm |
+| vopt_u | log-loss | +0.0074 | 49% | 0.37 | 0.74 |
+| vopt_u | AUC | +0.0058 | 60% | 0.033 | 0.13 |
+| vopt_u | accuracy | +0.0095 | 77% | 0.0001 | 0.0004 |
+| vopt_u_inf1 | log-loss | +0.0046 | 51% | 0.39 | 0.74 |
+| vopt_u_inf1 | AUC | +0.0049 | 60% | 0.061 | 0.18 |
+| vopt_u_inf1 | accuracy | +0.0114 | 77% | <0.0001 | 0.0002 |
+Pre-registered verdict: "partly" (accuracy significant after Holm for both; AUC and log-loss positive but not significant after Holm). Effects are smaller than on the development seeds (accuracy +0.017 -> +0.010, AUC +0.009 -> +0.006): winner's-curse / regression to the mean.
+
+## Diagnostics (dev seeds 600-609)
+- Oracle ceiling (selection by hindsight using the TEST labels; top-b judgments by single-addition test log-loss gain; Split A): log-loss gain over Random 0.16-0.20 and accuracy gain 0.038-0.054 at budgets 10-60; oracle picks are 55-73% decisive. The practical rules recover only about a third of the accuracy headroom (+0.017) and a tenth of the log-loss headroom.
+- Value of knowing the outcome class (Split A, seeds 600-604, 10 draws per policy): random among TRULY decisive judgments (perfect knowledge) is NOT better than Random (log-loss -0.01 to -0.09, AUC about 0 to +0.01, accuracy 0 to +0.015); random among the top 25/50% by predicted P(decisive) is also not better. Conclusion: ties / not_apply judgments are as useful for this endpoint as decisive ones (they train the push-down / equality terms); the P(decisive) factors add nothing, which matches `vopt_u` vs `vopt_u_inf1`.
+- Type quotas (stratified allocation) change nothing (`vopt_u_quota` vs `vopt_u`: all within noise).
+
+## Confirmatory seeds 700-734: earlier rules on the same seeds (secondary, descriptive; pooled over 4 cells)
+fisher_dopt: AUC +0.0073, acc +0.0140, ll +0.0038; bald_decisive: AUC +0.0083 (one-sided p 0.0003), acc +0.0134, ll +0.0130; core_set_relation: AUC +0.0005, acc +0.0023; plain uncertainty: AUC -0.0044, acc +0.0037, ll -0.0172.
+=> `vopt_u` / `vopt_u_inf1` are NOT better than Fisher D-optimal or BALD x P(decisive); the whole last-layer optimal-design family gives ~ +0.006-0.008 AUC and +0.010-0.014 accuracy over Random; uncertainty and core-set do not.
+
+## Wave 2: NTK I-optimal design (kernelised variance reduction over ALL head parameters; first-layer NTK part is 1.3x the last-layer part, so cross-type information through the shared first layer is not negligible)
+Implemented as `ntk_vopt_t1`, `ntk_vopt_t300` (tau = prior precision); dev run on seeds 600-629 in progress.

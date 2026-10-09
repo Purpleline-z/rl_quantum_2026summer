@@ -55,7 +55,7 @@ def decisive_v2(cands, labeled, cache, C=0.3):
 
 
 # ------------------------------------------------------------------------------------------ pool-wide variance reduction
-def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None, sensitivity=True):
+def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None, sensitivity=True, quota=False, flip=False):
     items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p)
     inverse = ju._inverses(h, w, k, n, ridge)
     info = np.ones(n) if informative is None else informative(cands, labeled, cache)
@@ -69,8 +69,16 @@ def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=No
     score = np.full(n, -np.inf); table = {}
     for kk in ACTIVE_HEADS: idx, g = gains(kk); score[idx] = g
     alive = np.ones(n, bool); chosen = []
+    if quota:   # at most ceil(pool share of the type * budget) picks per head, so the types are allocated like the pool (stratified design)
+        cap = {kk: int(np.ceil(len(members[kk]) / n * budget)) for kk in ACTIVE_HEADS}; used = {kk: 0 for kk in ACTIVE_HEADS}
     for _ in range(min(budget, n)):
-        pick = int(np.argmax(np.where(alive, score, -np.inf))); chosen.append(pick); alive[pick] = False; kk = k[pick]
+        masked = np.where(alive, score, -np.inf)
+        if quota:
+            for kk in ACTIVE_HEADS:
+                if used[kk] >= cap[kk]: masked[members[kk]] = -np.inf
+            if not np.isfinite(masked).any(): masked = np.where(alive, score, -np.inf)
+        pick = int(np.argmax(masked)); chosen.append(pick); alive[pick] = False; kk = k[pick]
+        if quota: used[kk] += 1
         inverse[kk] = _rank_one(inverse[kk], h[pick], w[pick]); idx, g = gains(kk); score[idx] = np.where(alive[idx], g, -np.inf)
     return [cands[i] for i in chosen]
 
@@ -125,12 +133,46 @@ def aopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0):
     return [cands[i] for i in chosen]
 
 
+
+# ------------------------------------------------------------------------------------------ NTK I-optimal design (all head parameters)
+def _ntk(model, items, cache):
+    """Neural tangent kernel of the preference logit d = r_k(a) - r_k(b) (own type k) over ALL head parameters (W1, b1, W2_k; biases b2 cancel).
+    Last-layer part: only between judgments of the same type head; first-layer part (W1, b1 are shared by all heads): between every pair of judgments."""
+    head = model.reward_head.eval(); W1 = head[0].weight.detach().numpy().astype(np.float64); b1 = head[0].bias.detach().numpy().astype(np.float64); W2 = head[3].weight.detach().numpy().astype(np.float64)
+    xa = np.stack([cache[x["img1"]].numpy() for x in items]).astype(np.float64); xb = np.stack([cache[x["img2"]].numpy() for x in items]).astype(np.float64)
+    za, zb = xa @ W1.T + b1, xb @ W1.T + b1; ma, mb = (za > 0).astype(np.float64), (zb > 0).astype(np.float64); k = np.array([int(x["type_idx"]) for x in items]); w = W2[k]
+    phi = np.maximum(za, 0) - np.maximum(zb, 0); same = (k[:, None] == k[None, :]).astype(np.float64); K = same * (phi @ phi.T); n = len(items)
+    for h in range(W1.shape[0]):
+        U = np.concatenate([(ma[:, h:h + 1] * xa - mb[:, h:h + 1] * xb) * w[:, h:h + 1], ((ma[:, h] - mb[:, h]) * w[:, h])[:, None]], axis=1); K += U @ U.T
+    return K, k
+
+
+def ntk_vopt(cands, labeled, model, cache, budget, seed=0, tau=1.0):
+    """Greedy variance reduction of the preference logits over the candidate pool under the linearised (tangent-kernel) posterior of the whole head:
+    prior covariance K / tau, Gaussian observations with precision w_i = p_i (1 - p_i); gain of candidate i = sum_j C_ji^2 / (C_ii + 1/w_i)."""
+    items = cands + labeled; n = len(cands); K, k = _ntk(model, items, cache); _, p, _ = ju._own(model, items, cache); w = np.clip(p * (1 - p), 1e-4, None)
+    C = K / tau; L = np.arange(n, len(items))
+    if len(L):
+        A = C[np.ix_(L, L)] + np.diag(1 / w[L]); C = C - C[:, L] @ np.linalg.solve(A, C[L, :])
+    C = C[:n, :n].copy(); alive = np.ones(n, bool); chosen = []
+    for _ in range(min(budget, n)):
+        gain = (C ** 2).sum(0) / (np.diag(C) + 1 / w[:n]); pick = int(np.argmax(np.where(alive, gain, -np.inf))); chosen.append(pick); alive[pick] = False
+        c = C[:, pick].copy(); C -= np.outer(c, c) / (C[pick, pick] + 1 / w[pick])
+    return [cands[i] for i in chosen]
+
+
+def ntk_vopt_t1(*a, **kw): return ntk_vopt(*a, tau=1.0, **kw)
+def ntk_vopt_t300(*a, **kw): return ntk_vopt(*a, tau=300.0, **kw)
+
+
 def vopt_u(*a, **kw): return vopt(*a, sensitivity=False, **kw)
+def vopt_u_quota(*a, **kw): return vopt(*a, sensitivity=False, quota=True, **kw)
+def vopt_u_inf1_quota(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v1, quota=True, **kw)
 def vopt_u_inf2(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v2, **kw)
 def vopt_u_dec2(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v2, target_decisive=decisive_v2, **kw)
 def vopt_u_inf1(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v1, **kw)
 
 
-NEW = {"aopt": aopt, "vopt_u": vopt_u, "vopt_u_inf2": vopt_u_inf2, "vopt_u_dec2": vopt_u_dec2, "vopt_u_inf1": vopt_u_inf1,
+NEW = {"ntk_vopt_t1": ntk_vopt_t1, "ntk_vopt_t300": ntk_vopt_t300, "vopt_u_quota": vopt_u_quota, "vopt_u_inf1_quota": vopt_u_inf1_quota, "aopt": aopt, "vopt_u": vopt_u, "vopt_u_inf2": vopt_u_inf2, "vopt_u_dec2": vopt_u_dec2, "vopt_u_inf1": vopt_u_inf1,
        "vopt_r03": _with(vopt, ridge=0.3), "vopt_r3": _with(vopt, ridge=3.0), "vopt_r10": _with(vopt, ridge=10.0), "vopt_uniform": vopt_uniform,
        "vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}
