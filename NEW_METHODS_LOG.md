@@ -137,3 +137,11 @@ The benefit of variance-reduction design decays quickly with the number of label
 | lr 0.0003, 100 steps | 0.433 / 0.8982 / 0.8236 | 0.396 / 0.9156 / 0.8415 | +0.037 / +0.017 / +0.018 |
 The gain grows as the head is trained more gently (design is derived from a last-layer linear-Gaussian approximation, valid in the lazy regime), and the gentlest schedule also gives the best absolute levels for Random in log-loss and for vopt_u everywhere. The re-tuned schedule's optimum sat at the grid corner; pre-registration 7 (seeds 1300-1334) tests lr 0.0003 on fresh seeds. Protocol (re-tuned schedule) unchanged for the main results.
 Additional: lr 0.001 with 300 steps (lr x steps = 0.3): Random 0.535 / 0.898 / 0.828, vopt_u 0.510 / 0.909 / 0.841 -> gain +0.026 / +0.011 / +0.013 (15 seeds). Pattern in the total training amount lr x steps: 0.03 (lr 0.0003 x 100): AUC gain +0.017; 0.1 (0.001 x 100, re-tuned): +0.008; 0.3 (0.003 x 100 or 0.001 x 300): +0.011; 1.0 (old 0.01 x 100): +0.0025. The design gain persists while the head is trained lightly and fades when it is trained harder.
+
+## CONFIRMATION 7 (pre-registration 7: gentler head schedule lr 0.0003 x 100 steps, groups-initial protocol, seeds 1300-1334, Holm over 12): ALL 12 SIGNIFICANT (Holm < 0.0001)
+| method | log-loss | AUC | accuracy | (seeds better ll / AUC / acc) |
+| vopt_u | +0.0444 | +0.0212 | +0.0210 | 89% / 91% / 94% |
+| vopt_u_inf1 | +0.0382 | +0.0193 | +0.0205 | 89% / 83% / 89% |
+| fisher_dopt | +0.0317 | +0.0149 | +0.0174 | 86% / 83% / 91% |
+| bald_decisive | +0.0276 | +0.0150 | +0.0152 | 89% / 89% / 86% |
+Absolute levels (pooled over budgets and cells): Random 0.423 / 0.900 / 0.829; vopt_u 0.378 / 0.921 / 0.850 (log-loss / AUC / accuracy) -- the best absolute performance of the whole study; Random itself is not weakened by the gentle schedule (its AUC 0.900 equals that under the re-tuned schedule; its log-loss 0.423 is better than 0.448).
