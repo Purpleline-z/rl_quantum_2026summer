@@ -128,3 +128,11 @@ Heterogeneity between the two worlds: direction 1 (H1 -> H2) gains are small (vo
 | 40 groups | +0.0010 | +0.0002 | +0.002 |
 | 60 groups (~175 judgments; Split A+B dev: acc -0.003, AUC -0.0017) | -0.003 | -0.0013 | -0.0015 |
 The benefit of variance-reduction design decays quickly with the number of labels already in hand and is gone by ~100-180 judgments (the pool is also small there: 100-170 judgments). HTR priority at 60 initial groups: HTR accuracy +0.001, AUC +0.001 (n.s.), log-loss +0.007 (p 0.0003), i.e. nothing material.
+
+## Head-schedule sensitivity of vopt_u (descriptive; seeds 700-714, 15 seeds, pooled over 4 cells)
+| schedule | Random log-loss / AUC / acc | vopt_u log-loss / AUC / acc | gain (ll / AUC / acc) |
+| old: lr 0.01, 100 steps | 0.550 / 0.8945 / 0.8251 | 0.546 / 0.8970 / 0.8315 | +0.004 / +0.0025 / +0.006 |
+| re-tuned (lr 0.001, 0.003 at 60) | 0.448 / 0.8994 / 0.8275 | 0.429 / 0.9075 / 0.8371 | +0.019 / +0.008 / +0.010 |
+| lr 0.003, 100 steps | 0.495 / 0.8981 / 0.8291 | 0.463 / 0.9089 / 0.8404 | +0.032 / +0.011 / +0.011 |
+| lr 0.0003, 100 steps | 0.433 / 0.8982 / 0.8236 | 0.396 / 0.9156 / 0.8415 | +0.037 / +0.017 / +0.018 |
+The gain grows as the head is trained more gently (design is derived from a last-layer linear-Gaussian approximation, valid in the lazy regime), and the gentlest schedule also gives the best absolute levels for Random in log-loss and for vopt_u everywhere. The re-tuned schedule's optimum sat at the grid corner; pre-registration 7 (seeds 1300-1334) tests lr 0.0003 on fresh seeds. Protocol (re-tuned schedule) unchanged for the main results.
