@@ -96,12 +96,15 @@ def _pair_space(graph: ImageGraph, items, steps: int = gs.PROPAGATION_STEPS):
     return np.concatenate([(a + b) / 2, np.abs(a - b), a * b], axis=1)
 
 
-def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0):
+def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0, q_weight: float = 0.0):
     def select(cands, labeled, model, cache, budget, seed=0):
         g = _graph(cands, labeled, cache, refs, seed, shuffle); p = decisive_probability(g, cands, labeled) ** gamma
         if uncertainty_power: p = p * (0.25 + ju._own_uncertainty(model, cands, cache)) ** uncertainty_power
         allp = _pair_space(g, cands + labeled); allp = (allp - allp.mean(0)) / (allp.std(0) + 1e-6); allp = allp / np.sqrt(allp.shape[1])
         onehot = np.eye(5)[[int(x["type_idx"]) for x in cands + labeled]][:, list(TYPES)]; allp = np.concatenate([allp, onehot], axis=1)
+        if q_weight:  # coordinates of the pair in type-posterior space: mean and absolute difference of the two images' posteriors
+            qa = np.stack([g.q[g.index[x["img1"]]] for x in cands + labeled]); qb = np.stack([g.q[g.index[x["img2"]]] for x in cands + labeled])
+            allp = np.concatenate([allp, q_weight * (qa + qb) / 2, q_weight * np.abs(qa - qb)], axis=1)
         cand, lab = allp[:len(cands)], allp[len(cands):]; covered = lab.copy(); chosen = []; remaining = list(range(len(cands)))
         for _ in range(min(budget, len(cands))):
             dist = np.sqrt(((cand[remaining][:, None] - covered[None]) ** 2).sum(2)).min(1) if len(covered) else np.linalg.norm(cand[remaining] - cand.mean(0), axis=1)
@@ -168,6 +171,9 @@ FACTORIES = {"typed_decisive_uncertainty": lambda refs: typed_decisive_uncertain
              # controls with the decisive predictor reduced to the type one-hot (no reference/graph features): isolates what the graph adds to the decisive predictor
              "typed_decisive_coverage_typeonly": lambda refs: typed_decisive_coverage({}), "typed_decisive_sampling_typeonly": lambda refs: typed_decisive_sampling({}),
              "typed_decisive_coverage_g2": lambda refs: typed_decisive_coverage(refs, gamma=2.0), "typed_decisive_coverage_unc": lambda refs: typed_decisive_coverage(refs, uncertainty_power=1.0),
+             "typed_decisive_coverage_unc_g2": lambda refs: typed_decisive_coverage(refs, gamma=2.0, uncertainty_power=1.0), "typed_decisive_coverage_unc_u2": lambda refs: typed_decisive_coverage(refs, uncertainty_power=2.0),
+             "typed_decisive_coverage_unc_q": lambda refs: typed_decisive_coverage(refs, uncertainty_power=1.0, q_weight=1.0),
+             "typed_decisive_coverage_unc_typeonly": lambda refs: typed_decisive_coverage({}, uncertainty_power=1.0), "typed_decisive_coverage_unc_shuffled": lambda refs: typed_decisive_coverage(refs, True, uncertainty_power=1.0),
              "typed_decisive_uncertainty_shuffled": lambda refs: typed_decisive_uncertainty(refs, True), "typed_decisive_bald_shuffled": lambda refs: typed_decisive_bald(refs, True),
              "typed_decisive_coverage_shuffled": lambda refs: typed_decisive_coverage(refs, True)}
 PAIR_FACTORIES = {"coregcn": lambda refs: ju.pair_level(_gcn_pair_rule("core"), False), "uncertaingcn": lambda refs: ju.pair_level(_gcn_pair_rule("uncertain"), False)}
