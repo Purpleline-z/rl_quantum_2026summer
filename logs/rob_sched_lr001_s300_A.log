@@ -51,3 +51,12 @@ split A initial groups seed 711: pool 206 judgments, 68 pairs, finished in 122s
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
 Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=3.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 712: pool 190 judgments, 65 pairs, finished in 116s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=8.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 713: pool 226 judgments, 72 pairs, finished in 115s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 714: pool 212 judgments, 69 pairs, finished in 114s
