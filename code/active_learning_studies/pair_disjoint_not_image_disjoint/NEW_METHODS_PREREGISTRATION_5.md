@@ -15,3 +15,4 @@ Judgment-unit protocol, re-tuned head schedule, groups-initial set, budgets 10/2
 New splits of the same 168 groups; HTR test sets are small (about 13-16 decisive judgments per seed).
 
 Pre-run commit: (recorded below)
+6ab6cf5b4e7440581c82301374042a9e0d8195be
