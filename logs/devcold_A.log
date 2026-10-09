@@ -31,3 +31,4 @@ split A initial random seed 606: pool 242 judgments, 76 pairs, finished in 91s
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
 Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+Terminated
