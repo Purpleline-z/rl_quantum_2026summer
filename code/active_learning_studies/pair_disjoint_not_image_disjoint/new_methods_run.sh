@@ -5,5 +5,9 @@
 cd "$(dirname "$0")"
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PAIR_STUDY_SEEDS=$2 JU_INITIAL=${NM_INITIAL:-groups} JU_MODE=${5:-both} JU_THREADS=${JU_THREADS:-2}
 export JU_ONLY=$3 JU_RESULTS=new_methods
-if [ "${NM_SCHEDULE:-retuned}" = "retuned" ]; then export JU_SCHEDULE=results/pair_endpoint_study/schedule_judgment_unit.json; fi
+case "${NM_SCHEDULE:-retuned}" in
+  retuned) export JU_SCHEDULE=results/pair_endpoint_study/schedule_judgment_unit.json ;;
+  old) ;;
+  *) export JU_SCHEDULE=$NM_SCHEDULE ;;   # path of a per-budget schedule JSON
+esac
 JU_SPLIT=$1 JU_OUT=$4/$1 python new_methods_study.py
