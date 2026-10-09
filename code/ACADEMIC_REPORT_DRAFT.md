@@ -965,6 +965,61 @@ The PageRank rule is better than its shuffled control in split A (log-loss +0.06
 
 **What this does and does not show.** Under these splits and with this encoder, selection on a ten-nearest-neighbour similarity graph is not better than Random or than the rules of §5.12–5.13, and the one nominally positive rule does not replicate across splits. The experiment does not test a trained graph network, a graph built from all 1,124 trajectory images (840 of them unlabelled), ideal images as typed anchors, or temporal edges within a session (the temporal constraints file marks these as tentative); the effect of an informative graph could be larger than that of these simple versions. The tests are low-powered for effects of the size seen elsewhere in this report (log-loss gains of 0.03–0.05 against a per-seed standard deviation of 0.09–0.14).
 
+### 5.15 Type-aware graph selection rules: development result and confirmation
+
+**Question.** After §5.14 (first-generation graph rules, nothing significant) we built rules that use the typed reference images: label propagation of the reference-image type posterior over a kNN graph (k = 10, alpha = 0.9) gives compact graph features per judgment, from which P(decisive) is fitted on the revealed judgments; the rules combine farthest-first coverage in a propagated-feature space with P(decisive) (and, for `coverage_unc`, the head's own uncertainty; for `bald`, BALD). Selectors see the typed reference images, which are already training anchors of every strategy; this is an open protocol decision for the advisor.
+
+**Procedure (fixed before running).** Design and tuning on DEV seeds 400-409 only; three candidates frozen (`typed_decisive_coverage_unc`, `typed_decisive_coverage`, `typed_decisive_bald`; controls `..._unc_typeonly` = decisive predictor from the type one-hot only, `..._unc_shuffled` = shuffled posterior); then one run on 25 confirmation seeds (410-429, 42, 79, 123, 202, 303). Holm over 3 candidates x 4 blocks = 12 tests per metric. Success: log-loss Holm p < 0.05 in at least two of the four blocks including both splits and a non-negative AUC gain. All numbers below come from `aggregate_confirm.py` on the stored cells.
+
+**Development result (10 seeds, not evidence).** `coverage_unc` showed log-loss gains of +0.108 / +0.138 / +0.029 / +0.091 in A-single / A-sequential / B-single / B-sequential, and the type-only control already gave most of it (+0.119 / +0.056 / -0.017 / +0.056).
+
+**Confirmation result.**
+
+#### log-loss: gain over Random, 25 confirmation seeds (mean [95% bootstrap CI], share of seeds better, raw Wilcoxon p, Holm p over 12 candidate tests)
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage_unc | -0.002 [-0.050, +0.044] (48%, p 0.979, Holm 1.000) | -0.008 [-0.062, +0.040] (60%, p 0.692, Holm 1.000) | +0.002 [-0.035, +0.041] (48%, p 0.895, Holm 1.000) | +0.050 [+0.004, +0.095] (72%, p 0.027, Holm 0.275) |
+| typed_decisive_coverage | -0.007 [-0.052, +0.038] (56%, p 0.895, Holm 1.000) | -0.010 [-0.052, +0.030] (48%, p 0.812, Holm 1.000) | +0.062 [+0.022, +0.101] (76%, p 0.005, Holm 0.051) | +0.083 [+0.041, +0.125] (80%, p 0.001, Holm 0.008) |
+| typed_decisive_bald | +0.007 [-0.046, +0.061] (60%, p 0.979, Holm 1.000) | -0.006 [-0.069, +0.056] (56%, p 0.916, Holm 1.000) | +0.019 [-0.024, +0.059] (60%, p 0.312, Holm 1.000) | +0.049 [+0.004, +0.095] (76%, p 0.042, Holm 0.379) |
+| typed_decisive_coverage_unc_typeonly (control) | +0.026 [-0.012, +0.065] (60%, p 0.191) | +0.030 [-0.013, +0.068] (64%, p 0.067) | -0.005 [-0.035, +0.024] (44%, p 0.672) | +0.040 [-0.009, +0.084] (72%, p 0.127) |
+| typed_decisive_coverage_unc_shuffled (control) | +0.040 [-0.000, +0.082] (64%, p 0.059) | +0.006 [-0.026, +0.036] (52%, p 0.653) | +0.031 [+0.002, +0.062] (64%, p 0.067) | +0.081 [+0.048, +0.114] (84%, p 0.000) |
+
+n seeds per cell: [25]
+
+#### AUC: gain over Random, 25 confirmation seeds (mean [95% bootstrap CI], share of seeds better, raw Wilcoxon p, Holm p over 12 candidate tests)
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage_unc | +0.007 [-0.001, +0.015] (64%, p 0.156, Holm 1.000) | +0.006 [-0.003, +0.015] (56%, p 0.411, Holm 1.000) | +0.005 [-0.002, +0.013] (52%, p 0.381, Holm 1.000) | +0.015 [+0.004, +0.024] (72%, p 0.005, Holm 0.046) |
+| typed_decisive_coverage | -0.002 [-0.010, +0.005] (44%, p 0.578, Holm 1.000) | -0.001 [-0.010, +0.009] (56%, p 0.874, Holm 1.000) | +0.013 [+0.006, +0.020] (72%, p 0.002, Holm 0.025) | +0.018 [+0.011, +0.026] (84%, p 0.000, Holm 0.001) |
+| typed_decisive_bald | +0.006 [-0.003, +0.015] (64%, p 0.230, Holm 1.000) | +0.006 [-0.006, +0.017] (56%, p 0.396, Holm 1.000) | +0.006 [-0.003, +0.015] (64%, p 0.210, Holm 1.000) | +0.015 [+0.005, +0.025] (72%, p 0.009, Holm 0.079) |
+| typed_decisive_coverage_unc_typeonly (control) | -0.000 [-0.013, +0.011] (60%, p 0.653) | +0.007 [-0.001, +0.015] (64%, p 0.134) | -0.003 [-0.010, +0.004] (44%, p 0.596) | +0.004 [-0.007, +0.013] (60%, p 0.287) |
+| typed_decisive_coverage_unc_shuffled (control) | +0.003 [-0.008, +0.013] (64%, p 0.442) | +0.004 [-0.004, +0.012] (56%, p 0.275) | +0.003 [-0.003, +0.009] (60%, p 0.442) | +0.015 [+0.008, +0.021] (80%, p 0.001) |
+
+n seeds per cell: [25]
+
+#### Real minus control, log-loss gain (paired over seeds; positive = the graph / uncertainty signal adds over the control)
+
+| comparison | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| coverage_unc minus typeonly | -0.028 [-0.079, +0.025] (p 0.339) | -0.038 [-0.096, +0.017] (p 0.353) | +0.007 [-0.033, +0.047] (p 0.751) | +0.011 [-0.033, +0.060] (p 0.812) |
+| coverage_unc minus shuffled | -0.042 [-0.097, +0.006] (p 0.442) | -0.013 [-0.065, +0.036] (p 0.833) | -0.029 [-0.055, -0.003] (p 0.067) | -0.031 [-0.065, +0.005] (p 0.075) |
+
+#### Success criterion (log-loss Holm p < 0.05 in >= 2 of 4 blocks incl. both splits; mean AUC gain >= 0 in those blocks)
+
+- typed_decisive_coverage_unc: significant blocks [] -> NOT met
+- typed_decisive_coverage: significant blocks ['B-sequential'] -> NOT met
+- typed_decisive_bald: significant blocks [] -> NOT met
+
+**What this shows.**
+- The success criterion is **not met** by any candidate. The development gains in split A did not replicate: with 25 fresh seeds `coverage_unc` is at -0.002 and -0.008 in A, so the +0.11 / +0.14 seen on 10 seeds was most likely selection on noise (winner's curse), not an effect.
+- The only block that passes Holm is B-sequential for plain `typed_decisive_coverage` (+0.083 log-loss, Holm p 0.008; AUC +0.018). B-single reaches Holm p 0.051 (just above the line). Both are in split B (20% pair-group hold-out) only.
+- That effect is not clearly due to the graph: the shuffled-posterior control of `coverage_unc` reaches +0.081 in B-sequential (p < 0.001), and `coverage_unc` minus its shuffled control is negative in B. So what helps there is the coverage structure and the type-dependent decisive prior, not the label-propagated type posterior. We have not run the shuffled control for plain `coverage`.
+- Gains are small relative to per-seed variability (sd roughly 0.1 log-loss), and AUC gains are at most +0.018.
+
+**Limitations.** Only three candidates and two controls were confirmed; variants tried on DEV (g2, u2, q-coordinates, decisive-weighted sampling, GCN baselines) were not. The shuffled/typeonly controls were run only for `coverage_unc`. Seeds 42, 79, 123, 202, 303 were also used in §5.14, so they are not independent of the first-generation rules, but they were not used to tune the new rules.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.

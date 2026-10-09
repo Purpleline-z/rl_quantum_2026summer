@@ -64,3 +64,10 @@ Log-loss gain over Random, blocks A-single / A-seq / B-single / B-seq (AUC gain 
 3. typed_decisive_bald          (second family: BALD instead of own-head uncertainty)
 Controls (reported, not candidates, not in the Holm family): typed_decisive_coverage_unc_typeonly, typed_decisive_coverage_unc_shuffled. Baseline = Random (cells exist for all 35 seeds).
 Holm family = these 3 candidates x 4 blocks (per metric). CONFIRM seeds 410-429 + 42, 79, 123, 202, 303, run once. Success criterion as above.
+
+### CONFIRMATION RESULT (25 seeds: 410-429, 42, 79, 123, 202, 303; run once; `aggregate_confirm.py`; full tables in report §5.15)
+Success criterion NOT MET. Log-loss gain over Random (A-single / A-seq / B-single / B-seq):
+- coverage_unc -0.002 / -0.008 / +0.002 / +0.050 (Holm 1 / 1 / 1 / .28); coverage -0.007 / -0.010 / +0.062 / +0.083 (Holm 1 / 1 / .051 / .008); bald +0.007 / -0.006 / +0.019 / +0.049 (none significant).
+- Controls of coverage_unc: typeonly +0.026 / +0.030 / -0.005 / +0.040; shuffled +0.040 / +0.006 / +0.031 / +0.081 (B-seq p<0.001). coverage_unc minus shuffled is negative in B.
+- The DEV split-A gains (+0.11 to +0.14) did not replicate -> winner's curse on 10 seeds. Only plain coverage in B-seq passes Holm, and it is not attributable to the graph (shuffled control equally good); shuffled control for plain coverage not run.
+- Next ideas (not run): shuffled/typeonly control for plain `typed_decisive_coverage`; per-type quotas; understanding why B (20% hold-out) differs from A; a model-side change (GCN reward model) needs an advisor decision.
