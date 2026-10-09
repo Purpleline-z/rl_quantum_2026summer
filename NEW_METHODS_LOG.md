@@ -101,7 +101,7 @@ All Holm p < 0.001 (smallest effect: fisher_dopt log-loss, Holm 0.0003). Gains a
 
 ## CONFIRMATION 4 (pre-registration 4: HTR-targeted design, seeds 1000-1034, 35 seeds, groups-initial; Holm over 12 tests): ALL 12 SIGNIFICANT
 | method | vs | HTR acc | HTR AUC | HTR log-loss |
-| vopt_htr | Random (all types) | +0.0705 (86% seeds) | +0.0736 (80%) | +0.2499 (100%) |
+| vopt_htr | Random (all types) | +0.0705 (86% seeds) | +0.0775 (82%; 33 seeds with a defined HTR AUC in all cells) | +0.2499 (100%) |
 | vopt_htr | random_htr (same allocation) | +0.0206 (Holm 0.0008) | +0.0111 (0.009) | +0.0428 (<0.0001) |
 | fisher_htr | Random | +0.0662 | +0.0715 | +0.2347 |
 | fisher_htr | random_htr | +0.0164 (0.005) | +0.0090 (0.011) | +0.0276 (0.009) |
@@ -128,3 +128,20 @@ Heterogeneity between the two worlds: direction 1 (H1 -> H2) gains are small (vo
 | 40 groups | +0.0010 | +0.0002 | +0.002 |
 | 60 groups (~175 judgments; Split A+B dev: acc -0.003, AUC -0.0017) | -0.003 | -0.0013 | -0.0015 |
 The benefit of variance-reduction design decays quickly with the number of labels already in hand and is gone by ~100-180 judgments (the pool is also small there: 100-170 judgments). HTR priority at 60 initial groups: HTR accuracy +0.001, AUC +0.001 (n.s.), log-loss +0.007 (p 0.0003), i.e. nothing material.
+
+## Head-schedule sensitivity of vopt_u (descriptive; seeds 700-714, 15 seeds, pooled over 4 cells)
+| schedule | Random log-loss / AUC / acc | vopt_u log-loss / AUC / acc | gain (ll / AUC / acc) |
+| old: lr 0.01, 100 steps | 0.550 / 0.8945 / 0.8251 | 0.546 / 0.8970 / 0.8315 | +0.004 / +0.0025 / +0.006 |
+| re-tuned (lr 0.001, 0.003 at 60) | 0.448 / 0.8994 / 0.8275 | 0.429 / 0.9075 / 0.8371 | +0.019 / +0.008 / +0.010 |
+| lr 0.003, 100 steps | 0.495 / 0.8981 / 0.8291 | 0.463 / 0.9089 / 0.8404 | +0.032 / +0.011 / +0.011 |
+| lr 0.0003, 100 steps | 0.433 / 0.8982 / 0.8236 | 0.396 / 0.9156 / 0.8415 | +0.037 / +0.017 / +0.018 |
+The gain grows as the head is trained more gently (design is derived from a last-layer linear-Gaussian approximation, valid in the lazy regime), and the gentlest schedule also gives the best absolute levels for Random in log-loss and for vopt_u everywhere. The re-tuned schedule's optimum sat at the grid corner; pre-registration 7 (seeds 1300-1334) tests lr 0.0003 on fresh seeds. Protocol (re-tuned schedule) unchanged for the main results.
+Additional: lr 0.001 with 300 steps (lr x steps = 0.3): Random 0.535 / 0.898 / 0.828, vopt_u 0.510 / 0.909 / 0.841 -> gain +0.026 / +0.011 / +0.013 (15 seeds). Pattern in the total training amount lr x steps: 0.03 (lr 0.0003 x 100): AUC gain +0.017; 0.1 (0.001 x 100, re-tuned): +0.008; 0.3 (0.003 x 100 or 0.001 x 300): +0.011; 1.0 (old 0.01 x 100): +0.0025. The design gain persists while the head is trained lightly and fades when it is trained harder.
+
+## CONFIRMATION 7 (pre-registration 7: gentler head schedule lr 0.0003 x 100 steps, groups-initial protocol, seeds 1300-1334, Holm over 12): ALL 12 SIGNIFICANT (Holm < 0.0001)
+| method | log-loss | AUC | accuracy | (seeds better ll / AUC / acc) |
+| vopt_u | +0.0444 | +0.0212 | +0.0210 | 89% / 91% / 94% |
+| vopt_u_inf1 | +0.0382 | +0.0193 | +0.0205 | 89% / 83% / 89% |
+| fisher_dopt | +0.0317 | +0.0149 | +0.0174 | 86% / 83% / 91% |
+| bald_decisive | +0.0276 | +0.0150 | +0.0152 | 89% / 89% / 86% |
+Absolute levels (pooled over budgets and cells): Random 0.423 / 0.900 / 0.829; vopt_u 0.378 / 0.921 / 0.850 (log-loss / AUC / accuracy) -- the best absolute performance of the whole study; Random itself is not weakened by the gentle schedule (its AUC 0.900 equals that under the re-tuned schedule; its log-loss 0.423 is better than 0.448).
