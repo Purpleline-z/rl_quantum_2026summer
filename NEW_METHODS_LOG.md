@@ -78,3 +78,15 @@ Hindsight utility diagnostic (Spearman between observable candidate features and
 ## Robustness of the pre-registered methods (seeds 700-719, 20 seeds, pooled over 4 cells)
 - Old head schedule (lr 0.01, 100 steps): vopt_u AUC +0.0007, acc +0.0042 (n.s.); vopt_u_inf1 AUC +0.0055, acc +0.0082 (Holm 0.17 / 0.06). The benefit depends on a well-trained Random baseline / head.
 - Cold start (10 RANDOM initial judgments instead of the 10 initial groups, about 30 judgments): vopt_u log-loss +0.063, AUC +0.023, acc +0.028 (85-95% of seeds, Holm <= 0.0002); vopt_u_inf1 log-loss +0.050, AUC +0.019, acc +0.027. Large effect when the starting model is weak (post hoc discovery -> pre-registration 3 on seeds 900-934).
+
+## HTR-targeted acquisition (dev seeds 600-629; the lab's goal is HTR performance)
+Per-type held-out metrics added (`new_methods_study.py`; HTR = head 4, about 13-16 decisive test judgments per seed). Gains over Random (all types), pooled over 4 cells: vopt_u (all types): HTR acc +0.045, AUC +0.035, ll +0.111; random_htr (random among HTR judgments): +0.044 / +0.037 / +0.134 (so most of the gain is label allocation); vopt_htr (I-optimal design within HTR): +0.065 / +0.047 / +0.181; fisher_htr: +0.060 / +0.046 / +0.172. Selection value on top of allocation (paired, vs random_htr): vopt_htr +0.020 acc (p 0.002), +0.010 AUC (0.004), +0.046 ll (0.001); fisher_htr +0.016 / +0.009 / +0.037. Other types pay a small price (13: -0.008, c6x2: -0.014, 1x1: -0.008 accuracy); the all-type accuracy is unchanged (+0.004), all-type AUC +0.009. Pre-registration 4 (seeds 1000-1034) is running.
+
+## CONFIRMATION 2 (pre-registration 2, seeds 800-834, 35 seeds, pooled over 4 cells; Holm over 8 = 4 methods x {AUC, accuracy})
+| method | AUC gain (seeds better, Holm) | accuracy gain (seeds better, Holm) | log-loss gain (secondary) |
+| vopt_u | +0.0127 (74%, 0.0004) | +0.0167 (86%, <0.0001) | +0.0349 |
+| vopt_u_inf1 | +0.0116 (66%, 0.0013) | +0.0156 (89%, <0.0001) | +0.0250 |
+| fisher_dopt | +0.0071 (66%, 0.016) | +0.0160 (80%, 0.0001) | +0.0017 |
+| bald_decisive | +0.0098 (66%, 0.0013) | +0.0153 (89%, <0.0001) | +0.0215 |
+All 8 primary tests are significant after Holm: the family effect replicates on fresh splits. Post hoc pooling of seeds 700-734 and 800-834 (70 seeds): vopt_u AUC +0.0093, accuracy +0.0131, log-loss +0.0211 (p 0.002); vopt_u_inf1 AUC +0.0083, acc +0.0135, ll +0.0148; fisher AUC +0.0072, acc +0.0150, ll +0.0027 (n.s.); bald_decisive AUC +0.0091, acc +0.0143, ll +0.0173.
+Same 168 groups in every seed -> sensitivity to split draw, not new data.
