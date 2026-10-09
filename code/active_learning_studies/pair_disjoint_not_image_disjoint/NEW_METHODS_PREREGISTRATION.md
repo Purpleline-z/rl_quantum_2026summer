@@ -22,3 +22,4 @@ Per-cell gains and p-values; per-budget gains; calibrated log-loss (Split A); co
 The seeds are new random splits of the same 168 pair groups (521 judgments), so this checks sensitivity to the split and initial draw, not new data; Wilcoxon p-values are optimistic because seeds resample the same groups; test sets are small (about 54-63 decisive judgments); the head schedule was calibrated on three seeds; strategy adaptations of pair-space rules are not part of this test.
 
 Pre-run commit: (recorded below)
+feae75786bd91d4a6be51f77de5670b8e2859875
