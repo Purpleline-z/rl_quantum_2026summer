@@ -15,3 +15,4 @@ Identical to pre-registration 2 (judgment unit, budgets 10/20/40/60, single-shot
 Same 168 groups, new splits; the schedule was not calibrated by validation (it was chosen from three values after seeing a 15-seed result), so no claim is made that lr 0.0003 is optimal.
 
 Pre-run commit: (recorded below)
+95fea602b6cce31912d503c98750603ff0d0b82c
