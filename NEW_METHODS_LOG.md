@@ -36,3 +36,9 @@ Branch `claude/new-methods` (from `claude/frozen-encoder-strategies`). Started 2
 ## Diagnostics
 - Predicting a decisive outcome before asking (group-wise 5-fold CV on the pool, 10 dev seeds): AUC type only 0.57-0.58; + pair distance/cosine 0.67-0.70; + anchor-only head scores 0.71-0.74; all 0.73-0.75 (`explore_decisive_predictability.py`).
 - Smoke test of `vopt`: with only the 30 initial judgments the variance-reduction picks have a LOWER decisive share (0.42-0.45) than the pool (0.52), i.e. high-leverage pairs are disproportionately tie / not_apply.
+
+## Dev results (seeds 600-609, Split A single-shot unless noted; mean gain over Random, uncorrected)
+- vopt family (pool-wide predictive-variance reduction on the own-type last layer, greedy, Laplace posterior): AUC +0.007 to +0.013, decisive accuracy +0.015 to +0.028 (9-10 of 10 seeds better), log-loss +0.01 to +0.035 (n.s.).
+- Ridge (0.3, 1, 3, 10) matters little; unit target weights (`vopt_u`, minimise the summed logit variance over the pool) is as good as or better than sensitivity-weighted targets and has no knobs.
+- Outcome-informativeness factors P(decisive) (v1, v2) add little on top of the variance reduction itself (acc +0.01 to +0.02 relative to Random for both).
+- Reference rules on 3 seeds only so far; full reference runs (600-629) are in progress.

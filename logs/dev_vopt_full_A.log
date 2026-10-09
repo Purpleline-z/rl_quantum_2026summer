@@ -15,3 +15,108 @@ split A initial groups seed 602: pool 218 judgments, 72 pairs, finished in 29s
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
 Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=11.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 603: pool 227 judgments, 73 pairs, finished in 30s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=7.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 604: pool 220 judgments, 71 pairs, finished in 29s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 605: pool 229 judgments, 73 pairs, finished in 23s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 606: pool 214 judgments, 66 pairs, finished in 30s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 607: pool 198 judgments, 68 pairs, finished in 29s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 608: pool 211 judgments, 66 pairs, finished in 29s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=5.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 609: pool 218 judgments, 68 pairs, finished in 29s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=3.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 610: pool 203 judgments, 69 pairs, finished in 39s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 611: pool 214 judgments, 70 pairs, finished in 58s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 612: pool 212 judgments, 70 pairs, finished in 52s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 613: pool 215 judgments, 68 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=9.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 614: pool 212 judgments, 67 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 615: pool 215 judgments, 69 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=3.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 616: pool 220 judgments, 68 pairs, finished in 33s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=9.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 617: pool 209 judgments, 70 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=5.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 618: pool 199 judgments, 68 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=3.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 619: pool 236 judgments, 74 pairs, finished in 33s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 620: pool 197 judgments, 64 pairs, finished in 35s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 621: pool 219 judgments, 72 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=6.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 622: pool 221 judgments, 73 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=3.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 623: pool 211 judgments, 69 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=10.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 624: pool 225 judgments, 70 pairs, finished in 35s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=2.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 625: pool 216 judgments, 69 pairs, finished in 33s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=10.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 626: pool 223 judgments, 71 pairs, finished in 34s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=9.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 627: pool 231 judgments, 73 pairs, finished in 33s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 628: pool 203 judgments, 70 pairs, finished in 30s
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=7.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+split A initial groups seed 629: pool 216 judgments, 73 pairs, finished in 31s

@@ -55,11 +55,11 @@ def decisive_v2(cands, labeled, cache, C=0.3):
 
 
 # ------------------------------------------------------------------------------------------ pool-wide variance reduction
-def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None):
+def vopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0, informative=None, target_decisive=None, sensitivity=True):
     items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p)
     inverse = ju._inverses(h, w, k, n, ridge)
     info = np.ones(n) if informative is None else informative(cands, labeled, cache)
-    c = (w[:n]) ** 2 * (np.ones(n) if target_decisive is None else target_decisive(cands, labeled, cache))
+    c = (w[:n] ** 2 if sensitivity else 1.0) * (np.ones(n) if target_decisive is None else target_decisive(cands, labeled, cache))
     members = {kk: np.flatnonzero(k[:n] == kk) for kk in ACTIVE_HEADS}
     def gains(kk):
         idx = members[kk]
@@ -113,5 +113,24 @@ def vopt_uniform(cands, labeled, model, cache, budget, seed=0, ridge=1.0):
     return vopt(cands, labeled, model, cache, budget, seed, ridge, target_decisive=lambda c, l, ca: 1.0 / np.maximum(w, 1e-6) ** 2)
 
 
-NEW = {"vopt_r03": _with(vopt, ridge=0.3), "vopt_r3": _with(vopt, ridge=3.0), "vopt_r10": _with(vopt, ridge=10.0), "vopt_uniform": vopt_uniform,
+def aopt(cands, labeled, model, cache, budget, seed=0, ridge=1.0):
+    """Greedy A-optimal design (reduction of trace Sigma) of the own-type last layer: gain = w ||Sigma phi||^2 / (1 + w phi' Sigma phi)."""
+    items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p); inverse = ju._inverses(h, w, k, n, ridge)
+    def gain(i): s = inverse[k[i]] @ h[i]; return w[i] * (s @ s) / (1 + w[i] * (h[i] @ s))
+    score = np.array([gain(i) for i in range(n)]); alive = np.ones(n, bool); chosen = []
+    for _ in range(min(budget, n)):
+        pick = int(np.argmax(np.where(alive, score, -np.inf))); chosen.append(pick); alive[pick] = False; kk = k[pick]
+        inverse[kk] = _rank_one(inverse[kk], h[pick], w[pick])
+        for i in np.flatnonzero(alive & (k[:n] == kk)): score[i] = gain(i)
+    return [cands[i] for i in chosen]
+
+
+def vopt_u(*a, **kw): return vopt(*a, sensitivity=False, **kw)
+def vopt_u_inf2(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v2, **kw)
+def vopt_u_dec2(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v2, target_decisive=decisive_v2, **kw)
+def vopt_u_inf1(*a, **kw): return vopt(*a, sensitivity=False, informative=decisive_v1, **kw)
+
+
+NEW = {"aopt": aopt, "vopt_u": vopt_u, "vopt_u_inf2": vopt_u_inf2, "vopt_u_dec2": vopt_u_dec2, "vopt_u_inf1": vopt_u_inf1,
+       "vopt_r03": _with(vopt, ridge=0.3), "vopt_r3": _with(vopt, ridge=3.0), "vopt_r10": _with(vopt, ridge=10.0), "vopt_uniform": vopt_uniform,
        "vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}
