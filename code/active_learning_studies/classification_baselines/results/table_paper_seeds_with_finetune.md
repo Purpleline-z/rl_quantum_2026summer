@@ -1,4 +1,4 @@
-### All baselines, paper split (5 seeds) (5 splits, 28 test images each)
+### All controls / reference classifiers, paper split (5 seeds) (5 splits, 28 test images each)
 
 Reference row for the paired difference: `simclr_resnet18` + `1nn` (same split). 'better/worse' count splits.
 

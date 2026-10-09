@@ -41,7 +41,7 @@ def markdown(table: pd.DataFrame, title: str, reference=REFERENCE) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__); parser.add_argument("dirs", nargs="+", type=Path); parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--title", default="Frozen-feature baselines")
+    parser.add_argument("--title", default="Frozen-feature controls")
     args = parser.parse_args()
     metrics = pd.concat([pd.read_csv(d / "metrics.csv") for d in args.dirs], ignore_index=True)
     table = summarise(metrics); args.out.parent.mkdir(parents=True, exist_ok=True)

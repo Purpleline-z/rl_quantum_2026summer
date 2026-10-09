@@ -1,6 +1,8 @@
-# Ideal-image classification baselines (paper protocol)
+# Ideal-image classification controls and reference classifiers (paper protocol)
 
-Question: how do simple and standard image-classification baselines compare with the reward-model pipeline when everything uses **the same split, the same labelled ideal images and the same outer-test images**?
+> Naming note: these are **controls / reference classifiers**, not competing-method baselines. Raw pixels, random-weight ResNet-18 and hand-made features are lower-bound controls; the classifiers use the absolute labels of the reference images, a different supervision from pairwise preferences. The advisor has judged the comparison of acquisition strategies (33 variants, 35 seeds) a sufficient baseline set, so the planned "other pretrained encoders in the same Bradley–Terry pipeline" and "CIFAR" comparisons were not run.
+
+Question: how do simple and standard image classifiers compare with the reward-model pipeline when everything uses **the same split, the same labelled ideal images and the same outer-test images**?
 
 ## Protocol (why it is comparable)
 

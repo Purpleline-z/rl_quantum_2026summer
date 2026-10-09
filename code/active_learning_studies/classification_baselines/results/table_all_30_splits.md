@@ -1,4 +1,4 @@
-### Frozen-feature baselines, 5 paper splits + 25 extra splits (30 splits, 28 test images each)
+### Frozen-feature controls, 5 paper splits + 25 extra splits (30 splits, 28 test images each)
 
 Reference row for the paired difference: `simclr_resnet18` + `1nn` (same split). 'better/worse' count splits.
 

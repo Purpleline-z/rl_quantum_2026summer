@@ -21,7 +21,7 @@
 
 ---
 
-## ① 更多图像分类基线(最重要)
+## ① 更多图像分类基线 —— **已取消/收尾**:提出该项的 Justin 已确认 evaluation 与 baseline 足够(0922 后的回复),A/B 方案(其他预训练模型放进 BT 流程、CIFAR)不做;已做的内容在 `classification_baselines/`,按"controls"命名
 
 ### 已知事实(别重复发现)
 - 理想图共 154 张(1x1 41 / c(6x2) 42 / √13 38 / HTR 29 / Twinned 4),Twinned 太少,主实验已排除,4 个有效类共 150 张。
