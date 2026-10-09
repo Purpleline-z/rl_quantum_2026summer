@@ -48,3 +48,19 @@ Honesty rules: report failure if it happens; no tuning on confirmation seeds; ev
 - Control typeonly (decisive predictor from the type one-hot only; same coverage): +0.082 / +0.101 / +0.022 / +0.056 with AUC about 0 (+0.001 / 0.000 / +0.001 / +0.009). So most of the log-loss gain comes from type-aware decisive weighting; the graph features (label-propagated type posterior) add about +0.013 / +0.008 / +0.002 / +0.049 log-loss and +0.012 / +0.010 / -0.003 / +0.006 AUC for the plain coverage rule.
 - Decisive-weighted random sampling (gamma 1/2/4) is not good (B-single -0.06 to -0.10): coverage is needed.
 - Round 3: variants around coverage_unc (gamma 2, uncertainty power 2, q-coordinates in the coverage space) plus its type-only and shuffled controls. Then freeze <= 4 candidates.
+
+### Round 3 (DEV 400-409, finished 2026-10-09 in a fresh container; feature cache rebuilt, `launch_round.sh` path bug fixed)
+Log-loss gain over Random, blocks A-single / A-seq / B-single / B-seq (AUC gain in the second line):
+- typed_decisive_coverage_unc (reference): +0.108 / +0.138 / +0.029 / +0.091; AUC +0.019 / +0.022 / +0.005 / +0.020.
+- ..._u2 (uncertainty^2): +0.116 / +0.145 / -0.009 / +0.070; AUC +0.021 / +0.024 / +0.002 / +0.014. Better in A, worse in B.
+- ..._g2 (P(decisive)^2): +0.098 / +0.109 / -0.003 / +0.067. ..._q (coverage in q-coordinates): +0.077 / +0.088 / +0.009 / +0.034. Both worse than the reference.
+- Controls of coverage_unc: typeonly +0.119 / +0.056 / -0.017 / +0.056 (AUC +0.010 / -0.005 / -0.006 / +0.001); shuffled-posterior +0.103 / +0.096 / -0.043 / +0.022 (AUC +0.008 / +0.009 / -0.006 / +0.003).
+  Real minus shuffled: +0.005 / +0.042 / +0.072 / +0.069 log-loss, AUC +0.011 / +0.013 / +0.011 / +0.017. In split A single-shot the type-dependent decisive prior alone (typeonly, shuffled) already gives +0.10 to +0.12; the graph signal helps mostly in sequential and in B.
+- No variant beats the reference overall (10 seeds; most differences are within noise). Stop tuning.
+
+### FROZEN CANDIDATES (written before any confirmation seed was run)
+1. typed_decisive_coverage_unc  (best DEV mean)
+2. typed_decisive_coverage      (simplest; best B-seq on DEV)
+3. typed_decisive_bald          (second family: BALD instead of own-head uncertainty)
+Controls (reported, not candidates, not in the Holm family): typed_decisive_coverage_unc_typeonly, typed_decisive_coverage_unc_shuffled. Baseline = Random (cells exist for all 35 seeds).
+Holm family = these 3 candidates x 4 blocks (per metric). CONFIRM seeds 410-429 + 42, 79, 123, 202, 303, run once. Success criterion as above.
