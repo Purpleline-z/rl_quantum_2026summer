@@ -44,7 +44,7 @@ def gains(frame, only=None):
 def summarize(g):
     rows = []
     for (fam, metric), sub in g.groupby(["family", "metric"]):
-        cells = {f"{s}{c[0]}": sub[(sub.split == s) & (sub.cond == c)].set_index("seed").gain for s in "AB" for c in ("single", "sequential")}
+        cells = {f"{s}_{c[:3]}": sub[(sub.split == s) & (sub.cond == c)].set_index("seed").gain for s in "AB" for c in ("single", "sequential")}
         pooled = sub.groupby("seed").gain.mean()   # mean over the four cells per seed
         def stat(x):
             x = x.dropna(); return (x.mean(), (x > 0).mean(), wilcoxon(x, alternative="greater").pvalue if len(x) > 5 and (x != 0).any() else np.nan)

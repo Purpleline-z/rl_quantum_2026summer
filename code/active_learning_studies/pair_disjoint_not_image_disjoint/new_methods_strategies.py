@@ -100,4 +100,18 @@ def fisher_dec(cands, labeled, model, cache, budget, seed=0, ridge=1.0, decisive
 def fisher_dec2(*a, **kw): return fisher_dec(*a, decisive=decisive_v2, **kw)
 
 
-NEW = {"vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}
+def _with(fn, **fixed):
+    def wrapped(*a, **kw): return fn(*a, **fixed, **kw)
+    return wrapped
+
+
+def vopt_uniform(cands, labeled, model, cache, budget, seed=0, ridge=1.0):
+    """vopt with unit target weights (every pool judgment counts the same, instead of the sensitivity weight w_j^2)."""
+    items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands)
+    # reuse vopt by temporarily replacing the sensitivity weights: emulate with target_decisive = 1/w^2
+    w = (p * (1 - p))[:n]
+    return vopt(cands, labeled, model, cache, budget, seed, ridge, target_decisive=lambda c, l, ca: 1.0 / np.maximum(w, 1e-6) ** 2)
+
+
+NEW = {"vopt_r03": _with(vopt, ridge=0.3), "vopt_r3": _with(vopt, ridge=3.0), "vopt_r10": _with(vopt, ridge=10.0), "vopt_uniform": vopt_uniform,
+       "vopt": vopt_plain, "vopt_dec": vopt_dec, "vopt_dec2": vopt_dec2, "vopt_inf2": vopt_inf2, "bald_dec2": bald_dec2, "fisher_dec": fisher_dec, "fisher_dec2": fisher_dec2}
