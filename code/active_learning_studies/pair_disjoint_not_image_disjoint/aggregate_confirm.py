@@ -57,6 +57,8 @@ def main(markdown: bool) -> None:
                 for ctrl in CONTROLS:
                     if c in wide and ctrl in wide: d = (wide[c] - wide[ctrl]).dropna().to_numpy(); print(f"    {c} minus {ctrl}: {d.mean():+.3f} (raw p {fp(agg.wilcoxon_p(d))}, n={len(d)})")
             print()
+    incomplete = sorted({(sp, cd, f, v[4]) for (sp, cd, f), v in summary.items() if f in CANDIDATES + CONTROLS and v[4] < len(CONFIRM)})
+    if incomplete: print(f"\nWARNING: incomplete confirmation data (fewer than {len(CONFIRM)} seeds), the verdict below is NOT final: {incomplete[:6]}{' ...' if len(incomplete) > 6 else ''}")
     # success criterion
     print("\nSuccess criterion (Holm p < 0.05 for log-loss in >= 2 blocks incl. both splits, AUC gain >= 0 there):")
     for c in CANDIDATES:
