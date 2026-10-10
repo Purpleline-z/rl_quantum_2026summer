@@ -1,0 +1,88 @@
+
+=== P1 split A, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+ core_set_relation                           30    +0.025   0.073            67%   +0.0048  -0.0017
+*typed_decisive_bald                         30    +0.040  <0.001  0.002     73%   +0.0166  +0.0157
+*typed_decisive_coverage                     30    +0.032  <0.001  0.002     73%   +0.0105  +0.0088
+ typed_decisive_coverage_shuffled            30    +0.027   0.040            63%   +0.0033  +0.0016
+ typed_decisive_coverage_typeonly            30    +0.017   0.067            63%   -0.0017  -0.0037
+*typed_decisive_coverage_unc                 30    +0.022   0.002  0.002     80%   +0.0110  +0.0135
+ vopt_u                                      30    +0.028   0.008            70%   +0.0113  +0.0130
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0154 (raw p 0.100, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0123 (raw p 0.004, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0125 (raw p 0.023, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0051 (raw p 0.503, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0072 (raw p 0.096, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0072 (raw p 0.198, n=30)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0037 (raw p 0.919, n=30)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0007 (raw p 0.792, n=30)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0042 (raw p 0.265, n=30)
+    typed_decisive_coverage minus core_set_relation [log-loss]: +0.0072 (raw p 0.556, n=30)
+    typed_decisive_coverage minus core_set_relation [AUC]: +0.0058 (raw p 0.191, n=30)
+    typed_decisive_coverage minus core_set_relation [accuracy]: +0.0105 (raw p 0.133, n=30)
+
+=== P1 split A, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+ core_set_relation                           30    +0.024   0.040            63%   +0.0048  +0.0136
+*typed_decisive_bald                         30    +0.034   0.002  0.006     70%   +0.0127  +0.0218
+*typed_decisive_coverage                     30    +0.027   0.003  0.006     73%   +0.0079  +0.0150
+ typed_decisive_coverage_shuffled            30    +0.015   0.229            57%   -0.0002  +0.0056
+ typed_decisive_coverage_typeonly            30    +0.001   0.598            57%   -0.0066  -0.0042
+*typed_decisive_coverage_unc                 30    +0.025   0.011  0.011     70%   +0.0105  +0.0246
+ vopt_u                                      30    +0.021   0.119            57%   +0.0100  +0.0229
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0257 (raw p 0.022, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0145 (raw p 0.003, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0192 (raw p 0.003, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0124 (raw p 0.198, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0081 (raw p 0.086, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0094 (raw p 0.068, n=30)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0056 (raw p 0.919, n=30)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0021 (raw p 0.715, n=30)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0079 (raw p 0.096, n=30)
+    typed_decisive_coverage minus core_set_relation [log-loss]: +0.0028 (raw p 1.000, n=30)
+    typed_decisive_coverage minus core_set_relation [AUC]: +0.0031 (raw p 0.670, n=30)
+    typed_decisive_coverage minus core_set_relation [accuracy]: +0.0014 (raw p 0.905, n=30)
+
+=== P1 split B, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+ core_set_relation                           30    +0.047   0.001            70%   +0.0115  +0.0060
+*typed_decisive_bald                         30    +0.038   0.005  0.009     67%   +0.0149  +0.0155
+*typed_decisive_coverage                     30    +0.047  <0.001  0.003     73%   +0.0134  +0.0105
+ typed_decisive_coverage_shuffled            30    +0.035   0.047            67%   +0.0067  +0.0069
+ typed_decisive_coverage_typeonly            30    +0.025   0.050            63%   +0.0016  +0.0037
+*typed_decisive_coverage_unc                 30    +0.026   0.124  0.124     60%   +0.0100  +0.0200
+ vopt_u                                      30    +0.058   0.001            73%   +0.0189  +0.0150
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0215 (raw p 0.245, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0119 (raw p 0.025, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0068 (raw p 0.239, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0116 (raw p 0.280, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0067 (raw p 0.064, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0037 (raw p 0.370, n=30)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0115 (raw p 0.349, n=30)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0054 (raw p 0.428, n=30)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0045 (raw p 0.781, n=30)
+    typed_decisive_coverage minus core_set_relation [log-loss]: +0.0004 (raw p 0.952, n=30)
+    typed_decisive_coverage minus core_set_relation [AUC]: +0.0019 (raw p 0.516, n=30)
+    typed_decisive_coverage minus core_set_relation [accuracy]: +0.0045 (raw p 0.510, n=30)
+
+=== P1 split B, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+ core_set_relation                           30    +0.047   0.025            67%   +0.0088  +0.0064
+*typed_decisive_bald                         30    +0.034   0.084  0.140     60%   +0.0121  +0.0167
+*typed_decisive_coverage                     30    +0.050   0.003  0.009     70%   +0.0140  +0.0143
+ typed_decisive_coverage_shuffled            30    +0.028   0.088            57%   +0.0025  +0.0082
+ typed_decisive_coverage_typeonly            30    +0.022   0.177            57%   -0.0007  +0.0063
+*typed_decisive_coverage_unc                 30    +0.032   0.070  0.140     70%   +0.0071  +0.0259
+ vopt_u                                      30    +0.048   0.031            63%   +0.0163  +0.0217
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0282 (raw p 0.031, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0146 (raw p 0.004, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0080 (raw p 0.133, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0229 (raw p 0.061, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0115 (raw p 0.014, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0060 (raw p 0.198, n=30)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0027 (raw p 0.715, n=30)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0023 (raw p 0.730, n=30)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0074 (raw p 0.238, n=30)
+    typed_decisive_coverage minus core_set_relation [log-loss]: +0.0038 (raw p 0.871, n=30)
+    typed_decisive_coverage minus core_set_relation [AUC]: +0.0051 (raw p 0.543, n=30)
+    typed_decisive_coverage minus core_set_relation [accuracy]: +0.0078 (raw p 0.276, n=30)
