@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+import nd_core as core  # sets sys.path
 import judgment_unit_strategies as ju
 import judgment_unit_study as ju_study
 import new_methods_strategies as nm

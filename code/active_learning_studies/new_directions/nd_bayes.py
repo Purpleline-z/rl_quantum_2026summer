@@ -78,13 +78,17 @@ def grouped_folds(rows, n_folds: int, seed: int):
     return np.array([fold_of[g] for g in groups])
 
 
-def fit_bayes(ctx, labelled, seed: int, coupled: bool, prior_centre: bool = True, fixed=None):
-    """Return (predictor, chosen (lam_v, lam_q))."""
-    lr, steps = ctx.params_for([])  # anchor-only head: the 'initial' schedule, no pair labels
-    fn = core.identity_features(ctx); anchor_head = core.fit_generic(ctx, [], fn, 512, lr, steps, seed)
-    L1 = torch.nn.Sequential(anchor_head[0], anchor_head[1]); phi = lambda paths: L1(fn(paths)).detach()
-    W0, b0 = anchor_head[3].weight.detach(), anchor_head[3].bias.detach()
-    if not prior_centre: W0 = torch.zeros_like(W0); b0 = torch.zeros_like(b0)
+def fit_bayes(ctx, labelled, seed: int, coupled: bool, prior_centre: bool = True, fixed=None, raw: bool = False):
+    """Return (predictor, chosen (lam_v, lam_q)).  ``raw``: linear Bradley-Terry head directly on the 512-d SimCLR features (zero prior mean) instead of on the anchor-trained hidden layer."""
+    fn = core.identity_features(ctx)
+    if raw:
+        phi = lambda paths: fn(paths).detach(); W0 = torch.zeros(5, 512); b0 = torch.zeros(5)
+    else:
+        lr, steps = ctx.params_for([])  # anchor-only head: the 'initial' schedule, no pair labels
+        anchor_head = core.fit_generic(ctx, [], fn, 512, lr, steps, seed)
+        L1 = torch.nn.Sequential(anchor_head[0], anchor_head[1]); phi = lambda paths: L1(fn(paths)).detach()
+        W0, b0 = anchor_head[3].weight.detach(), anchor_head[3].bias.detach()
+        if not prior_centre: W0 = torch.zeros_like(W0); b0 = torch.zeros_like(b0)
     rows = ju_study.rows_of(ctx.exp, labelled); problem = Problem(ctx, rows, phi, W0, b0)
     if fixed is not None: lam_v, lam_q = fixed
     else:
@@ -113,6 +117,8 @@ def fit_bayes(ctx, labelled, seed: int, coupled: bool, prior_centre: bool = True
 def bayes_independent(ctx, labelled, seed): return fit_bayes(ctx, labelled, seed, coupled=False)[0]
 def bayes_coupled(ctx, labelled, seed): return fit_bayes(ctx, labelled, seed, coupled=True)[0]
 def bayes_zero_prior(ctx, labelled, seed): return fit_bayes(ctx, labelled, seed, coupled=False, prior_centre=False)[0]
+def ridge_bt(ctx, labelled, seed): return fit_bayes(ctx, labelled, seed, coupled=False, raw=True)[0]
+def ridge_bt_coupled(ctx, labelled, seed): return fit_bayes(ctx, labelled, seed, coupled=True, raw=True)[0]
 
 
-LEARNERS = {"bayes_independent": bayes_independent, "bayes_coupled": bayes_coupled, "bayes_zero_prior": bayes_zero_prior}
+LEARNERS = {"bayes_independent": bayes_independent, "bayes_coupled": bayes_coupled, "bayes_zero_prior": bayes_zero_prior, "ridge_bt": ridge_bt, "ridge_bt_coupled": ridge_bt_coupled}

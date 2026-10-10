@@ -17,7 +17,7 @@ import nd_core as core
 from nd_bayes import grouped_folds
 
 ACTIVE = (0, 2, 3, 4)
-LAMBDAS = (0.001, 0.003, 0.01, 0.03, 0.1, 0.3)
+LAMBDAS = (0.001, 0.003, 0.01, 0.03, 0.1)
 LENGTH_FACTORS = (0.25, 0.5, 1.0, 2.0)
 START_FACTOR = 0.5
 _STATE: dict = {}
@@ -26,12 +26,15 @@ _STATE: dict = {}
 def _nodes(ctx):
     if "paths" not in _STATE:
         paths = sorted(ctx.features.cache); X = torch.stack([ctx.features.cache[p] for p in paths]).double(); X = X / X.norm(dim=1, keepdim=True)
-        D2 = (X[:, None, :] - X[None, :, :]).pow(2).sum(-1); _STATE.update(paths=paths, index={p: i for i, p in enumerate(paths)}, D2=D2, median=float(D2[D2 > 0].median().sqrt()))
+        D2 = (2 - 2 * X @ X.T).clamp_min(0); _STATE.update(paths=paths, index={p: i for i, p in enumerate(paths)}, D2=D2, median=float(D2[D2 > 0].median().sqrt()))
     return _STATE
 
 
 def kernel(ctx, factor: float) -> torch.Tensor:
-    s = _nodes(ctx); ell = factor * s["median"]; return torch.exp(-s["D2"] / (2 * ell ** 2)) + 1e-4 * torch.eye(len(s["paths"]), dtype=torch.float64)
+    s = _nodes(ctx)
+    if factor not in s.setdefault("K", {}):
+        ell = factor * s["median"]; s["K"][factor] = torch.exp(-s["D2"] / (2 * ell ** 2)) + 1e-4 * torch.eye(len(s["paths"]), dtype=torch.float64)
+    return s["K"][factor]
 
 
 class GP:
@@ -72,10 +75,10 @@ class GP:
 
 
 def fit_gp(ctx, labelled, seed: int, tune_length: bool = True):
-    rows = ju_study.rows_of(ctx.exp, labelled); gp = GP(ctx, rows); folds = grouped_folds(rows, 5, seed)
+    rows = ju_study.rows_of(ctx.exp, labelled); gp = GP(ctx, rows); folds = grouped_folds(rows, 3, seed)
     def cv(factor, lam):
         K = kernel(ctx, factor); losses = []
-        for f in range(5):
+        for f in range(3):
             train = folds != f
             if train.sum() < 5 or (~train).sum() == 0: continue
             v = gp.decisive_log_loss(gp.solve_all(K, lam, train), ~train)
@@ -96,8 +99,17 @@ def fit_gp(ctx, labelled, seed: int, tune_length: bool = True):
     return predictor, (factor, lam)
 
 
-def gp_preference(ctx, labelled, seed): return fit_gp(ctx, labelled, seed)[0]
-def gp_fixed_length(ctx, labelled, seed): return fit_gp(ctx, labelled, seed, tune_length=False)[0]
+def gp_preference(ctx, labelled, seed): return fit_gp(ctx, labelled, seed, tune_length=False)[0]
+def gp_tuned_length(ctx, labelled, seed): return fit_gp(ctx, labelled, seed, tune_length=True)[0]
 
 
-LEARNERS = {"gp_preference": gp_preference, "gp_fixed_length": gp_fixed_length}
+def ensemble_mlp_gp(ctx, labelled, seed):
+    """Average of the MLP head's and the GP's logit gaps, each rescaled to unit RMS on the labelled judgments' own images so neither dominates."""
+    import nd_learners
+    a = nd_learners.baseline(ctx, labelled, seed); b = fit_gp(ctx, labelled, seed, tune_length=False)[0]
+    def predictor(test):
+        da, db = np.asarray(a(test)), np.asarray(b(test)); return da / (np.sqrt((da ** 2).mean()) + 1e-9) + db / (np.sqrt((db ** 2).mean()) + 1e-9)
+    return predictor
+
+
+LEARNERS = {"ensemble_mlp_gp": ensemble_mlp_gp, "gp_preference": gp_preference, "gp_tuned_length": gp_tuned_length}

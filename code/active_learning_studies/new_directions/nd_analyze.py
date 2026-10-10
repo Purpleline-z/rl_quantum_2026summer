@@ -11,9 +11,9 @@ def load(dirs):
 def main():
     dirs = [a for a in sys.argv[1:] if not a.startswith("--")]; frame = load(dirs); base = "baseline"
     pd.set_option("display.width", 200); pd.set_option("display.float_format", lambda x: f"{x:.4f}")
-    print("absolute means (all budgets, draws, seeds):"); print(frame.groupby(["split", "learner"])[["acc", "ll", "auc"]].mean())
+    print("absolute means (all budgets, draws, seeds):"); print(frame.groupby(["split", "learner"])[[c for c in ["acc", "ll", "auc", "cal_ll"] if c in frame]].mean())
     t = core.paired_table(frame, base); print("\npaired gain over baseline (log-loss gain = baseline - learner; positive is better), 95% bootstrap interval over seeds:")
-    cols = ["split", "learner", "n_seeds", "acc_gain", "acc_lo", "acc_hi", "auc_gain", "auc_lo", "auc_hi", "ll_gain", "ll_lo", "ll_hi", "auc_share_better"]; print(t[cols].to_string(index=False))
+    cols = [c for c in ["split", "learner", "n_seeds", "acc_gain", "acc_lo", "acc_hi", "auc_gain", "auc_lo", "auc_hi", "ll_gain", "ll_lo", "ll_hi", "cal_ll_gain", "cal_ll_lo", "cal_ll_hi", "auc_share_better"] if c in t]; print(t[cols].to_string(index=False))
     by_b = []
     for (split, learner, budget), g in frame.groupby(["split", "learner", "budget"]):
         if learner == base: continue

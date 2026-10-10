@@ -62,8 +62,8 @@ def random_labelled(ctx, budget: int, draw: int) -> list:
 # ------------------------------------------------------------------------------------------ held-out evaluation
 class TestSet:
     """Decisive judgments of the held-out groups: image paths, own type, orientation (+1 if image 1 won) and confidence weight."""
-    def __init__(self, ctx):
-        rows = ctx.exp.rows_for(ctx.test); rows = rows[rows.Winner.isin(["1", "2"])].reset_index(drop=True)
+    def __init__(self, ctx, groups=None):
+        rows = ctx.exp.rows_for(ctx.test if groups is None else groups); rows = rows[rows.Winner.isin(["1", "2"])].reset_index(drop=True)
         self.img1, self.img2 = list(rows.resolved_img1), list(rows.resolved_img2); self.k = rows.type_idx.to_numpy().astype(int)
         self.sign = np.where((rows.Winner == "1").to_numpy(), 1.0, -1.0); self.weight = rows.confidence_weight.to_numpy().astype(float)
 
@@ -123,7 +123,7 @@ def schedule_for_labelled(ctx, labelled) -> tuple[float, int]:
     return ctx.params_for(labelled)
 
 
-def paired_table(frame: pd.DataFrame, baseline: str, metrics=("acc", "ll", "auc")) -> pd.DataFrame:
+def paired_table(frame: pd.DataFrame, baseline: str, metrics=("acc", "ll", "auc", "cal_ll")) -> pd.DataFrame:
     """Per (split, learner): mean gain over ``baseline`` (accuracy and AUC: learner - baseline; log-loss: baseline - learner, so positive = better) pooled over budgets and draws,
     then averaged over seeds, with the share of seeds that are better and a paired-bootstrap 95% interval over seeds."""
     rows = []
@@ -133,9 +133,17 @@ def paired_table(frame: pd.DataFrame, baseline: str, metrics=("acc", "ll", "auc"
         merged = g.merge(base, on=["seed", "budget", "draw"], suffixes=("", "_b"))
         row = {"split": split, "learner": learner, "n_seeds": merged.seed.nunique()}
         for m in metrics:
-            sign = -1.0 if m == "ll" else 1.0
+            if m not in merged or merged[m].isna().all(): continue
+            sign = -1.0 if m in ("ll", "cal_ll") else 1.0
             per_seed = (sign * (merged[m] - merged[f"{m}_b"])).groupby(merged.seed).mean().to_numpy()
             rng = np.random.default_rng(0); boots = rng.choice(per_seed, size=(2000, len(per_seed))).mean(1)
             row[f"{m}_gain"] = per_seed.mean(); row[f"{m}_lo"], row[f"{m}_hi"] = np.percentile(boots, [2.5, 97.5]); row[f"{m}_share_better"] = float((per_seed > 0).mean())
         rows.append(row)
     return pd.DataFrame(rows)
+
+
+def calibrated_log_loss(d_val, val: "TestSet", d_test, test: "TestSet") -> float:
+    """Test log-loss after fitting a single temperature on the validation groups (Split A only)."""
+    temps = np.exp(np.linspace(np.log(.05), np.log(20), 120))
+    losses = [float((val.weight * np.logaddexp(0.0, -val.sign * np.asarray(d_val) / t)).sum() / val.weight.sum()) for t in temps]; t = temps[int(np.argmin(losses))]
+    return float((test.weight * np.logaddexp(0.0, -test.sign * np.asarray(d_test) / t)).sum() / test.weight.sum())

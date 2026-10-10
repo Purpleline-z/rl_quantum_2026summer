@@ -52,14 +52,16 @@ def main() -> None:
                 target = args.out / f"seed{seed}_{split}.json"; done = json.loads(target.read_text()) if target.exists() else []
                 have = {(r["budget"], r["draw"], r["learner"]) for r in done}
                 if all((b, d, n) in have for b in core.BUDGETS for d in range(args.draws) for n in names): continue
-                started = time.monotonic(); ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx)
+                started = time.monotonic(); ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); val = core.TestSet(ctx, ctx.validation) if len(ctx.validation) else None
                 for budget in core.BUDGETS:
                     for draw in range(args.draws):
                         labelled = core.random_labelled(ctx, budget, draw)
                         for name in names:
                             if (budget, draw, name) in have: continue
                             predictor = fns[name](ctx, labelled, seed * 7 + draw)
-                            done.append({"seed": seed, "split": split, "budget": budget, "draw": draw, "learner": name, **core.metrics_from_d(predictor(test), test)})
+                            d_test = predictor(test); record = {"seed": seed, "split": split, "budget": budget, "draw": draw, "learner": name, **core.metrics_from_d(d_test, test)}
+                            if val is not None: record["cal_ll"] = core.calibrated_log_loss(predictor(val), val, d_test, test)
+                            done.append(record)
                     target.write_text(json.dumps(done))
                 print(f"seed {seed} split {split}: {len(names)} learners in {time.monotonic() - started:.0f}s", flush=True)
 
