@@ -1,0 +1,5 @@
+P7 ablation (seeds 1600-1639): typed coverage without the decisiveness weight
+A-sin uniform: LL +0.006 (raw p 0.125, n=40) AUC +0.0027 acc +0.0056 | typed minus uniform: log-loss +0.0165 (p 0.158) AUC +0.0050 (p 0.166) accuracy +0.0075 (p 0.045)
+A-seq uniform: LL -0.001 (raw p 0.952, n=40) AUC +0.0007 acc +0.0030 | typed minus uniform: log-loss +0.0101 (p 0.468) AUC +0.0026 (p 0.397) accuracy +0.0055 (p 0.210)
+B-sin uniform: LL +0.004 (raw p 0.889, n=40) AUC -0.0064 acc -0.0060 | typed minus uniform: log-loss +0.0250 (p 0.048) AUC +0.0102 (p 0.034) accuracy +0.0136 (p 0.018)
+B-seq uniform: LL +0.007 (raw p 0.375, n=40) AUC -0.0055 acc -0.0050 | typed minus uniform: log-loss +0.0157 (p 0.170) AUC +0.0080 (p 0.158) accuracy +0.0123 (p 0.087)
