@@ -14,7 +14,7 @@ NARR = HERE / "graph_exploration" / "overnight2_narrative.md"
 
 def build() -> str:
     text = NARR.read_text() if NARR.exists() else "(narrative not yet written)\n"
-    text = text.replace("{TABLE_P1}", mt.table("P1")).replace("{TABLE_P3}", mt.table("P3")).replace("{TABLE_P2}", (HERE / "results" / "new_methods" / "graph_p2" / "choose_p2_summary.txt").read_text().rstrip())
+    text = text.replace("{TABLE_P1}", mt.table("P1")).replace("{TABLE_P3}", mt.table("P3")).replace("{TABLE_P4}", mt.table("P4")).replace("{TABLE_P5}", mt.table("P5")).replace("{TABLE_P6}", mt.table("P6")).replace("{TABLE_P2}", (HERE / "results" / "new_methods" / "graph_p2" / "choose_p2_summary.txt").read_text().rstrip())
     return text.rstrip("\n") + "\n\n"
 
 
