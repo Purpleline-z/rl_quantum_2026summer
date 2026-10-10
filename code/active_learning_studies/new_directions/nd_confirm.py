@@ -8,7 +8,9 @@ import json, sys
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy.stats import wilcoxon
-SIGN = {"auc": 1, "acc": 1, "ll": -1}
+class _Sign(dict):
+    def __missing__(self, key): return -1 if key.endswith("ll") else 1
+SIGN = _Sign({"auc": 1, "acc": 1, "ll": -1})
 
 
 def holm(p):

@@ -192,6 +192,18 @@ def vopt_aw8_all(cands, labeled, model, cache, budget, seed=0):
 SELECTORS.update({"vopt_aw8": vopt_aw8, "vopt_aw8_all": vopt_aw8_all})
 
 
+# ------------------------------------------------------------------------------------------ the repository's whole strategy family under the tuned learner
+def _family_selector(name):
+    def select(cands, labeled, model, cache, budget, seed=0):
+        sel = ju.make_selector(name, CTX_REF["ctx"].exp); return sel(cands, labeled, model, cache, budget, seed)
+    return select
+
+
+ju.ROW_RULES.update(nm.NEW)
+FAMILY = [n for n in ju.STRATEGY_FAMILY if n not in ("random",) and n not in ju.ENSEMBLE and n not in SELECTORS]
+SELECTORS.update({f"fam_{n}": _family_selector(n) for n in FAMILY})
+
+
 def parse_seeds(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
