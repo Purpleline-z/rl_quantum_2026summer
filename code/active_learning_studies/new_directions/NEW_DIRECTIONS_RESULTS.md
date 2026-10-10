@@ -179,7 +179,7 @@ Random label sets, initial groups, splits A and B, references-only anchors with 
 | K2 | B | ll | random:gp_aw8 - random:baseline | 35 | +0.0952 [+0.0642, +0.1285] | 86% | < 0.0001 | < 0.0001 |
 
 - **K1: the GP ranks better and is better calibrated than the anchor-weighted MLP head, but is not more accurate.** AUC +0.0126 [+0.0049, +0.0205] (A, Holm 0.035) and +0.0151 [+0.0079, +0.0224] (B, Holm 0.002); log-loss +0.025 (A, Holm 0.035) and +0.039 (B, Holm 0.007); accuracy -0.005 / -0.004 (n.s.). The development impression of an accuracy gain (+0.031 in A) did not replicate. The decision rule written before the run required Holm < 0.05 for **both** AUC and accuracy in a split, so by that rule **the GP is not called better than the anchor-weighted MLP head**; what is confirmed is a smaller, ranking-and-calibration-only advantage.
-- **K2:** against the default head the GP with weight 8 gains AUC +0.027 / +0.024 and log-loss +0.074 / +0.095 (Holm < 0.0001), accuracy +0.011 / +0.005 (n.s.). The accuracy gains of the anchor-weighted MLP head (section 2) are larger than the GP's.
+- **K2:** against the default head the GP with weight 8 gains AUC +0.027 / +0.024 and log-loss +0.074 / +0.095 (Holm < 0.0001), accuracy +0.011 / +0.005 (n.s.). The accuracy gains of the anchor-weighted MLP head over the default head (section 2; +0.019 / +0.023 on seeds 3000-3034) are larger than the GP's (different seed sets, same protocol).
 - Cost: one GP fit takes about 11 s on one CPU core against 0.3 s for the MLP head, which is why the GP runs took about 80 minutes for 35 seeds. A GP is a candidate for scoring and ranking, the MLP head for thresholded accuracy.
 
 ## 6. How to use the finding, and what needs a GPU
@@ -188,7 +188,7 @@ Random label sets, initial groups, splits A and B, references-only anchors with 
 - **End-to-end fine-tuning (GPU, untested):** in `Experiment.train` the anchor term is `.25 * -logsigmoid(...)` for one random reference pair per mini-batch. Replace `.25` by a larger constant (start with 8, also try 2 and 32), keep everything else, and compare with the 0.25 run on the five paper seeds and on the held-out preference endpoint (`pair_preference_endpoint.evaluate_full`). A one-line `Config` field would change the cell hashes of existing Task 3c results, so use a separate output folder.
 - **Reproduce:**
   `cd code/active_learning_studies/new_directions; export PYTHONPATH=../../active_learning_program OMP_NUM_THREADS=1`
-  development learner screens `python3 nd_run.py --learners baseline,aw8,aw8_all --seeds 2000-2019 --splits A,B --draws 3 --out results/screenX`;
+  cold-start runs add `ND_INITIAL=random`; development learner screens `python3 nd_run.py --learners baseline,aw8,aw8_all --seeds 2000-2019 --splits A,B --draws 3 --out results/screenX`;
   selection screens `python3 nd_select.py --selectors random,vopt_u --learners baseline,aw8,aw8_all --seeds 3000-3034 --splits A,B --draws 3 --out results/confirm1`;
   confirmatory tests `python3 nd_confirm.py prereg1_spec.json results/confirm1`; type accuracy `python3 nd_type_accuracy.py 3000-3017 out.json` and `nd_confirm_type.py`; tables `python3 nd_make_report_tables.py`. The SimCLR feature cache (`results/frozen_encoder_task3/simclr_feature_cache.pt`) and `new_directions/results/feature_cache_all.pt` are rebuilt with `build_feature_cache.py` and `nd_temporal.py build` (both are small; the first is not committed).
 
