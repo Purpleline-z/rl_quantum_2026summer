@@ -152,7 +152,7 @@ def calibrated_log_loss(d_val, val: "TestSet", d_test, test: "TestSet") -> float
 
 
 # ------------------------------------------------------------------------------------------ head fit with an extra mixture-consistency anchor loss
-def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps, weight_decay=1e-4, anchor_weight=.25, bad_weight=.10, mix_weight=0.0, mix_pairs=64, mix_seed=0, lam_hi=.8, lam_lo=.3):
+def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps, weight_decay=1e-4, anchor_weight=.25, bad_weight=.10, mix_weight=0.0, mix_pairs=64, mix_seed=0, lam_hi=.8, lam_lo=.3, ce_weight=0.0):
     """``frozen.fit_head`` plus a mixture-consistency term: real RHEED patterns are close to linear mixtures of ideal patterns, so for two ideal images a (type A) and b (type B) the score of type A must
     increase with the share of a in the mixture.  Mixtures are formed in feature space; loss = -log sigmoid(s_A(lam_hi a + (1-lam_hi) b) - s_A(lam_lo a + (1-lam_lo) b)) and the same for B with the roles reversed."""
     import torch.nn.functional as F
@@ -174,6 +174,8 @@ def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps,
             xa_m = torch.stack([refs[names[i]][int(torch.randint(len(refs[names[i]]), (1,), generator=gen))] for i in ca]); xb_m = torch.stack([refs[names[i]][int(torch.randint(len(refs[names[i]]), (1,), generator=gen))] for i in cb])
             hi, lo = lam_hi * xa_m + (1 - lam_hi) * xb_m, lam_lo * xa_m + (1 - lam_lo) * xb_m; sh, sl = head(hi), head(lo); ia = torch.as_tensor([cols[names[i]] for i in ca]); ib = torch.as_tensor([cols[names[i]] for i in cb]); r = torch.arange(mix_pairs)
             loss = loss + mix_weight * (-F.logsigmoid(sh[r, ia] - sl[r, ia]) - F.logsigmoid(sl[r, ib] - sh[r, ib])).mean()
+        if ce_weight > 0 and refs and len(refs) > 1:
+            ce = [F.cross_entropy(head(f)[:, [cols[n] for n in names]], torch.full((len(f),), i)) for i, (n, f) in enumerate(refs.items())]; loss = loss + ce_weight * torch.stack(ce).mean()
         if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
         optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
     return head.eval()
