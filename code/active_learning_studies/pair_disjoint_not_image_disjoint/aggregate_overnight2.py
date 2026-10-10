@@ -71,9 +71,9 @@ def main(phase, candidates, pairs, markdown=False):
 
 
 if __name__ == "__main__":
-    phase = sys.argv[1]; cand = {"P1": "typed_decisive_coverage_unc,typed_decisive_coverage,typed_decisive_bald", "P2": "gvopt_lap,gvopt_type,gvopt_prop,gvopt_sigma,gvopt_lapsigma", "P3": ""}[phase]
+    phase = sys.argv[1]; cand = {"P1": "typed_decisive_coverage_unc,typed_decisive_coverage,typed_decisive_bald", "P2": "gvopt_lap,gvopt_type,gvopt_prop,gvopt_sigma,gvopt_lapsigma", "P3": "gvopt_lap3,typed_decisive_coverage"}[phase]
     pairs = {"P1": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u"), ("typed_decisive_coverage", "core_set_relation")],
-             "P2": [(g, "vopt_u") for g in ("gvopt_lap", "gvopt_type", "gvopt_prop", "gvopt_sigma", "gvopt_lapsigma")], "P3": []}[phase]
+             "P2": [(g, "vopt_u") for g in ("gvopt_lap", "gvopt_type", "gvopt_prop", "gvopt_sigma", "gvopt_lapsigma")], "P3": [("gvopt_lap3", "gvopt_lap3_shuffled"), ("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u"), ("gvopt_lap3", "typed_decisive_coverage")]}[phase]
     for i, a in enumerate(sys.argv):
         if a == "--candidates": cand = sys.argv[i + 1]
         if a == "--pairs": pairs = [tuple(x.split(":")) for x in sys.argv[i + 1].split(",")]
