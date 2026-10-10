@@ -5,6 +5,7 @@ export JU_GRAPH=1 JU_THREADS=1
 case "$1" in
   P1) LO=1500; HI=1529; OUT=graph_p1; ONLY=random,typed_decisive_coverage_unc,typed_decisive_coverage,typed_decisive_bald,typed_decisive_coverage_typeonly,typed_decisive_coverage_shuffled,vopt_u,core_set_relation ;;
   P2) LO=600; HI=624; OUT=graph_p2; ONLY=random,vopt_u,gvopt_lap,gvopt_type,gvopt_prop,gvopt_sigma,gvopt_lapsigma ;;
+  P2B) LO=600; HI=624; OUT=graph_p2; ONLY=gvopt_lap03,gvopt_lap3,gvopt_lap10 ;;
   P3) LO=1400; HI=1434; OUT=graph_p3; ONLY=${P3_ONLY:?set P3_ONLY to the frozen method list} ;;
   *) echo "unknown phase"; exit 1 ;;
 esac

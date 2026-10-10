@@ -88,4 +88,5 @@ def _rule(mode, shuffle, lam=LAM, crit="v"):
 
 NEW = {"gvopt_lap": _rule("lap", False), "gvopt_lap_shuffled": _rule("lap", True), "gvopt_type": _rule("type", False), "gvopt_type_shuffled": _rule("type", True),
        "gvopt_prop": _rule("prop", False), "gvopt_prop_shuffled": _rule("prop", True), "gvopt_lap3": _rule("lap", False, 3.0), "gvopt_lap3_shuffled": _rule("lap", True, 3.0),
+       "gvopt_lap03": _rule("lap", False, 0.3), "gvopt_lap10": _rule("lap", False, 10.0),
        "gvopt_sigma": _rule("none", False, crit="sigma"), "gvopt_lapsigma": _rule("lap", False, crit="sigma"), "gvopt_lapsigma_shuffled": _rule("lap", True, crit="sigma")}

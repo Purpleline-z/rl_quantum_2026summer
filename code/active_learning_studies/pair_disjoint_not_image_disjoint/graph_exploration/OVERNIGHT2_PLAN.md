@@ -21,3 +21,6 @@ Frozen graph method G, its shuffled-graph control G_shuf, `vopt_u`, `random`. Su
 
 ## Literature reading in the foreground while jobs run
 Notes in `graph_exploration/notes_overnight2_literature.md`: Laplacian-regularised optimal design (He et al.), manifold-adaptive experimental design (Cai & He), variance minimisation on graphs (Ji & Han), active learning with Gaussian fields and harmonic functions (Zhu et al.), graph signal sampling, plus what is known about gentle/low-step fine-tuning of linear heads.
+
+### P2B (added during P2, before any lam!=1 cell was run; after seeing that P2 partial results favour `gvopt_lap` in split A)
+Laplacian-prior strength sweep on the same dev seeds 600-624 (both splits): `gvopt_lap03` (lam 0.3), `gvopt_lap3` (lam 3), `gvopt_lap10` (lam 10), compared with `gvopt_lap` (lam 1), `vopt_u` and Random. The frozen method for P3 is chosen on these dev seeds only (ties to the smaller lam / simpler rule); lam values are therefore a tuned choice and are reported as such.
