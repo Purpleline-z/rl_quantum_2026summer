@@ -1,0 +1,63 @@
+# Graph idea for active selection: prompt and to-do list (branch `claude/graph-active-selection`)
+
+Branched from `claude/judgment-unit-rerun` (which contains all of `claude/frozen-encoder-strategies`). Read `SESSION_CONTEXT_FOR_NEXT_CLAUDE.md` at the repository root first.
+The user (PhD student, writes Chinese, wants plain language, hedged and honest reporting, no unexplained jargon) wants to know whether a graph over images can improve
+which (pair, type) judgments to label next. Nothing here is merged to `main`; no PR.
+
+## Prompt (for the next Claude working on this branch)
+Goal: test whether graph information improves acquisition for the Bradley–Terry reward head on the held-out preference endpoint (log-loss, AUC on held-out pair groups),
+using the same splits (A and B), seeds (42, 79, 123, 202, 303, 400–429), budgets (10/20/40/60), conditions (single-shot, sequential) and Random baselines as the judgment-unit
+study (`judgment_unit_study.py`, `judgment_unit_strategies.py`). Do not change the endpoint, the splits or the head schedule. Add graph strategies as new selectors only.
+Report findings separately from hypotheses; use per-seed gain over Random, Wilcoxon + Holm and Friedman exactly as `aggregate_pair_endpoint.py` does; state every multiple-comparison caveat.
+
+## What was established before this branch (see `graph_exploration/*.py`, all reproducible with plain numpy/scipy/sklearn)
+- The comparison graph is nearly a matching: 168 pair groups (edges), 284 images, 117 components (largest 11 nodes); per reconstruction type the decisive directed graph has
+  components of at most 4–5 nodes and 0–6 images that both won and lost. A GNNRank-style ranking GNN on comparison edges alone has nothing to recover. (The slide's "669 pairs, ~300 images" does not match the data: 638 rows, 168 groups, 284 images.)
+- The feasible graph is over image similarity: nodes = 1278 images (1124 trajectory + 154 ideal), edges = kNN in SimCLR space (+ optional within-session temporal chain, which
+  `data/temporal_constraints.json` marks as tentative, so keep it behind a flag), comparison edges as an extra layer. Labelled pairs are not near each other in feature space
+  (median partner rank 518 of 1277, random 626), so comparison edges bridge kNN regions (algebraic connectivity 0.003 -> 0.067 with k=10 + temporal).
+- Boundary structure: among ideal images, 112 of 770 five-nearest-neighbour edges cross types; HTR–RT13 is 52 of them.
+- Quick signal test (`graph_signal_test.py`, linear BT head, 5-fold by pair group x 20 repeats, 264 decisive rows): raw features AUC 0.941; SGC-smoothed features 0.938–0.940; spectral embedding 0.909. No gain; the endpoint is near its ceiling. This does not test a trained GNN or any acquisition rule.
+- Offline benchmark limit: only the 168 labelled pair groups can be selected; the extra nodes can only be context. ~100 new trajectories from Yao would add nodes, not labels.
+
+## To-do
+Status key: [ ] open, [x] done.
+- [x] Feasibility diagnostics (structure, boundary, signal test) committed in `graph_exploration/`.
+- [x] Rebuild the feature cache (`build_feature_cache.py`; `simclr_feature_cache.pt` is not in the repository, the SimCLR checkpoint is) and run `pytest` on the existing tests to get a baseline (56 pass in the notes).
+- [x] (done inside `graph_strategies.py`, graph built only from candidate+labelled images) Build the image graph: label-free graph over all images (kNN k in {5,10}, optional temporal chain flag), cached on disk, with tests (symmetry, no test/validation label information used; images of held-out groups may appear as unlabeled nodes only if that is label-free, but check the identity-safety assertion in `judgment_unit_study.Context`: the held-out images must not be reachable from the labelled set or candidate pool — decide whether graph context may include them and document it; the safe default is to build the graph from pool, labelled and ideal images only).
+- [x] Step 1 strategies in a new `graph_strategies.py` (row-level selectors with the existing signature `select(cands, labeled, model, cache, budget, seed)`):
+  - `graph_centrality_uncertainty`: own-head uncertainty x PageRank/degree centrality of the pair's images in the kNN graph.
+  - `graph_boundary_uncertainty`: uncertainty x boundary score (share of an image's kNN that belong to other types, using ideal images as typed anchors).
+  - controls: the same with a shuffled graph (graph carries information?), and uncertainty alone (already `uncertainty`).
+- [x] Step 2 (`graph_core_set`, SGC k-centre): replace the mean-pair embedding of core-set/DPP/facility location by SGC-propagated embeddings (`kind="graph"` in `pair_features`), keep |a-b|.
+- [x] Register the new names in `judgment_unit_strategies.py` (`make_selector`, family list), run single-shot + sequential for both splits, aggregate with Holm/Friedman, per-budget tables.
+- [ ] Only if steps 1–2 show a signal that survives both splits: Step 3, a trained 2-layer GCN encoder with per-type BT heads (watch over-fitting with 168 groups; early stopping on validation only).
+- [ ] Write a short report section (separate findings from hypotheses; mention the 669-vs-168 discrepancy and the ceiling of the endpoint) and update `notes/literature_and_new_strategy_ideas.md` with the graph sources below.
+- [ ] Open question for the user/prof: whether the new trajectories from Yao should be added as unlabeled graph nodes.
+
+## Literature (checked via search results only where stated)
+- Sequential GCN for Active Learning, Caramalau et al., CVPR 2021, https://arxiv.org/abs/2006.10219 (similarity graph over the pool, GCN separates labelled/unlabelled, CoreSet/uncertainty on its embeddings).
+- GNNRank, He et al., ICML 2022, https://arxiv.org/abs/2202.00211 (global ranking from a directed comparison graph; needs dense comparisons).
+- HodgeRank with Information Maximization, Xu et al., AAAI 2018, https://arxiv.org/abs/1711.05957; https://arxiv.org/pdf/1503.00164 (active sampling that maximises algebraic connectivity). Jiang–Lim–Yao–Ye 2011 cited from memory, verify.
+- FeatProp https://arxiv.org/abs/1910.07567, GRAIN https://arxiv.org/html/2108.00219v1, Graph Policy Network https://arxiv.org/html/2006.13463 (node selection for GNNs; AGE and ANRMAB only seen in search summaries).
+- Already in the notes: ASAP, Just Sort It!, Active Learning with Label Comparisons (2204.04670), Long et al. 2008 label propagation.
+- No paper found that combines a graph-regularised Bradley–Terry model, a kNN graph and active choice of comparisons.
+
+## Results of the first graph run (35 seeds, both splits, single-shot and sequential; `results/judgment_unit_study/graph_vs_random_report.txt`)
+Strategies: `graph_centrality_uncertainty`, `graph_bridge_uncertainty`, `graph_core_set`, each with a shuffled-graph control, plus Random (5 draws) and `uncertainty`. Holm is over the 7 non-random rows of each table only;
+there are 8 tables (2 splits x 2 conditions x 2 metrics) and no correction across them.
+- Nothing is significantly better than Random after Holm in any table, except `graph_core_set_shuffled` in split B sequential log-loss (+0.056, Holm 0.013), i.e. the *control*.
+- `graph_centrality_uncertainty` is the only candidate: split A log-loss gain +0.034 single-shot / +0.048 sequential (raw p 0.015 / 0.012, Holm 0.11 / 0.08); AUC +0.006 / +0.011. It does not replicate in split B (log-loss -0.021 single-shot, +0.032 sequential, not significant; real minus shuffled is 0.0 there).
+- Real graph minus shuffled graph for centrality is significant in split A sequential (log-loss +0.081, p 0.0004; AUC +0.011, p 0.031), but part of that is the shuffled control being worse than Random (-0.03); not tested across 6 comparisons.
+- `graph_bridge_uncertainty` is never better than Random and is significantly worse in split B single-shot (log-loss -0.066, Holm 0.007; AUC -0.017, Holm 0.004), as is uncertainty alone (-0.047, Holm 0.055).
+- `graph_core_set` equals its shuffled control in both splits: the propagation graph adds nothing over a relation-aware coverage rule; the coverage gain in split B (sequential) is not graph-specific.
+- Reading: no evidence that graph structure helps selection here; one weak, split-A-only hint for centrality weighting. Hypotheses not tested: trained GNN, graph with all 1124 trajectory images, ideal images as typed anchors.
+
+## Direction after the advisor's reply (Justin Meng, 2026-10-09; paraphrased)
+Baselines and evaluation are now sufficient; focus on the new method. Keep pushing the image-similarity graph: first a simple graph-aware acquisition compared with the SimCLR-embedding-based rules (done, report §5.14: no gain over Random or the embedding rules, one weak split-A hint), then a GCN. For novelty, start from what differs from the graph-active-learning papers: pairwise preference learning + type-aware acquisition + trajectory structure; active preference learning with type awareness, which may also matter for RLHF algorithms.
+
+Proposed next steps (our suggestions, not decided):
+- [ ] Type-aware graph: use the 154 ideal images as typed anchors (label propagation of a type posterior over the similarity graph) to get a per-type boundary uncertainty; choose the (pair, type) whose type-specific head and graph position are jointly most informative. Needs a decision on whether selectors may see ideal images (they are not test images).
+- [ ] Trajectory structure: temporal edges within a session as an optional graph layer (the temporal constraints file marks them tentative; physics-team confirmation needed before use) and the roughly 100 new trajectories from Yao as additional unlabeled nodes.
+- [ ] GCN encoder: 2-layer GCN over all image nodes, per-type Bradley–Terry heads trained on labelled judgments plus a Laplacian smoothness term on all nodes (semi-supervised); first check on the held-out preference endpoint with random selection, then use its embeddings in the acquisition rules. Expect over-fitting with 168 groups; early stopping on validation only.
+- [ ] Literature for the RLHF angle (not yet searched): multi-attribute / multi-objective reward models, active preference learning for reward models (Bıyık et al., Active Reward Modeling, ICML 2025 already in the notes), preference queries with abstention (not_apply).

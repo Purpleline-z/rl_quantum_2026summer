@@ -1,0 +1,20 @@
+
+split B, single, seeds 430-459 (n per rule: {'core_set_relation': 30, 'typed_decisive_coverage': 30, 'typed_decisive_coverage_shuffled': 30, 'typed_decisive_coverage_typeonly': 30})
+  typed_decisive_coverage                  log-loss gain +0.042 (raw p 0.029, better 67%)  AUC gain +0.0078
+  typed_decisive_coverage_typeonly         log-loss gain +0.038 (raw p 0.038, better 70%)  AUC gain +0.0043
+  typed_decisive_coverage_shuffled         log-loss gain +0.060 (raw p <0.001, better 80%)  AUC gain +0.0093
+  core_set_relation                        log-loss gain -0.015 (raw p 0.715, better 50%)  AUC gain -0.0008
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly: +0.004 (raw p 0.968, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled: -0.018 (raw p 0.529, n=30)
+    typed_decisive_coverage minus core_set_relation: +0.057 (raw p 0.058, n=30)
+
+split B, sequential, seeds 430-459 (n per rule: {'core_set_relation': 30, 'typed_decisive_coverage': 30, 'typed_decisive_coverage_shuffled': 30, 'typed_decisive_coverage_typeonly': 30})
+  typed_decisive_coverage                  log-loss gain +0.030 (raw p 0.393, better 50%)  AUC gain +0.0071
+  typed_decisive_coverage_typeonly         log-loss gain +0.038 (raw p 0.158, better 60%)  AUC gain +0.0008
+  typed_decisive_coverage_shuffled         log-loss gain +0.034 (raw p 0.221, better 63%)  AUC gain +0.0024
+  core_set_relation                        log-loss gain -0.019 (raw p 0.503, better 50%)  AUC gain -0.0093
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly: -0.008 (raw p 0.440, n=30)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled: -0.003 (raw p 0.919, n=30)
+    typed_decisive_coverage minus core_set_relation: +0.049 (raw p 0.124, n=30)
+
+H1 Holm over the two conditions: {'single': '0.059', 'sequential': '0.393'}

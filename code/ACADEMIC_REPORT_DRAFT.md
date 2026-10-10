@@ -995,6 +995,165 @@ Pooling both sets (70 seeds, post hoc): `vopt_u` AUC +0.0093, accuracy +0.0131, 
 
 **Limitations.** (i) Same 168 groups in every seed: the effect is established under resampling of the splits and not on new data; Wilcoxon p-values are optimistic because seeds resample the same groups. (ii) The first confirmation was weaker than development; main-protocol effects are modest (accuracy +1 to +2 points, AUC +0.006 to +0.013). (iii) HTR test sets are small, so HTR numbers rest on 35-seed averages. (iv) The effect requires a head schedule suited to small label sets. (v) Accuracy was not a primary endpoint of §5.12–5.14 but is the pairwise metric of classifier2. Full tables with per-cell gains: `results/new_methods/CONFIRMATORY_TABLES.md`.
 
+### 5.16 Graph-aware acquisition on an image-similarity graph
+
+**Question.** Pair groups share images and expert comparisons implicitly order the images, so a graph over images might carry information that the mean-pair embedding of the earlier strategies discards. We asked whether a graph-aware selection rule improves held-out preference prediction over Random and over the embedding-based rules.
+
+**What the comparison graph looks like.** Taking images as nodes and the 168 usable pair groups as edges, the graph has 284 nodes and 117 connected components (largest 11 nodes); 237 images occur in exactly one pair group, 42 in two and 5 in three. Per reconstruction type the directed graph of decisive judgments (loser to winner) has 45–94 edges, connected components of at most 4–5 nodes, and only 0–6 images that both won and lost a comparison. The comparison graph is therefore nearly a matching, and a model that recovers a global ranking from it (such as GNNRank, He et al., ICML 2022) has no transitive structure to recover. (The working slides give 669 pairs and about 300 images; the data in this repository contain 638 judgment rows, 168 pair groups and 284 images.) The graph used below is instead built from image similarity.
+
+**Graph and strategies.** At every selection step the graph has as nodes the images of the candidate judgments and of the judgments already revealed, and as edges the symmetrised ten nearest neighbours in the cached SimCLR feature space. It uses no labels and cannot contain a validation or test image, because a selector sees only these images. Three rules were implemented in `graph_strategies.py`: (i) own-head uncertainty multiplied by the percentile rank of the PageRank of the pair's two images, (ii) own-head uncertainty multiplied by a boundary score (the share of an image's neighbours that fall in another k-means cluster of eight), and (iii) farthest-first k-centre on [(a+b)/2, |a−b|, a·b] of features propagated twice over the graph (SGC). Each has a control in which the graph scores, or the propagated features, are permuted over the nodes. Reconstruction-type information (the ideal images as typed anchors) is not available to the selectors in this implementation, so the boundary score is an approximation of the cross-type boundary seen in the ideal images (112 of 770 five-nearest-neighbour edges among ideal images join different types, 52 of them HTR–RT13).
+
+**Protocol.** The query unit is one (pair, type) judgment and the budget counts judgments (10, 20, 40, 60), as in the judgment-unit study; numbers are therefore not comparable with the group-budget tables of §5.12–5.13. Splits A and B, seeds, head schedule and endpoint are those of §5.12–5.13 (35 seeds, single-shot and sequential rounds of 10). The candidate pool holds 201–250 judgments in split A and 311–350 in split B. Gains are per-seed differences from the mean of five Random draws, averaged over budgets; the test is a Wilcoxon signed-rank test over seeds with Holm correction over the seven non-random rows of each block. There are eight blocks (two splits, two conditions, two metrics) and no correction across them.
+
+**Diagnostic before the experiment.** As a check on whether graph smoothing changes what the features can predict, a linear Bradley–Terry head on frozen features was fit to the 264 decisive judgments (five folds by pair group, 20 repetitions). Raw features reach AUC 0.941; features smoothed over the similarity graph (1–4 steps, with or without a within-session temporal chain) reach 0.938–0.940, and a spectral embedding 0.909. This does not test a trained graph network or an acquisition rule.
+
+| Split | Condition | Strategy | log-loss gain | Holm p | AUC gain | Holm p | seeds better (log-loss) |
+|---|---|---|---:|---:|---:|---:|---:|
+| A | single-shot | Uncertainty x PageRank of the pair's images | +0.034 | 0.106 | +0.006 | 0.588 | 77% (35) |
+| A | single-shot | Core-set on propagated features, graph shuffled | +0.028 | 1.000 | +0.003 | 1.000 | 66% (35) |
+| A | single-shot | Uncertainty (no graph) | +0.012 | 1.000 | +0.002 | 1.000 | 54% (35) |
+| A | single-shot | Uncertainty x boundary score | +0.009 | 1.000 | -0.003 | 1.000 | 57% (35) |
+| A | single-shot | Uncertainty x boundary score, graph shuffled | +0.007 | 1.000 | +0.004 | 1.000 | 51% (35) |
+| A | single-shot | Core-set on graph-propagated features | +0.003 | 1.000 | -0.005 | 1.000 | 46% (35) |
+| A | single-shot | Uncertainty x PageRank, graph shuffled | -0.030 | 1.000 | +0.000 | 1.000 | 46% (35) |
+| A | sequential | Uncertainty x PageRank of the pair's images | +0.048 | 0.083 | +0.011 | 0.087 | 66% (35) |
+| A | sequential | Core-set on graph-propagated features | +0.026 | 1.000 | +0.000 | 1.000 | 57% (35) |
+| A | sequential | Core-set on propagated features, graph shuffled | +0.025 | 1.000 | +0.001 | 1.000 | 54% (35) |
+| A | sequential | Uncertainty x boundary score | +0.002 | 1.000 | -0.002 | 1.000 | 60% (35) |
+| A | sequential | Uncertainty (no graph) | -0.007 | 1.000 | +0.004 | 1.000 | 46% (35) |
+| A | sequential | Uncertainty x boundary score, graph shuffled | -0.013 | 1.000 | +0.004 | 1.000 | 46% (35) |
+| A | sequential | Uncertainty x PageRank, graph shuffled | -0.033 | 1.000 | +0.000 | 1.000 | 37% (35) |
+| B | single-shot | Core-set on propagated features, graph shuffled | +0.012 | 1.000 | -0.001 | 0.883 | 51% (35) |
+| B | single-shot | Core-set on graph-propagated features | +0.004 | 1.000 | -0.003 | 0.883 | 57% (35) |
+| B | single-shot | Uncertainty x PageRank of the pair's images | -0.021 | 0.505 | -0.005 | 0.475 | 43% (35) |
+| B | single-shot | Uncertainty x PageRank, graph shuffled | -0.045 | 0.018 | -0.014 | 0.019 | 29% (35) |
+| B | single-shot | Uncertainty (no graph) | -0.047 | 0.055 | -0.013 | 0.065 | 31% (35) |
+| B | single-shot | Uncertainty x boundary score, graph shuffled | -0.053 | 0.025 | -0.008 | 0.280 | 34% (35) |
+| B | single-shot | Uncertainty x boundary score | -0.066 | 0.007 | -0.017 | 0.004 | 26% (35) |
+| B | sequential | Core-set on propagated features, graph shuffled | +0.056 | 0.013 | +0.005 | 0.803 | 71% (35) |
+| B | sequential | Core-set on graph-propagated features | +0.046 | 0.188 | +0.005 | 0.894 | 60% (35) |
+| B | sequential | Uncertainty x PageRank, graph shuffled | +0.033 | 0.614 | +0.003 | 1.000 | 57% (35) |
+| B | sequential | Uncertainty x PageRank of the pair's images | +0.032 | 0.228 | +0.005 | 0.894 | 74% (35) |
+| B | sequential | Uncertainty (no graph) | +0.024 | 0.715 | +0.003 | 1.000 | 57% (35) |
+| B | sequential | Uncertainty x boundary score, graph shuffled | -0.004 | 1.000 | -0.002 | 1.000 | 54% (35) |
+| B | sequential | Uncertainty x boundary score | -0.017 | 1.000 | -0.009 | 0.812 | 49% (35) |
+
+**Results.** No graph rule is significantly better than Random after Holm correction in any block. The one significant gain in the table belongs to a control: the shuffled-graph core-set in split B sequential (log-loss +0.056, Holm p = 0.013), which shows that the coverage gain of that rule does not come from the graph. Uncertainty multiplied by PageRank is the only rule that is nominally positive in split A in both conditions (log-loss +0.034 single-shot and +0.048 sequential, raw p of about 0.012–0.015 but Holm p of 0.11 and 0.08; AUC +0.006 and +0.011); it is not positive in split B single-shot (−0.021) and its sequential gain there (+0.032, Holm p = 0.23) is matched by its shuffled control (+0.033). The boundary-score rule is never better than Random and is significantly worse in split B single-shot (log-loss −0.066, Holm p = 0.007; AUC −0.017, Holm p = 0.004); uncertainty without a graph is also below Random there (−0.047, Holm p = 0.055), so the boundary score does not repair the weakness of uncertainty sampling in that split. Core-set on propagated features does not differ from its shuffled control in either split.
+
+Comparison with the shuffled controls (paired over seeds, unadjusted p-values, twelve comparisons per metric):
+
+| Split | Condition | Graph rule | log-loss: real − shuffled | p | AUC: real − shuffled | p |
+|---|---|---|---:|---:|---:|---:|
+| A | single-shot | Uncertainty x PageRank of the pair's images | +0.064 | 0.037 | +0.0058 | 0.081 |
+| A | single-shot | Uncertainty x boundary score | +0.002 | 0.865 | -0.0072 | 0.168 |
+| A | single-shot | Core-set on graph-propagated features | -0.026 | 0.404 | -0.0077 | 0.225 |
+| A | sequential | Uncertainty x PageRank of the pair's images | +0.081 | <0.001 | +0.0111 | 0.031 |
+| A | sequential | Uncertainty x boundary score | +0.016 | 0.752 | -0.0056 | 0.287 |
+| A | sequential | Core-set on graph-propagated features | +0.001 | 0.929 | -0.0002 | 0.968 |
+| B | single-shot | Uncertainty x PageRank of the pair's images | +0.024 | 0.168 | +0.0088 | 0.135 |
+| B | single-shot | Uncertainty x boundary score | -0.013 | 0.512 | -0.0095 | 0.073 |
+| B | single-shot | Core-set on graph-propagated features | -0.008 | 0.554 | -0.0016 | 0.884 |
+| B | sequential | Uncertainty x PageRank of the pair's images | -0.001 | 0.840 | +0.0016 | 0.617 |
+| B | sequential | Uncertainty x boundary score | -0.013 | 0.692 | -0.0069 | 0.310 |
+| B | sequential | Core-set on graph-propagated features | -0.010 | 0.252 | -0.0001 | 0.777 |
+
+The PageRank rule is better than its shuffled control in split A (log-loss +0.064 single-shot, p = 0.037; +0.081 sequential, p < 0.001), but the shuffled control is itself worse than Random there (−0.030 and −0.033), so part of this difference reflects the control rather than the graph, and the difference is absent in split B.
+
+**What this does and does not show.** Under these splits and with this encoder, selection on a ten-nearest-neighbour similarity graph is not better than Random or than the rules of §5.12–5.13, and the one nominally positive rule does not replicate across splits. The experiment does not test a trained graph network, a graph built from all 1,124 trajectory images (840 of them unlabelled), ideal images as typed anchors, or temporal edges within a session (the temporal constraints file marks these as tentative); the effect of an informative graph could be larger than that of these simple versions. The tests are low-powered for effects of the size seen elsewhere in this report (log-loss gains of 0.03–0.05 against a per-seed standard deviation of 0.09–0.14).
+
+### 5.17 Confirmation of the type-aware graph acquisition rules on unseen seeds
+
+**Design.** Three rules were frozen on development seeds 400-409 before any confirmation seed was run (`typed_decisive_coverage_unc`, `typed_decisive_coverage`, `typed_decisive_bald`; the freezing is recorded in `graph_exploration/AUTONOMOUS_RUN_LOG.md`). They were then run once on 25 seeds not used for design (410-429 and 42, 79, 123, 202, 303), under the protocol of §5.16 (query unit = one (pair, type) judgment; budgets 10, 20, 40 and 60 judgments; splits A and B; single-shot and sequential). Gains are per-seed differences from the mean of five Random draws, averaged over the four budgets; the p-value is a seed-level Wilcoxon signed-rank test, Holm-corrected over the three frozen candidates within each block; controls and embedding baselines are shown with raw p-values and are not part of the Holm family. The success criterion fixed in advance was: Holm p < 0.05 for log-loss in at least two of the four blocks including both splits, with a non-negative AUC gain in those blocks. The candidates were chosen because they looked best on the development seeds, whose per-seed standard deviation of the gain is 0.09-0.14, so development gains are optimistic estimates.
+
+**Rules.** The graph rules build a ten-nearest-neighbour graph over the images of the candidate and revealed judgments and the typed reference images, spread the reference types over it (label spreading), predict the probability that a judgment is decisive from the resulting type-posterior features and the revealed outcomes, and select by farthest-first coverage in graph-propagated pair space weighted by that probability (and by own-head uncertainty for the primary rule); the two controls replace the decisive predictor by a type-only one or shuffle the posterior (§5.16 and `graph_exploration/DESIGN_AND_LITERATURE.md`).
+
+| Split | Condition | Rule | log-loss gain | p (Holm for candidates) | AUC gain | seeds better | n |
+|---|---|---|---:|---:|---:|---:|---:|
+| A | single-shot | Type-aware graph coverage x P(decisive) x uncertainty | -0.002 | 1.000 | +0.0068 | 48% | 25 |
+| A | single-shot | Type-aware graph coverage x P(decisive) | -0.007 | 1.000 | -0.0025 | 56% | 25 |
+| A | single-shot | Laplace BALD x P(decisive), graph features | +0.007 | 1.000 | +0.0061 | 60% | 25 |
+| A | single-shot | (control) as first, decisive predictor from type only | +0.026 | 0.191 (raw) | -0.0003 | 60% | 25 |
+| A | single-shot | (control) as first, type posterior shuffled over images | +0.040 | 0.059 (raw) | +0.0026 | 64% | 25 |
+| A | single-shot | (baseline) Core-set, relation-aware pairs | +0.042 | 0.191 (raw) | -0.0042 | 60% | 25 |
+| A | single-shot | (baseline) BALD x P(decisive), pair-distance features | +0.007 | 0.672 (raw) | +0.0058 | 56% | 25 |
+| A | single-shot | (baseline) TypiClust (pairs) | -0.024 | 0.771 (raw) | -0.0055 | 60% | 25 |
+| A | single-shot | (baseline) Laplace BALD | -0.011 | 0.853 (raw) | +0.0022 | 48% | 25 |
+| A | single-shot | (baseline) Uncertainty, own head | +0.011 | 0.692 (raw) | +0.0013 | 56% | 25 |
+| A | sequential | Type-aware graph coverage x P(decisive) x uncertainty | -0.008 | 1.000 | +0.0056 | 60% | 25 |
+| A | sequential | Type-aware graph coverage x P(decisive) | -0.010 | 1.000 | -0.0007 | 48% | 25 |
+| A | sequential | Laplace BALD x P(decisive), graph features | -0.006 | 1.000 | +0.0057 | 56% | 25 |
+| A | sequential | (control) as first, decisive predictor from type only | +0.030 | 0.067 (raw) | +0.0071 | 64% | 25 |
+| A | sequential | (control) as first, type posterior shuffled over images | +0.006 | 0.653 (raw) | +0.0040 | 52% | 25 |
+| A | sequential | (baseline) Core-set, relation-aware pairs | +0.050 | 0.059 (raw) | +0.0018 | 64% | 25 |
+| A | sequential | (baseline) BALD x P(decisive), pair-distance features | +0.001 | 0.791 (raw) | +0.0040 | 56% | 25 |
+| A | sequential | (baseline) TypiClust (pairs) | -0.005 | 0.812 (raw) | +0.0028 | 52% | 25 |
+| A | sequential | (baseline) Laplace BALD | -0.025 | 0.979 (raw) | +0.0028 | 56% | 25 |
+| A | sequential | (baseline) Uncertainty, own head | -0.012 | 0.958 (raw) | +0.0027 | 44% | 25 |
+| B | single-shot | Type-aware graph coverage x P(decisive) x uncertainty | +0.002 | 0.895 | +0.0049 | 48% | 25 |
+| B | single-shot | Type-aware graph coverage x P(decisive) | +0.062 | 0.014 | +0.0130 | 76% | 25 |
+| B | single-shot | Laplace BALD x P(decisive), graph features | +0.019 | 0.625 | +0.0061 | 60% | 25 |
+| B | single-shot | (control) as first, decisive predictor from type only | -0.005 | 0.672 (raw) | -0.0031 | 44% | 25 |
+| B | single-shot | (control) as first, type posterior shuffled over images | +0.031 | 0.067 (raw) | +0.0031 | 64% | 25 |
+| B | single-shot | (baseline) Core-set, relation-aware pairs | +0.006 | 0.525 (raw) | -0.0053 | 60% | 25 |
+| B | single-shot | (baseline) BALD x P(decisive), pair-distance features | +0.015 | 0.542 (raw) | +0.0055 | 60% | 25 |
+| B | single-shot | (baseline) TypiClust (pairs) | -0.014 | 0.895 (raw) | -0.0033 | 56% | 25 |
+| B | single-shot | (baseline) Laplace BALD | -0.005 | 0.937 (raw) | +0.0034 | 52% | 25 |
+| B | single-shot | (baseline) Uncertainty, own head | -0.046 | 0.055 (raw) | -0.0145 | 36% | 25 |
+| B | sequential | Type-aware graph coverage x P(decisive) x uncertainty | +0.050 | 0.055 | +0.0146 | 72% | 25 |
+| B | sequential | Type-aware graph coverage x P(decisive) | +0.083 | 0.002 | +0.0185 | 80% | 25 |
+| B | sequential | Laplace BALD x P(decisive), graph features | +0.049 | 0.055 | +0.0151 | 76% | 25 |
+| B | sequential | (control) as first, decisive predictor from type only | +0.040 | 0.127 (raw) | +0.0036 | 72% | 25 |
+| B | sequential | (control) as first, type posterior shuffled over images | +0.081 | <0.001 (raw) | +0.0148 | 84% | 25 |
+| B | sequential | (baseline) Core-set, relation-aware pairs | +0.063 | 0.034 (raw) | +0.0056 | 72% | 25 |
+| B | sequential | (baseline) BALD x P(decisive), pair-distance features | +0.055 | 0.101 (raw) | +0.0102 | 64% | 25 |
+| B | sequential | (baseline) TypiClust (pairs) | +0.035 | 0.182 (raw) | +0.0079 | 56% | 25 |
+| B | sequential | (baseline) Laplace BALD | +0.024 | 0.275 (raw) | +0.0061 | 60% | 25 |
+| B | sequential | (baseline) Uncertainty, own head | +0.012 | 0.711 (raw) | +0.0020 | 48% | 25 |
+
+**Verdict against the pre-registered criterion.**
+
+```
+Success criterion (Holm p < 0.05 for log-loss in >= 2 blocks incl. both splits, AUC gain >= 0 there):
+  typed_decisive_coverage_unc: significant blocks [] -> not met
+  typed_decisive_coverage: significant blocks [('B', 'single'), ('B', 'sequential')] -> not met
+  typed_decisive_bald: significant blocks [] -> not met
+```
+
+**Result.** The pre-registered criterion was not met: no frozen candidate is significantly better than Random in both splits. The plain rule `typed_decisive_coverage` is significantly better than Random in split B in both conditions (log-loss gain +0.062 single-shot and +0.083 sequential, Holm p = 0.014 and 0.002; AUC +0.013 and +0.019, seeds better 76% and 80%), and it has the largest gain among all rules in the table in those two blocks; in split A its gains are −0.007 and −0.010 (Holm p = 1.0). The primary rule `typed_decisive_coverage_unc` and `typed_decisive_bald` are not significant after correction in any block (the sequential split-B gains of +0.050 and +0.049 have Holm p = 0.055). Among the embedding baselines (raw p-values, not corrected for multiplicity) Core-set with relation features has +0.042 / +0.050 in split A and +0.006 / +0.063 in split B, and BALD × P(decisive) with pair-distance features +0.007 / +0.001 and +0.015 / +0.055; none of the baselines has a raw p-value below 0.05 in both splits. The Uncertainty rule is below Random in split B single-shot (−0.046).
+
+**The graph is not shown to be responsible.** For the primary rule the two controls were run on the same seeds. Replacing the type posterior by a shuffled one gives +0.040 / +0.006 (split A) and +0.031 / +0.081 (split B), and replacing the decisive predictor by one that uses only the type gives +0.026 / +0.030 and −0.005 / +0.040; the difference between the rule and its shuffled control is −0.042, −0.013, −0.029 and −0.031 log-loss in the four blocks (raw p between 0.07 and 0.83), i.e. the real posterior is never better than the shuffled one. In split B the sequential gain of the shuffled-posterior control (+0.081, raw p < 0.001) is larger than that of the real rule (+0.050). The controls were run only for the primary rule, so for the plain rule that is significant in split B we cannot say how much of its gain comes from the graph and how much from coverage in a smoothed feature space. The earlier first-generation result (§5.16) also found that the graph-propagated core-set equals its shuffled control. What is consistent across §5.13, §5.16 and this section is that coverage-type rules help in the classifier2-style split B (larger candidate pool) and not reliably in the small-pool split A; this section does not provide evidence that graph structure adds to that.
+
+**Why the development gains did not carry over.** On the development seeds (400-409) the primary rule gained +0.108 / +0.138 / +0.029 / +0.091 log-loss over Random. On the 25 unseen seeds it gains −0.002 / −0.008 / +0.002 / +0.050. On the development seeds Random's own log-loss was unusually poor (0.648 against 0.548 on the confirmation seeds in split A, sequential) while the rule's log-loss was similar on both sets (0.510 and 0.554), and about 20 variants had been compared on those 10 seeds, so the development gain was an optimistic estimate of an effect that is small or absent. With a per-seed standard deviation of the gain of about 0.1, 25 seeds detect gains of roughly 0.04 or more; smaller true effects cannot be excluded.
+
+**Limits.** One encoder (SimCLR features of one set of three sessions), one value of k and one propagation weight, a linear decisive predictor fitted to 30-100 revealed judgments, selectors that see the typed reference images, and a graph restricted to the images of candidates, revealed judgments and references (no unlabelled trajectory frames, no temporal edges). A trained graph network, a second encoder and the unlabelled trajectory images remain untested.
+
+
+**Replication on fresh seeds (split B only).** Because the plain rule was significant in split B but its own controls had not been run, a replication was pre-registered in `graph_exploration/AUTONOMOUS_RUN_LOG.md` before it ran: seeds 430-459 (30 seeds never used before), split B, both conditions, with no change to the rule, plus its type-only and shuffled-posterior controls and the Core-set baseline. Gains are over Random as above; p-values are raw seed-level Wilcoxon tests (the paired differences are not corrected for multiplicity; H1 is corrected over the two conditions).
+
+| Condition | Rule | log-loss gain | raw p | AUC gain | seeds better |
+|---|---|---:|---:|---:|---:|
+| single-shot | Type-aware graph coverage x P(decisive) | +0.042 | 0.029 | +0.0078 | 67% (30) |
+| single-shot | (control) decisive predictor from the type only | +0.038 | 0.038 | +0.0043 | 70% (30) |
+| single-shot | (control) type posterior shuffled over images | +0.060 | <0.001 | +0.0093 | 80% (30) |
+| single-shot | (baseline) Core-set, relation-aware pairs | -0.015 | 0.715 | -0.0008 | 50% (30) |
+| sequential | Type-aware graph coverage x P(decisive) | +0.030 | 0.393 | +0.0071 | 50% (30) |
+| sequential | (control) decisive predictor from the type only | +0.038 | 0.158 | +0.0008 | 60% (30) |
+| sequential | (control) type posterior shuffled over images | +0.034 | 0.221 | +0.0024 | 63% (30) |
+| sequential | (baseline) Core-set, relation-aware pairs | -0.019 | 0.503 | -0.0093 | 50% (30) |
+
+| Condition | Paired difference (log-loss) | mean | raw p |
+|---|---|---:|---:|
+| single-shot | rule minus type-only control | +0.004 | 0.968 |
+| single-shot | rule minus shuffled-posterior control | -0.018 | 0.529 |
+| single-shot | rule minus Core-set baseline | +0.057 | 0.058 |
+| sequential | rule minus type-only control | -0.008 | 0.440 |
+| sequential | rule minus shuffled-posterior control | -0.003 | 0.919 |
+| sequential | rule minus Core-set baseline | +0.049 | 0.124 |
+
+H1 (gain over Random, Holm over the two conditions): single-shot p = 0.059, sequential p = 0.393.
+
+In single-shot selection the plain rule again has a positive gain over Random (+0.042 log-loss, raw p = 0.029, Holm p = 0.059 over the two conditions, AUC +0.008, 67% of seeds better), smaller than in the confirmation (+0.062); in sequential selection the gain is +0.030 (Holm p = 0.39). The replication therefore does not reach significance after correction, and the point estimates are about half of those of the confirmation, as expected when a rule has been selected for a good result. The controls are as good as the rule: using only the type to predict decisiveness gives +0.038 in both conditions, shuffling the type posterior gives +0.060 and +0.034, and the paired differences between the rule and its controls are +0.004 / −0.008 (type-only) and −0.018 / −0.003 (shuffled) log-loss, none distinguishable from zero. The Core-set baseline, which gained +0.063 in the confirmation, has −0.015 and −0.019 here; the rule minus Core-set difference is +0.057 (raw p = 0.058) and +0.049 (raw p = 0.12). The supported statement is therefore narrow: weighting a coverage rule by a predicted probability that the judgment will be decisive, even when that probability uses only the reconstruction type, gives a small gain of about 0.03-0.06 log-loss over Random in the classifier2-style split B, at the edge of detectability with 25-30 seeds; the graph-derived type posterior does not add to it in these data, and the effect is not present in the small-pool split A.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.
