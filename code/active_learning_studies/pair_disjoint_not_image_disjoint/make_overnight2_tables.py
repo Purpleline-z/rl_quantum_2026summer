@@ -12,11 +12,13 @@ LABEL = {"typed_decisive_coverage": "Type-aware graph coverage x P(decisive)", "
          "gvopt_lap3": "Laplacian-regularised I-optimal design (lam 3)", "gvopt_lap3_shuffled": "(control) same, graph shuffled", "gvopt_lap": "Laplacian-regularised design (lam 1)",
          "gvopt_lap10": "Laplacian-regularised design (lam 10)", "gvopt_lap03": "Laplacian-regularised design (lam 0.3)", "gvopt_type": "I-optimal design, type-posterior pool weights",
          "gvopt_prop": "I-optimal design on propagated features", "gvopt_sigma": "Sigma-optimal design", "gvopt_lapsigma": "Laplacian-regularised Sigma-optimal design"}
-CAND = {"P1": ["typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_bald"], "P3": ["gvopt_lap3", "typed_decisive_coverage"]}
+CAND = {"P1": ["typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_bald"], "P3": ["gvopt_lap3", "typed_decisive_coverage"], "P4": ["gvopt_lap3", "typed_decisive_coverage"], "P5": ["typed_decisive_coverage"], "P6": ["gvopt_lap3"]}
 ORDER = {"P1": ["typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_bald", "typed_decisive_coverage_typeonly", "typed_decisive_coverage_shuffled", "vopt_u", "core_set_relation"],
-         "P3": ["gvopt_lap3", "typed_decisive_coverage", "gvopt_lap3_shuffled", "vopt_u"]}
+         "P3": ["gvopt_lap3", "typed_decisive_coverage", "gvopt_lap3_shuffled", "vopt_u"], "P4": ["gvopt_lap3", "typed_decisive_coverage", "vopt_u"],
+         "P5": ["typed_decisive_coverage", "typed_decisive_coverage_typeonly", "typed_decisive_coverage_shuffled", "vopt_u"], "P6": ["gvopt_lap3", "gvopt_lap3_shuffled", "vopt_u"]}
 PAIRS = {"P1": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u")],
-         "P3": [("gvopt_lap3", "gvopt_lap3_shuffled"), ("gvopt_lap3", "vopt_u"), ("gvopt_lap3", "typed_decisive_coverage")]}
+         "P3": [("gvopt_lap3", "gvopt_lap3_shuffled"), ("gvopt_lap3", "vopt_u"), ("gvopt_lap3", "typed_decisive_coverage")], "P4": [("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u")],
+         "P5": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u")], "P6": [("gvopt_lap3", "vopt_u"), ("gvopt_lap3", "gvopt_lap3_shuffled")]}
 
 
 def table(phase):

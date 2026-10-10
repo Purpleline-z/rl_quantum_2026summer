@@ -15,7 +15,7 @@ from scipy.stats import wilcoxon
 ROOT = Path(__file__).resolve().parent / "results" / "new_methods"
 METRICS = {"test_decisive_log_loss": ("log-loss", True), "test_decisive_auc": ("AUC", False), "test_decisive_accuracy": ("accuracy", False)}
 BLOCKS = [("A", "single"), ("A", "sequential"), ("B", "single"), ("B", "sequential")]
-DIRS = {"P1": "graph_p1", "P2": "graph_p2", "P3": "graph_p3", "P4": "graph_p4", "P5": "graph_p5"}
+DIRS = {"P1": "graph_p1", "P2": "graph_p2", "P3": "graph_p3", "P4": "graph_p4", "P5": "graph_p5", "P6": "graph_p6"}
 
 
 def load(out: str, split: str, cond: str) -> pd.DataFrame:
@@ -71,9 +71,9 @@ def main(phase, candidates, pairs, markdown=False):
 
 
 if __name__ == "__main__":
-    phase = sys.argv[1]; cand = {"P1": "typed_decisive_coverage_unc,typed_decisive_coverage,typed_decisive_bald", "P2": "gvopt_lap,gvopt_type,gvopt_prop,gvopt_sigma,gvopt_lapsigma", "P3": "gvopt_lap3,typed_decisive_coverage", "P4": "gvopt_lap3,typed_decisive_coverage", "P5": "typed_decisive_coverage"}[phase]
+    phase = sys.argv[1]; cand = {"P1": "typed_decisive_coverage_unc,typed_decisive_coverage,typed_decisive_bald", "P2": "gvopt_lap,gvopt_type,gvopt_prop,gvopt_sigma,gvopt_lapsigma", "P3": "gvopt_lap3,typed_decisive_coverage", "P4": "gvopt_lap3,typed_decisive_coverage", "P5": "typed_decisive_coverage", "P6": "gvopt_lap3"}[phase]
     pairs = {"P1": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u"), ("typed_decisive_coverage", "core_set_relation")],
-             "P2": [(g, "vopt_u") for g in ("gvopt_lap", "gvopt_type", "gvopt_prop", "gvopt_sigma", "gvopt_lapsigma")], "P3": [("gvopt_lap3", "gvopt_lap3_shuffled"), ("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u"), ("gvopt_lap3", "typed_decisive_coverage")], "P4": [("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u")], "P5": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u")]}[phase]
+             "P2": [(g, "vopt_u") for g in ("gvopt_lap", "gvopt_type", "gvopt_prop", "gvopt_sigma", "gvopt_lapsigma")], "P3": [("gvopt_lap3", "gvopt_lap3_shuffled"), ("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u"), ("gvopt_lap3", "typed_decisive_coverage")], "P4": [("gvopt_lap3", "vopt_u"), ("typed_decisive_coverage", "vopt_u")], "P5": [("typed_decisive_coverage", "typed_decisive_coverage_typeonly"), ("typed_decisive_coverage", "typed_decisive_coverage_shuffled"), ("typed_decisive_coverage", "vopt_u")], "P6": [("gvopt_lap3", "vopt_u"), ("gvopt_lap3", "gvopt_lap3_shuffled")]}[phase]
     for i, a in enumerate(sys.argv):
         if a == "--candidates": cand = sys.argv[i + 1]
         if a == "--pairs": pairs = [tuple(x.split(":")) for x in sys.argv[i + 1].split(",")]
