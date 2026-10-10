@@ -106,6 +106,36 @@ def gp_var(cands, labeled, model, cache, budget, seed=0, lam: float = 0.03, fact
 SELECTORS = {"vopt_u": nm.NEW["vopt_u"], "vopt_amb": vopt_amb, "consistency": consistency, "vopt_cons": vopt_cons, "gp_var": gp_var}
 
 
+# ------------------------------------------------------------------------------------------ vopt variants: design space and stochastic batch (Kirsch et al. 2023)
+def vopt_x(cands, labeled, model, cache, budget, seed=0, ridge=1.0, space="hidden", beta=None):
+    """The repository's I-optimal rule ``vopt_u`` (unit target weights) with two switches: ``space`` = 'hidden' (the head's 256-d hidden difference, as in the repository) or 'raw' (the
+    512-d SimCLR feature difference, scaled to unit RMS); ``beta`` = None for greedy argmax, or a power-sampling exponent: the next pick is drawn with probability proportional to gain**beta."""
+    from new_pair_strategies import ACTIVE_HEADS, _rank_one
+    items = cands + labeled; h, p, k = ju._own(model, items, cache); n = len(cands); w = p * (1 - p)
+    if space == "raw":
+        a = np.stack([cache[x["img1"]].numpy() for x in items]); b = np.stack([cache[x["img2"]].numpy() for x in items]); h = a - b; h = h / np.sqrt((h ** 2).mean())
+    inverse = ju._inverses(h, w, k, n, ridge); members = {kk: np.flatnonzero(k[:n] == kk) for kk in ACTIVE_HEADS}; rng = np.random.default_rng(seed * 9973 + len(labeled))
+    def gains(kk):
+        idx = members[kk]
+        if len(idx) == 0: return idx, np.zeros(0)
+        P = h[idx]; G = P @ inverse[kk] @ P.T; own = np.diag(G)
+        return idx, w[idx] / (1 + w[idx] * own) * (G ** 2).sum(0)
+    score = np.full(n, -np.inf)
+    for kk in ACTIVE_HEADS: idx, g = gains(kk); score[idx] = g
+    alive = np.ones(n, bool); chosen = []
+    for _ in range(min(budget, n)):
+        masked = np.where(alive, score, -np.inf)
+        if beta is None: pick = int(np.argmax(masked))
+        else:
+            logits = beta * np.log(np.clip(np.where(alive, score, 0.0), 1e-12, None)); logits = np.where(alive, logits, -np.inf); logits -= logits.max(); pr = np.exp(logits); pick = int(rng.choice(n, p=pr / pr.sum()))
+        chosen.append(pick); alive[pick] = False; kk = k[pick]; inverse[kk] = _rank_one(inverse[kk], h[pick], w[pick]); idx, g = gains(kk); score[idx] = np.where(alive[idx], g, -np.inf)
+    return [cands[i] for i in chosen]
+
+
+SELECTORS.update({"vopt_raw": lambda *a, **kw: vopt_x(*a, space="raw", **kw), "vopt_stoch1": lambda *a, **kw: vopt_x(*a, beta=1.0, **kw), "vopt_stoch3": lambda *a, **kw: vopt_x(*a, beta=3.0, **kw),
+                  "vopt_hidden": lambda *a, **kw: vopt_x(*a, **kw)})
+
+
 def parse_seeds(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
