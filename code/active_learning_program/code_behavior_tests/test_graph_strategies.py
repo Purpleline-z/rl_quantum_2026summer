@@ -141,3 +141,9 @@ def test_graph_vopt_without_graph_effect_equals_vopt_u(_ctx):
 def test_graph_vopt_graphs_use_only_visible_images(_ctx):
     cands, labeled, cache = _judgments(); cache = dict(cache); cache["held_out_image"] = torch.randn(512); graph, _, _ = gv._build(cands, labeled, cache, 0, False)
     assert "held_out_image" not in graph.index
+
+
+def test_sigma_criterion_differs_from_v_and_runs(_ctx):
+    cands, labeled, cache = _judgments(); model = _Model()
+    v = [x["pair_id"] for x in gv.design(cands, labeled, model, cache, 10, 1, "none", False, crit="v")]; sg = [x["pair_id"] for x in gv.design(cands, labeled, model, cache, 10, 1, "none", False, crit="sigma")]
+    assert len(set(sg)) == 10 and v == [x["pair_id"] for x in nm.vopt_u(cands, labeled, model, cache, 10, 1)] and sg != v

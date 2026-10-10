@@ -10,6 +10,7 @@ Graph variants (graph = cosine 10-NN graph over the images of the candidates, th
                across graph edges get more prior precision, so the design concentrates on directions that are smooth over the graph.
   gvopt_type   the pool judgments' weights c_j in the variance sum are their type-posterior relevance (q_a(t) + q_b(t)) / 2 (label spreading of the typed references), mean-normalised.
   gvopt_prop   the design features are graph-propagated hidden features (one SGC step), the head's own predictions (w) stay unchanged.
+  gvopt_sigma / gvopt_lapsigma  the Sigma-optimal criterion (variance of the pool-mean prediction; favours cluster centres where V-optimality favours outliers, Ma et al. 2013) without / with the Laplacian prior.
 Controls (``*_shuffled``): the graph is destroyed by permuting node identities (adjacency, posterior), keeping the degree sequence and the feature distribution.
 """
 from __future__ import annotations
@@ -45,8 +46,9 @@ def _pagerank_weight(cands, graph, adjacency):
     rank = gs._percentile(gs.pagerank(adjacency)); return np.array([(rank[graph.index[x["img1"]]] + rank[graph.index[x["img2"]]]) / 2 for x in cands])
 
 
-def design(cands, labeled, model, cache, budget, seed, mode: str, shuffle: bool, ridge: float = 1.0, lam: float = LAM):
-    """Greedy pool-wide variance-reduction design with the graph modification ``mode`` in {'lap', 'type', 'prop'}."""
+def design(cands, labeled, model, cache, budget, seed, mode: str, shuffle: bool, ridge: float = 1.0, lam: float = LAM, crit: str = "v"):
+    """Greedy pool-wide variance-reduction design with the graph modification ``mode`` in {'lap', 'type', 'prop', 'none'}; ``crit`` 'v' = V-optimal (sum of squared
+    pool covariances, as vopt_u), 'sigma' = Sigma-optimal (squared sum of pool covariances: variance of the pool-mean prediction; Ma, Garnett and Schneider 2013)."""
     graph, adjacency, q = _build(cands, labeled, cache, seed, shuffle); n = len(cands)
     items = cands + labeled; h, p, k = ju._own(model, items, cache); w = p * (1 - p)
     c = np.ones(n)
@@ -68,6 +70,7 @@ def design(cands, labeled, model, cache, budget, seed, mode: str, shuffle: bool,
         idx = members[kk]
         if len(idx) == 0: return idx, np.zeros(0)
         P = h[idx]; G = P @ inverse[kk] @ P.T; own = np.diag(G)
+        if crit == "sigma": return idx, w[idx] / (1 + w[idx] * own) * ((c[idx][:, None] * G).sum(0)) ** 2
         return idx, w[idx] / (1 + w[idx] * own) * ((c[idx][:, None] * G ** 2).sum(0))
     score = np.full(n, -np.inf)
     for kk in ACTIVE_HEADS: idx, g = gains(kk); score[idx] = g
@@ -78,10 +81,11 @@ def design(cands, labeled, model, cache, budget, seed, mode: str, shuffle: bool,
     return [cands[i] for i in chosen]
 
 
-def _rule(mode, shuffle, lam=LAM):
-    def select(cands, labeled, model, cache, budget, seed=0): return design(cands, labeled, model, cache, budget, seed, mode, shuffle, lam=lam)
+def _rule(mode, shuffle, lam=LAM, crit="v"):
+    def select(cands, labeled, model, cache, budget, seed=0): return design(cands, labeled, model, cache, budget, seed, mode, shuffle, lam=lam, crit=crit)
     return select
 
 
 NEW = {"gvopt_lap": _rule("lap", False), "gvopt_lap_shuffled": _rule("lap", True), "gvopt_type": _rule("type", False), "gvopt_type_shuffled": _rule("type", True),
-       "gvopt_prop": _rule("prop", False), "gvopt_prop_shuffled": _rule("prop", True), "gvopt_lap3": _rule("lap", False, 3.0), "gvopt_lap3_shuffled": _rule("lap", True, 3.0)}
+       "gvopt_prop": _rule("prop", False), "gvopt_prop_shuffled": _rule("prop", True), "gvopt_lap3": _rule("lap", False, 3.0), "gvopt_lap3_shuffled": _rule("lap", True, 3.0),
+       "gvopt_sigma": _rule("none", False, crit="sigma"), "gvopt_lapsigma": _rule("lap", False, crit="sigma"), "gvopt_lapsigma_shuffled": _rule("lap", True, crit="sigma")}

@@ -12,7 +12,8 @@ Out: `results/new_methods/graph_p1/{A,B}`; analysis `aggregate_overnight2.py p1`
 Idea (literature: Laplacian-regularised optimal design, variance minimisation on graphs; see notes): the best-performing family under the re-tuned schedule is the pool-wide I-optimal design `vopt_u` on the last layer of the own-type head (§5.15). Graph-aware variants change what is minimised or in which space:
 - `gvopt_lap`: Laplacian-regularised prior, precision = ridge I + lam * H^T L H / scale (H = hidden features of the images of the graph, L = Laplacian of the kNN graph, lam = 1);
 - `gvopt_type`: the pool judgments' weights in the variance sum are the type-posterior relevance (answerability) of the judgment, from label spreading of the typed references;
-- `gvopt_prop`: the design is computed on graph-propagated hidden features (one propagation step).
+- `gvopt_prop`: the design is computed on graph-propagated hidden features (one propagation step);
+- `gvopt_sigma` (no graph) and `gvopt_lapsigma` (with the Laplacian prior): Sigma-optimal criterion (variance of the pool-mean prediction, Ma, Garnett and Schneider NeurIPS 2013, which favours cluster centres where V-optimality favours outliers), added after the literature reading and before any P2 cell was run.
 Dev comparison: each variant against Random and against `vopt_u` on seeds 600-624 (F's development seeds). At most ONE graph method (or one combination) is frozen for P3, chosen on dev seeds by mean gain over `vopt_u` and over Random across the four blocks; ties go to the simpler one. Write the frozen choice into the log BEFORE P3.
 
 ## Phase 3 (P3): confirmation of the frozen graph method — fresh seeds 1400-1434, both splits
