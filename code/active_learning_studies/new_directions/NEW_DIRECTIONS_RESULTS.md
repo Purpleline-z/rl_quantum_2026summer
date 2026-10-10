@@ -13,7 +13,7 @@ Run on 2026-10-10, 04:30-12:30 UTC, unattended, CPU only. Everything below is on
 
 - **Seeds.** Exploration used development seeds 2000-2019 only. Confirmatory seeds 3000-3034 are disjoint from every seed of the earlier work and from the development seeds (asserted in `nd_core.py` and in `test_new_directions.py`).
 - **Paired design.** Learners are compared on identical random label sets (3 draws per seed and budget); selectors on the identical initial model and pool. Gains are means over budgets and draws, then over seeds; intervals are paired bootstrap over seeds; log-loss gain = reference - cell, so positive is better.
-- **Pre-registration.** `PREREGISTRATION_1.md` + `prereg1_spec.json` (commit `b1669ca9`) and `PREREGISTRATION_2.md` (commit `5a2dba20`) were committed before their confirmatory cells existed. The tests are two-sided Wilcoxon signed-rank over 35 seeds with Holm correction within the families given there (`nd_confirm.py`, `nd_confirm_type.py`). Everything not in a pre-registration is labelled development or exploratory.
+- **Pre-registration.** `PREREGISTRATION_1.md` + `prereg1_spec.json` (commit `b1669ca9`) and `PREREGISTRATION_2.md` (commit `5a2dba20`) and `PREREGISTRATION_3.md` (commit `1b38f7ec`, cold start) were committed before their confirmatory cells existed. The tests are two-sided Wilcoxon signed-rank over 35 seeds with Holm correction within the families given there (`nd_confirm.py`, `nd_confirm_type.py`). Everything not in a pre-registration is labelled development or exploratory.
 - **Integrity.** Eight tests (`code_behavior_tests/test_new_directions.py`): seed sets, held-out images never in labels, predictions independent of test labels, mirror head exactly invariant, selectors ignore hidden outcomes, selections distinct, stochastic batch reproducible, GP/Bayes predictors finite and antisymmetric. The ideal images used as extra anchors share no content identity with any pair image (checked by SHA-256 for seed 2000 in both splits: 144 ideal vs 262 / 269 pair-image identities, overlap 0).
 - **Tuning of the comparator.** The default anchor weight 0.25 is part of the baseline learner; the result of section 2 says the baseline was not tuned for this endpoint. Following Lüth et al. (NeurIPS 2023), where apparent gains of acquisition rules often come from poorly tuned baselines, every new comparison below should be made against the tuned learner.
 
@@ -95,9 +95,38 @@ Extras (development, not promoted):
 - **Ensembles of 5 or 10 heads:** AUC +0.001 (10 seeds): head variance is not the bottleneck.
 - **Selection with the anchor-weighted model** (`vopt_aw8_all`, look at the model trained with weight 8): not better than `vopt_u` (split A AUC +0.033 vs +0.034 with the same final learner; B +0.025 vs +0.021).
 - **Committee of MLP head and GP as acquisition:** implemented (`qbc_gp`, `vopt_qbc`) but not completed (CPU time).
-- **Cold start, anchors as cross-entropy, combinations of the anchor-weighted head with the other ideas:** see section 5 (pending at the time of writing this paragraph; filled in below if finished).
+- **Cold start, anchors as cross-entropy, combinations of the anchor-weighted head with the other ideas:** see section 5.
 
-## 5. Later additions (cold start, cross-entropy anchors, combinations)
+## 5. Later additions
+
+### 5.1 Cold start (pre-registration 3, seeds 4000-4034, `results/CONFIRM3_TABLE.md`)
+
+Condition: 10 random initial judgments instead of the 10 initial groups (the situation of a new label campaign). Cells: selector (random, `vopt_u`) x learner (default head, aw8).
+
+| family | split | metric | cell A - cell B | seeds | gain [95% interval] | seeds better | p | Holm |
+|---|---|---|---|---|---|---|---|---|
+| G1 | A | auc | random:aw8 - random:baseline | 35 | +0.0220 [+0.0151, +0.0287] | 83% | < 0.0001 | < 0.0001 |
+| G1 | A | acc | random:aw8 - random:baseline | 35 | +0.0284 [+0.0181, +0.0391] | 77% | < 0.0001 | < 0.0001 |
+| G1 | A | ll | random:aw8 - random:baseline | 35 | +0.0819 [+0.0628, +0.1026] | 94% | < 0.0001 | < 0.0001 |
+| G1 | B | auc | random:aw8 - random:baseline | 35 | +0.0283 [+0.0208, +0.0352] | 86% | < 0.0001 | < 0.0001 |
+| G1 | B | acc | random:aw8 - random:baseline | 35 | +0.0281 [+0.0198, +0.0363] | 86% | < 0.0001 | < 0.0001 |
+| G1 | B | ll | random:aw8 - random:baseline | 35 | +0.0974 [+0.0776, +0.1184] | 100% | < 0.0001 | < 0.0001 |
+| G2 | A | auc | vopt_u:aw8 - random:aw8 | 35 | +0.0060 [+0.0020, +0.0106] | 66% | 0.0241 | 0.0722 |
+| G2 | A | acc | vopt_u:aw8 - random:aw8 | 35 | +0.0084 [+0.0030, +0.0143] | 71% | 0.0128 | 0.0511 |
+| G2 | B | auc | vopt_u:aw8 - random:aw8 | 35 | +0.0046 [-0.0014, +0.0107] | 60% | 0.1684 | 0.3367 |
+| G2 | B | acc | vopt_u:aw8 - random:aw8 | 35 | -0.0002 [-0.0068, +0.0067] | 51% | 0.8845 | 0.8845 |
+| G3 | A | auc | vopt_u:baseline - random:baseline | 35 | +0.0199 [+0.0093, +0.0299] | 80% | 0.0002 | 0.0007 |
+| G3 | A | acc | vopt_u:baseline - random:baseline | 35 | +0.0176 [+0.0072, +0.0274] | 71% | 0.0003 | 0.0008 |
+| G3 | B | auc | vopt_u:baseline - random:baseline | 35 | +0.0140 [+0.0024, +0.0263] | 69% | 0.0252 | 0.0503 |
+| G3 | B | acc | vopt_u:baseline - random:baseline | 35 | +0.0137 [+0.0019, +0.0264] | 69% | 0.0387 | 0.0503 |
+
+(G1: learner effect from a cold start; G2: does `vopt_u` still add to the tuned learner; G3: replication of the selection gain with the default learner. Generated by `nd_confirm_markdown.py`.)
+
+- **The anchor-weight gain is larger from a cold start and confirmed** (G1: AUC +0.022 / +0.028, accuracy +0.028 / +0.028, log-loss +0.082 / +0.097; all Holm < 0.0001).
+- **Selection on top of the tuned learner is not confirmed.** G2 is borderline in split A (AUC +0.006 [+0.002, +0.011], Holm 0.072; accuracy +0.008 [+0.003, +0.014], Holm 0.051) and absent in split B (AUC +0.005, accuracy -0.000). The development impression of a gain in split B (AUC +0.012) did not replicate (winner's curse).
+- **The selection gain with the default learner replicates in split A** (G3: AUC +0.020, accuracy +0.018, Holm < 0.001) and is borderline in split B (AUC +0.014, accuracy +0.014, Holm 0.050 / 0.050).
+
+### 5.2 Other development screens
 
 PENDING
 

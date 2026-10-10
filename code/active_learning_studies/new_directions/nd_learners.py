@@ -321,3 +321,14 @@ def _ce(aw, cw, all_ideal=True):
 
 
 LEARNERS.update({"aw8_all_ce1": _ce(8.0, 1.0), "aw8_all_ce4": _ce(8.0, 4.0), "aw0_all_ce4": _ce(0.0, 4.0), "aw0_all_ce16": _ce(0.0, 16.0), "aw2_all_ce4": _ce(2.0, 4.0)})
+
+
+def _capacity(hidden, wd):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, hidden=hidden, anchor_weight=8.0, all_ideal=True, weight_decay=wd)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"aw8_all_h64": _capacity(64, None), "aw8_all_h1024": _capacity(1024, None), "aw8_all_wd1e3": _capacity(256, 1e-3), "aw8_all_wd1e2": _capacity(256, 1e-2)})
