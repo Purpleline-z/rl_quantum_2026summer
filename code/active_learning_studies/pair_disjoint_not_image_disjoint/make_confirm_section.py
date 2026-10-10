@@ -11,7 +11,7 @@ import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 
-import aggregate_confirm as ac
+import aggregate_confirm_perblock as ac
 
 HERE = Path(__file__).resolve().parent
 REPORT = HERE.parents[1] / "ACADEMIC_REPORT_DRAFT.md"
