@@ -96,7 +96,7 @@ def anchors(ctx, featfn):
     return refs, bad
 
 
-def fit_generic(ctx, judgments, featfn, dim: int, lr: float, steps: int, seed: int = 0, extra=None, rows=None, hidden: int = 256, anchor_weight: float = .25) -> nn.Module:
+def fit_generic(ctx, judgments, featfn, dim: int, lr: float, steps: int, seed: int = 0, extra=None, rows=None, hidden: int = 256, anchor_weight: float = .25, bad_weight=None) -> nn.Module:
     """Train a head with exactly the repository's loss (``frozen.fit_head``) on ``featfn``-features of the rows of ``judgments`` (or of ``rows``).
 
     ``extra`` = optional (img1 paths, img2 paths, type_idx array, weight array, winner array) of additional (e.g. pseudo-labelled) rows."""
@@ -111,7 +111,7 @@ def fit_generic(ctx, judgments, featfn, dim: int, lr: float, steps: int, seed: i
         ea, eb = featfn(list(extra[0])), featfn(list(extra[1]))
         xa, xb = torch.cat([xa, ea]), torch.cat([xb, eb]); typ = torch.cat([typ, torch.as_tensor(extra[2])])
         weight = torch.cat([weight, torch.as_tensor(extra[3], dtype=torch.float32)]); winner = np.concatenate([winner, extra[4]])
-    frozen.fit_head(head, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, anchor_weight=anchor_weight, bad_weight=ctx.exp.cfg.bad_anchor_weight)
+    frozen.fit_head(head, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, anchor_weight=anchor_weight, bad_weight=ctx.exp.cfg.bad_anchor_weight if bad_weight is None else bad_weight)
     return head.eval()
 
 

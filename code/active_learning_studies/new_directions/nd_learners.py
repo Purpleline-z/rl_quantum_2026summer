@@ -210,3 +210,25 @@ def _anchor_variant(weight):
 
 
 LEARNERS.update({"anchor_w0": _anchor_variant(0.0), "anchor_w1": _anchor_variant(1.0), "anchor_w4": _anchor_variant(4.0)})
+
+
+def _ensemble(k: int):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        heads = [core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed * 100 + j) for j in range(k)]
+        return lambda test: np.mean([core.head_d(h, fn, test) for h in heads], axis=0)
+    return learner
+
+
+LEARNERS.update({"ensemble5": _ensemble(5), "ensemble10": _ensemble(10)})
+
+
+def _anchor_grid(aw, bw=None):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=aw, bad_weight=bw)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"aw2": _anchor_grid(2.0), "aw8": _anchor_grid(8.0), "aw16": _anchor_grid(16.0), "aw32": _anchor_grid(32.0), "aw4_bw0": _anchor_grid(4.0, 0.0), "aw4_bw1": _anchor_grid(4.0, 1.0), "aw8_bw1": _anchor_grid(8.0, 1.0)})
