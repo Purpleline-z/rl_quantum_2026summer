@@ -149,3 +149,31 @@ def calibrated_log_loss(d_val, val: "TestSet", d_test, test: "TestSet") -> float
     temps = np.exp(np.linspace(np.log(.05), np.log(20), 120))
     losses = [float((val.weight * np.logaddexp(0.0, -val.sign * np.asarray(d_val) / t)).sum() / val.weight.sum()) for t in temps]; t = temps[int(np.argmin(losses))]
     return float((test.weight * np.logaddexp(0.0, -test.sign * np.asarray(d_test) / t)).sum() / test.weight.sum())
+
+
+# ------------------------------------------------------------------------------------------ head fit with an extra mixture-consistency anchor loss
+def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps, weight_decay=1e-4, anchor_weight=.25, bad_weight=.10, mix_weight=0.0, mix_pairs=64, mix_seed=0, lam_hi=.8, lam_lo=.3):
+    """``frozen.fit_head`` plus a mixture-consistency term: real RHEED patterns are close to linear mixtures of ideal patterns, so for two ideal images a (type A) and b (type B) the score of type A must
+    increase with the share of a in the mixture.  Mixtures are formed in feature space; loss = -log sigmoid(s_A(lam_hi a + (1-lam_hi) b) - s_A(lam_lo a + (1-lam_lo) b)) and the same for B with the roles reversed."""
+    import torch.nn.functional as F
+    head.eval(); optimizer = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=weight_decay)
+    index = torch.arange(len(type_index)); masks = {label: torch.as_tensor(winner == label) for label in frozen.LABELS}; gen = torch.Generator().manual_seed(mix_seed)
+    names = list(refs); cols = {c: frozen.TYPE_TO_INDEX[c] for c in names}
+    for _ in range(steps):
+        a, b = head(xa)[index, type_index], head(xb)[index, type_index]
+        terms = (-F.logsigmoid(a - b) * masks["1"] - F.logsigmoid(b - a) * masks["2"] + (a - b).abs() * masks["tie"] + (F.relu(a) + F.relu(b)) * masks["not_apply"])
+        loss = (terms * weight).sum() / max(len(type_index), 1)
+        if refs and len(refs) > 1:
+            scores = {n: head(f) for n, f in refs.items()}; values = []
+            for p_, sp in scores.items():
+                for o_, so in scores.items():
+                    if o_ != p_: values.append(-F.logsigmoid(sp[:, cols[p_]][:, None] - so[:, cols[p_]][None, :]).mean())
+            loss = loss + anchor_weight * torch.stack(values).mean()
+        if mix_weight > 0 and refs and len(refs) > 1:
+            ca = torch.randint(len(names), (mix_pairs,), generator=gen); cb = (ca + torch.randint(1, len(names), (mix_pairs,), generator=gen)) % len(names)
+            xa_m = torch.stack([refs[names[i]][int(torch.randint(len(refs[names[i]]), (1,), generator=gen))] for i in ca]); xb_m = torch.stack([refs[names[i]][int(torch.randint(len(refs[names[i]]), (1,), generator=gen))] for i in cb])
+            hi, lo = lam_hi * xa_m + (1 - lam_hi) * xb_m, lam_lo * xa_m + (1 - lam_lo) * xb_m; sh, sl = head(hi), head(lo); ia = torch.as_tensor([cols[names[i]] for i in ca]); ib = torch.as_tensor([cols[names[i]] for i in cb]); r = torch.arange(mix_pairs)
+            loss = loss + mix_weight * (-F.logsigmoid(sh[r, ia] - sl[r, ia]) - F.logsigmoid(sl[r, ib] - sh[r, ib])).mean()
+        if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
+        optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
+    return head.eval()

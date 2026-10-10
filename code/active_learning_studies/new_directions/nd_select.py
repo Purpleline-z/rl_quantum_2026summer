@@ -167,6 +167,31 @@ def vopt_qbc(cands, labeled, model, cache, budget, seed=0):
 SELECTORS.update({"qbc_gp": qbc_gp, "vopt_qbc": vopt_qbc})
 
 
+# ------------------------------------------------------------------------------------------ selection with the anchor-weighted model (learner-consistent selection)
+class _Model:
+    def __init__(self, head): self.reward_head = head
+
+
+def _selection_model(ctx, aw, all_ideal):
+    key = ("selmodel", id(ctx), aw, all_ideal)
+    if CTX_REF.get("selmodel_key") != key:
+        lr, steps = ctx.params_for([]); fn = core.identity_features(ctx)
+        # the model the selector looks at is trained on the initial judgments, like the repository's baseline model, but with the anchor weight under test
+        CTX_REF["selmodel"] = _Model(core.fit_generic(ctx, ctx.initial, fn, 512, *ctx.params_for(ctx.initial), ctx.seed, anchor_weight=aw, all_ideal=all_ideal)); CTX_REF["selmodel_key"] = key
+    return CTX_REF["selmodel"]
+
+
+def vopt_aw8(cands, labeled, model, cache, budget, seed=0):
+    return nm.NEW["vopt_u"](cands, labeled, _selection_model(CTX_REF["ctx"], 8.0, False), cache, budget, seed)
+
+
+def vopt_aw8_all(cands, labeled, model, cache, budget, seed=0):
+    return nm.NEW["vopt_u"](cands, labeled, _selection_model(CTX_REF["ctx"], 8.0, True), cache, budget, seed)
+
+
+SELECTORS.update({"vopt_aw8": vopt_aw8, "vopt_aw8_all": vopt_aw8_all})
+
+
 def parse_seeds(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]

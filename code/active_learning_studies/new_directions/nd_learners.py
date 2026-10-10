@@ -291,3 +291,18 @@ def metadata_aw(ctx, labelled, seed, aw, all_ideal, scale: float = 1.0):
     lr, steps = _lr_steps(ctx, labelled); fn = metadata_features(ctx, scale)
     head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM + 4, lr, steps, seed, anchor_weight=aw, all_ideal=all_ideal)
     return lambda test: core.head_d(head, fn, test)
+
+
+def _mix(aw, mw, all_ideal):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(FEATURE_DIM, seed); refs, bad = core.anchors(ctx, fn, all_ideal)
+        if len(rows):
+            xa, xb = fn(list(rows.resolved_img1)), fn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
+            weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
+        else: xa = xb = torch.empty(0, FEATURE_DIM); typ = torch.empty(0, dtype=torch.long); weight = torch.empty(0); winner = np.array([], dtype=object)
+        core.fit_head_ext(head, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, anchor_weight=aw, bad_weight=ctx.exp.cfg.bad_anchor_weight, mix_weight=mw, mix_seed=seed)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"aw8_all_mix0": _mix(8.0, 0.0, True), "aw8_all_mix1": _mix(8.0, 1.0, True), "aw8_all_mix4": _mix(8.0, 4.0, True), "aw025_all_mix4": _mix(0.25, 4.0, True), "aw8_mix1": _mix(8.0, 1.0, False)})
