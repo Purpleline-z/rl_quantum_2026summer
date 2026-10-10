@@ -8,4 +8,4 @@ case "$1" in
   P3) SEEDS=1400-1434; OUT=graph_p3; ONLY=${P3_ONLY:?set P3_ONLY to the frozen method list} ;;
   *) echo "unknown phase"; exit 1 ;;
 esac
-for S in A B; do (nohup ./new_methods_run.sh $S $SEEDS $ONLY $OUT both > /tmp/ju_${OUT}_$S.log 2>&1 &); done
+for S in A B; do (nohup ./graph_methods_run.sh $S $SEEDS $ONLY $OUT both > /tmp/ju_${OUT}_$S.log 2>&1 &); done

@@ -110,3 +110,34 @@ def test_decisive_probability_is_half_without_both_outcomes_and_a_probability_ot
 
 def test_no_references_gives_a_uniform_posterior():
     cands, labeled, cache = _judgments(); g = gt.ImageGraph(cands, labeled, cache, {}); assert np.allclose(g.q, .25)
+
+
+# ------------------------------------------------------------------ graph-regularised variance-reduction design (graph_vopt.py)
+import types  # noqa: E402
+
+import graph_vopt as gv  # noqa: E402
+import new_methods_strategies as nm  # noqa: E402
+
+
+@pytest.fixture
+def _ctx():
+    nm.CTX["ctx"] = types.SimpleNamespace(exp=_Exp()); yield; nm.CTX.pop("ctx", None)
+
+
+@pytest.mark.parametrize("name", sorted(gv.NEW))
+def test_graph_vopt_returns_budget_distinct_judgments_reproducibly(name, _ctx):
+    cands, labeled, cache = _judgments(); select = gv.NEW[name]
+    first = [x["pair_id"] for x in select(cands, labeled, _Model(), cache, 12, 3)]; second = [x["pair_id"] for x in select(cands, labeled, _Model(), cache, 12, 3)]
+    assert first == second and len(first) == 12 and len(set(first)) == 12 and set(first) <= {x["pair_id"] for x in cands}
+
+
+def test_graph_vopt_without_graph_effect_equals_vopt_u(_ctx):
+    """With lam = 0 the Laplacian prior vanishes and the rule reproduces vopt_u exactly (same greedy, same gains)."""
+    cands, labeled, cache = _judgments(); model = _Model()
+    a = [x["pair_id"] for x in gv.design(cands, labeled, model, cache, 10, 1, "lap", False, lam=0.0)]; b = [x["pair_id"] for x in nm.vopt_u(cands, labeled, model, cache, 10, 1)]
+    assert a == b
+
+
+def test_graph_vopt_graphs_use_only_visible_images(_ctx):
+    cands, labeled, cache = _judgments(); cache = dict(cache); cache["held_out_image"] = torch.randn(512); graph, _, _ = gv._build(cands, labeled, cache, 0, False)
+    assert "held_out_image" not in graph.index
