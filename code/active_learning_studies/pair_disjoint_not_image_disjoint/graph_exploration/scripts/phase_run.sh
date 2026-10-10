@@ -9,6 +9,7 @@ case "$1" in
   P4) LO=1400; HI=1434; OUT=graph_p4; ONLY=random,vopt_u,gvopt_lap3,typed_decisive_coverage; export NM_SCHEDULE=results/new_methods/confirm7_lr0003/A/schedule_used.json ;;
   P5) LO=1600; HI=1639; OUT=graph_p5; ONLY=random,typed_decisive_coverage,typed_decisive_coverage_typeonly,typed_decisive_coverage_shuffled,vopt_u ;;
   P6) LO=1700; HI=1739; OUT=graph_p6; ONLY=random,vopt_u,gvopt_lap3,gvopt_lap3_shuffled; export NM_SCHEDULE=results/new_methods/confirm7_lr0003/A/schedule_used.json ;;
+  P7) LO=1600; HI=1639; OUT=graph_p5; ONLY=typed_coverage_uniform ;;
   P3) LO=1400; HI=1434; OUT=graph_p3; ONLY=${P3_ONLY:?set P3_ONLY to the frozen method list} ;;
   *) echo "unknown phase"; exit 1 ;;
 esac

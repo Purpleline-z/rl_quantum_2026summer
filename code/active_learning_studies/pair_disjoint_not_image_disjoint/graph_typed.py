@@ -198,7 +198,7 @@ FACTORIES = {
              "typed_decisive_sampling_g1": lambda refs: typed_decisive_sampling(refs, gamma=1.0), "typed_decisive_sampling_g4": lambda refs: typed_decisive_sampling(refs, gamma=4.0),
              "typed_decisive_sampling_shuffled": lambda refs: typed_decisive_sampling(refs, True),
              # controls with the decisive predictor reduced to the type one-hot (no reference/graph features): isolates what the graph adds to the decisive predictor
-             "typed_decisive_coverage_typeonly": lambda refs: typed_decisive_coverage({}), "typed_decisive_sampling_typeonly": lambda refs: typed_decisive_sampling({}),
+             "typed_coverage_uniform": lambda refs: typed_decisive_coverage(refs, gamma=0.0), "typed_decisive_coverage_typeonly": lambda refs: typed_decisive_coverage({}), "typed_decisive_sampling_typeonly": lambda refs: typed_decisive_sampling({}),
              "typed_decisive_coverage_g2": lambda refs: typed_decisive_coverage(refs, gamma=2.0), "typed_decisive_coverage_unc": lambda refs: typed_decisive_coverage(refs, uncertainty_power=1.0),
              "typed_decisive_coverage_unc_g2": lambda refs: typed_decisive_coverage(refs, gamma=2.0, uncertainty_power=1.0), "typed_decisive_coverage_unc_u2": lambda refs: typed_decisive_coverage(refs, uncertainty_power=2.0),
              "typed_decisive_coverage_unc_q": lambda refs: typed_decisive_coverage(refs, uncertainty_power=1.0, q_weight=1.0),
