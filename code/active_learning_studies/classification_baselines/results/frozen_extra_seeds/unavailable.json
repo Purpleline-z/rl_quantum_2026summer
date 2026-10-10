@@ -1,0 +1,22 @@
+[
+  {
+    "extractor": "imagenet_resnet18_paper_norm",
+    "status": "unavailable",
+    "reason": "ImageNet ResNet-18 weights not downloadable: <urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "extractor": "imagenet_resnet18",
+    "status": "unavailable",
+    "reason": "ImageNet ResNet-18 weights not downloadable: <urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "extractor": "imagenet_resnet50",
+    "status": "unavailable",
+    "reason": "ImageNet resnet50 weights not downloadable: <urlopen error Tunnel connection failed: 403 Forbidden>"
+  },
+  {
+    "extractor": "imagenet_vit_b_16",
+    "status": "unavailable",
+    "reason": "ImageNet vit_b_16 weights not downloadable: <urlopen error Tunnel connection failed: 403 Forbidden>"
+  }
+]
