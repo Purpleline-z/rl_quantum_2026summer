@@ -49,7 +49,7 @@ def feature_cache() -> dict:
 def make_ctx(seed: int, split: str, scratch, cache: dict):
     """Context of the judgment-unit study with the repository's own head schedule (per budget, re-tuned)."""
     schedule = json.loads((single_study.OUT / "schedule.json").read_text()); table = ju_study.load_schedule(single_study.OUT / "schedule_judgment_unit.json")
-    return ju_study.Context(seed, Path(scratch), cache, split, "groups", schedule["learning_rate"], schedule["steps"], table)
+    return ju_study.Context(seed, Path(scratch), cache, split, os.environ.get("ND_INITIAL", "groups"), schedule["learning_rate"], schedule["steps"], table)
 
 
 def random_labelled(ctx, budget: int, draw: int) -> list:

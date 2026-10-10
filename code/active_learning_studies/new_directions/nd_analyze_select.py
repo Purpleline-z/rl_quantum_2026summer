@@ -19,9 +19,10 @@ def holm(p):
     for rank, i in enumerate(order): run = max(run, (len(p) - rank) * p[i]); out[i] = min(1.0, run)
     return out
 
-def table(frame, ref_learner="baseline", metrics=("auc", "acc", "ll")):
+def table(frame, ref_learner="baseline", metrics=("auc", "acc", "ll"), cells_filter=None):
     ref = frame[(frame.selector == "random") & (frame.learner == ref_learner)].groupby(["seed", "split", "budget"])[list(METRICS)].mean().add_suffix("_ref")
     cells = frame[~((frame.selector == "random") & (frame.learner == ref_learner))].groupby(["seed", "split", "budget", "selector", "learner"])[list(METRICS)].mean().reset_index().join(ref, on=["seed", "split", "budget"])
+    if cells_filter: cells = cells[[f"{a}:{b}" in cells_filter for a, b in zip(cells.selector, cells.learner)]]
     rows = []
     for (split, sel, lrn), g in cells.groupby(["split", "selector", "learner"]):
         row = {"split": split, "selector": sel, "learner": lrn, "n_seeds": g.seed.nunique()}
@@ -39,7 +40,8 @@ def table(frame, ref_learner="baseline", metrics=("auc", "acc", "ll")):
 if __name__ == "__main__":
     dirs = [a for a in sys.argv[1:] if not a.startswith("--")]; frame = load(dirs); pd.set_option("display.width", 250); pd.set_option("display.float_format", lambda x: f"{x:.4f}")
     mets = ("auc", "acc", "ll") + (("acc_amb", "ll_amb") if "acc_amb" in frame else ())
-    t = table(frame, metrics=mets)
+    flt = next((a.split("=", 1)[1].split(",") for a in sys.argv[1:] if a.startswith("--cells=")), None)
+    t = table(frame, metrics=mets, cells_filter=flt)
     for split in sorted(t.split.unique()):
         print(f"\n=== split {split}: gain over random selection with the baseline head (log-loss gain = reference - cell; positive is better) ==="); s = t[t.split == split]
         cols = ["selector", "learner", "n_seeds"] + sum([[m, f"{m}_lo", f"{m}_hi", f"{m}_p", f"{m}_holm"] for m in ("auc", "acc", "ll")], []); print(s[cols].to_string(index=False))

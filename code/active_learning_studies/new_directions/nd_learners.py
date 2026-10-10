@@ -161,5 +161,52 @@ def cv_schedule(ctx, labelled, seed):
     return lambda test: core.head_d(head, fn, test)
 
 
-LEARNERS = {"cv_schedule": cv_schedule, "baseline": baseline, "decisive_only": decisive_only, "no_not_apply": no_not_apply, "no_tie": no_tie, "symmetric": symmetric,
+
+# ------------------------------------------------------------------------------------------ Rao-Kupper tie model (principled handling of ties)
+def fit_head_rk(head, nu_raw, xa, xb, typ, weight, winner, refs, bad, lr, steps, weight_decay=1e-4, anchor_weight=.25, bad_weight=.10):
+    """Same optimiser and anchor terms as ``frozen.fit_head``; decisive and tie rows use the Rao-Kupper likelihood with a learnable threshold nu_k >= 0 per type:
+    P(a wins) = sigmoid(d - nu), P(b wins) = sigmoid(-d - nu), P(tie) = 1 - both; not_apply keeps the repository's push-down term."""
+    import torch.nn.functional as F
+    head.eval(); params = list(head.parameters()) + [nu_raw]; optimizer = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+    index = torch.arange(len(typ)); masks = {l: torch.as_tensor(winner == l) for l in core.frozen.LABELS}
+    for _ in range(steps):
+        a, b = head(xa)[index, typ], head(xb)[index, typ]; d = a - b; nu = F.softplus(nu_raw)[typ] + 1e-3
+        pa, pb = torch.sigmoid(d - nu), torch.sigmoid(-d - nu); ptie = (1 - pa - pb).clamp_min(1e-6)
+        terms = -torch.log(pa.clamp_min(1e-6)) * masks["1"] - torch.log(pb.clamp_min(1e-6)) * masks["2"] - torch.log(ptie) * masks["tie"] + (F.relu(a) + F.relu(b)) * masks["not_apply"]
+        loss = (terms * weight).sum() / max(len(typ), 1)
+        if refs and len(refs) > 1:
+            scores = {n: head(f) for n, f in refs.items()}; values = []
+            for p_, sp in scores.items():
+                col = core.frozen.TYPE_TO_INDEX[p_]
+                for o_, so in scores.items():
+                    if o_ != p_: values.append(-F.logsigmoid(sp[:, col][:, None] - so[:, col][None, :]).mean())
+            loss = loss + anchor_weight * torch.stack(values).mean()
+        if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
+        optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(params, 1.0); optimizer.step()
+    return head.eval()
+
+
+def rao_kupper(ctx, labelled, seed):
+    lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(FEATURE_DIM, seed); refs, bad = core.anchors(ctx, fn)
+    nu_raw = torch.full((5,), float(np.log(np.expm1(.5))), requires_grad=True)
+    if len(rows):
+        xa, xb = fn(list(rows.resolved_img1)), fn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
+        weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
+    else: xa = xb = torch.empty(0, FEATURE_DIM); typ = torch.empty(0, dtype=torch.long); weight = torch.empty(0); winner = np.array([], dtype=object)
+    fit_head_rk(head, nu_raw, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, bad_weight=ctx.exp.cfg.bad_anchor_weight)
+    return lambda test: core.head_d(head, fn, test)
+
+
+LEARNERS = {"rao_kupper": rao_kupper, "cv_schedule": cv_schedule, "baseline": baseline, "decisive_only": decisive_only, "no_not_apply": no_not_apply, "no_tie": no_tie, "symmetric": symmetric,
             "metadata": metadata, "pseudo_label": pseudo_label}
+
+
+def _anchor_variant(weight):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=weight)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"anchor_w0": _anchor_variant(0.0), "anchor_w1": _anchor_variant(1.0), "anchor_w4": _anchor_variant(4.0)})

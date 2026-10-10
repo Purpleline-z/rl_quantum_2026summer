@@ -136,6 +136,37 @@ SELECTORS.update({"vopt_raw": lambda *a, **kw: vopt_x(*a, space="raw", **kw), "v
                   "vopt_hidden": lambda *a, **kw: vopt_x(*a, **kw)})
 
 
+# ------------------------------------------------------------------------------------------ query by committee across model classes (MLP head vs GP)
+class _Rows:
+    def __init__(self, cands):
+        self.img1 = [c["img1"] for c in cands]; self.img2 = [c["img2"] for c in cands]; self.k = np.array([int(c["type_idx"]) for c in cands])
+
+
+def committee_disagreement(cands, labeled, model, cache) -> np.ndarray:
+    """|z(d_MLP) - z(d_GP)| of each candidate judgment: the MLP head (the current model) and a GP preference model fitted on the same labelled judgments, each rescaled to unit RMS."""
+    import nd_gp
+    ctx = CTX_REF["ctx"]; rows = _Rows(cands); head = model.reward_head.eval(); k = torch.as_tensor(rows.k); i = torch.arange(len(cands))
+    fa = torch.stack([cache[c["img1"]] for c in cands]); fb = torch.stack([cache[c["img2"]] for c in cands])
+    with torch.no_grad(): dm = (head(fa) - head(fb))[i, k].numpy()
+    key = ("gp", id(ctx), len(labeled))
+    if CTX_REF.get("gp_key") != key:
+        CTX_REF["gp_pred"] = nd_gp.fit_gp(ctx, [(it["base_pair"], int(it["pos"])) for it in labeled], ctx.seed, tune_length=False)[0]; CTX_REF["gp_key"] = key
+    dg = np.asarray(CTX_REF["gp_pred"](rows)); z = lambda v: v / (np.sqrt((v ** 2).mean()) + 1e-9)
+    return np.abs(z(dm) - z(dg))
+
+
+def qbc_gp(cands, labeled, model, cache, budget, seed=0):
+    s = committee_disagreement(cands, labeled, model, cache); return [cands[i] for i in np.argsort(-s, kind="stable")[:budget]]
+
+
+def vopt_qbc(cands, labeled, model, cache, budget, seed=0):
+    s = committee_disagreement(cands, labeled, model, cache); factor = 1 + s / max(float(s.mean()), 1e-9)
+    return nm.vopt(cands, labeled, model, cache, budget, seed, sensitivity=False, informative=lambda c, l, ca: factor)
+
+
+SELECTORS.update({"qbc_gp": qbc_gp, "vopt_qbc": vopt_qbc})
+
+
 def parse_seeds(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
