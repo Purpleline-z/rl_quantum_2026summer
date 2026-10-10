@@ -20,3 +20,6 @@ The project is organized as separate studies because the inputs answer different
 The pair-disjoint benchmark has completed historical selector curves and preprocessing comparisons. Task 3a, the validation-only budget-aware calibration intended to replace a single fixed training schedule, currently has 583 of 600 cells complete; the remaining 17 Account 4 cells must finish before its final protocol table and new budget curves can be generated. The simulator and process-metadata folders contain implemented, auditable protocols but no performance result yet.
 
 Every study owns its results. Large images, raw laboratory logs, resumable checkpoints, and Colab working directories are intentionally not committed.
+
+## Update 2026-10-10
+All research branches were merged into `main`. Where to look: [report](code/ACADEMIC_REPORT_DRAFT.md) (§5.14-5.15 judgment-unit study and pool-wide variance-reduction design, §5.16-5.18 graph-aware selection), [classification baselines](code/active_learning_studies/classification_baselines/README.md), [graph exploration logs, handoff and design notes](code/active_learning_studies/pair_disjoint_not_image_disjoint/graph_exploration/), and `SESSION_CONTEXT_FOR_NEXT_CLAUDE.md` for the branch history. The "Evidence status" paragraph above describes the repository as it was before these studies and is out of date.
