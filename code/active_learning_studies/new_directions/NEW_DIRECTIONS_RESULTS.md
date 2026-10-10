@@ -157,7 +157,11 @@ Generated tables for every screen: `results/DEV_SCREENS.md`.
 - **Combining the anchor-weighted head with other ideas** (12 seeds; reference: aw8_all alone AUC +0.025 / +0.015): symmetric (mirror-averaged) head +0.020 / +0.006, filename metadata +0.016 / +0.003. Neither adds to the anchor weight; metadata subtracts.
 - **Selection under the anchor-weighted learner** (final learner aw8_all; 20 seeds; paired differences): `vopt_u` over random: AUC +0.006 [+0.003, +0.010] (A), +0.003 [-0.002, +0.007] (B); accuracy +0.006 [-0.000, +0.012] / +0.010 [+0.004, +0.016]; log-loss +0.014 / +0.001. Selecting with a model that was itself trained with weight 8 (`vopt_aw8_all`) is not different from `vopt_u` (AUC -0.000 [-0.006, +0.005] / +0.003 [-0.002, +0.008]).
 - **The repository's whole strategy family under the tuned learner:** all 30 selectors of the repository's judgment-unit study (the original eight, the 17 new rules, the all-head versions; the two ensemble rules were left out) chose one batch from the default-weight model, and the aw8_all learner was trained on the chosen judgments (10 dev seeds, `results/sel7_family_summary.csv`, Holm over the 30 strategies per split and metric). **None is distinguishable from random selection after correction** (0 of 30 significant on AUC, accuracy or log-loss in either split). Point estimates of the AUC gain are small and mostly positive: best +0.007 (core-set, A) and +0.009 (Laplace BALD, B); in split B about ten strategies are nominally significant (p 0.02-0.05, uncorrected) at +0.006 to +0.009. For comparison the learner change itself is +0.025 (A) / +0.016 (B) AUC on the same seeds. This is a development-seed screen: it does not rule out small selection effects, it shows that none of them is large compared with the learner change.
-- **GP preference learner with anchor weight 8:** GP_PENDING
+- **GP preference learner with anchor weight 8:** development result on 10 seeds (random labels; `results/screen14_gp`): over the default head AUC +0.037 [+0.018, +0.057] (A), +0.018 [+0.009, +0.028] (B); over the aw8 MLP head AUC +0.018 [+0.002, +0.037] / +0.012 [+0.002, +0.022], accuracy +0.031 [+0.011, +0.053] / +0.009. This was the only learner idea that looked better than the anchor-weighted MLP head, so it was pre-registered and confirmed (pre-registration 5, section 5.4).
+
+### 5.4 GP preference learner with the anchor weight (pre-registration 5, seeds 6000-6034)
+
+CONFIRM5_PENDING
 
 ## 6. How to use the finding, and what needs a GPU
 

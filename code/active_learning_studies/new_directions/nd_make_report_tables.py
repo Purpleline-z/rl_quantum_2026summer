@@ -15,10 +15,14 @@ LEARNER_SCREENS = [("screen1", "Learner variants with random labels: decisive-on
                    ("screen7_anchor", "Reference-anchor weight and bad-image weight grid (20 dev seeds)"),
                    ("screen8_all", "Anchor weight with all ideal images as anchors (20 dev seeds)"),
                    ("screen9", "Anchor weight 8 with all ideal anchors: schedule and 1/N variants (dev)"),
-                   ("screen10", "Anchor weight 8 with all ideal anchors combined with symmetric head, ensemble, metadata, GP (dev)")]
+                   ("screen10", "Anchor weight 8 with all ideal anchors combined with symmetric head or filename metadata (12 dev seeds)"),
+                   ("screen11_mix", "Mixture-consistency anchors (feature-space mixup of ideal images) on top of the anchor weight (20 dev seeds)"),
+                   ("screen12_ce", "Cross-entropy anchors (class logits over the four types) (20 dev seeds)"),
+                   ("screen13_capacity", "Head width and weight decay with weight 8 and all ideal anchors (12 dev seeds)"),
+                   ("screen14_gp", "GP preference learner with anchor weight 8 (10 dev seeds; reference rows are random selection)")]
 SELECTION_SCREENS = [("sel1", "Selectors: vopt_u, goal-oriented vopt_amb, mirror consistency, vopt_cons, GP variance (20 dev seeds, baseline head)"),
                      ("sel2", "Selectors: raw-space design and power-sampled batches (20 dev seeds)"), ("sel3", "Selection with the GP learner in the loop"), ("sel4", "Committee of MLP head and GP as acquisition"),
-                     ("sel5_cold", "Cold start (10 random initial judgments)"), ("sel6", "Selection with the anchor-weighted model")]
+                     ("sel5_cold", "Cold start (10 random initial judgments), development seeds"), ("sel6", "Selection with the anchor-weighted model (final learner aw8_all)"), ("sel7_family", "The repository's whole strategy family as selectors, final learner baseline or aw8_all (10 dev seeds)")]
 
 
 def frame_of(name):
@@ -37,7 +41,9 @@ def main():
              "Gains are paired over the same label sets; log-loss gain = reference - cell (positive is better); intervals are paired bootstrap over seeds.", ""]
     for name, title in LEARNER_SCREENS:
         f = frame_of(name)
-        if f.empty or "selector" in f: continue
+        if f.empty: continue
+        if "selector" in f: f = f[f.selector == "random"].drop(columns=["selector"])
+        if f.empty: continue
         t = core.paired_table(f, "baseline"); keep = ["split", "learner", "n_seeds"] + [c for m in ("auc", "acc", "ll", "cal_ll") for c in (f"{m}_gain", f"{m}_lo", f"{m}_hi") if f"{m}_gain" in t]
         lines += [f"## {name}: {title}", "", md(t[keep]), ""]
     for name, title in SELECTION_SCREENS:
