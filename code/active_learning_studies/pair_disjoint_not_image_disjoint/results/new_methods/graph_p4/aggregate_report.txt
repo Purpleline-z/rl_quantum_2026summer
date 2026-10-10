@@ -1,0 +1,48 @@
+
+=== P4 split A, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*gvopt_lap3                                  35    +0.033  <0.001  0.002     74%   +0.0179  +0.0266
+*typed_decisive_coverage                     35    +0.014   0.046  0.046     63%   +0.0061  +0.0091
+ vopt_u                                      35    +0.031  <0.001            74%   +0.0193  +0.0271
+    gvopt_lap3 minus vopt_u [log-loss]: +0.0018 (raw p 0.840, n=35)
+    gvopt_lap3 minus vopt_u [AUC]: -0.0014 (raw p 0.891, n=35)
+    gvopt_lap3 minus vopt_u [accuracy]: -0.0005 (raw p 0.831, n=35)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0171 (raw p 0.078, n=35)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0131 (raw p 0.023, n=35)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0180 (raw p <0.001, n=35)
+
+=== P4 split A, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*gvopt_lap3                                  35    +0.039  <0.001 <0.001     74%   +0.0193  +0.0276
+*typed_decisive_coverage                     35    +0.014   0.056  0.056     63%   +0.0040  +0.0074
+ vopt_u                                      35    +0.035  <0.001            80%   +0.0170  +0.0250
+    gvopt_lap3 minus vopt_u [log-loss]: +0.0046 (raw p 0.565, n=35)
+    gvopt_lap3 minus vopt_u [AUC]: +0.0023 (raw p 0.576, n=35)
+    gvopt_lap3 minus vopt_u [accuracy]: +0.0026 (raw p 0.516, n=35)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0214 (raw p 0.023, n=35)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0130 (raw p 0.011, n=35)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0175 (raw p <0.001, n=35)
+
+=== P4 split B, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*gvopt_lap3                                  35    +0.044  <0.001 <0.001     97%   +0.0182  +0.0161
+*typed_decisive_coverage                     35    +0.019  <0.001 <0.001     77%   +0.0104  +0.0103
+ vopt_u                                      35    +0.033  <0.001            77%   +0.0148  +0.0103
+    gvopt_lap3 minus vopt_u [log-loss]: +0.0103 (raw p 0.039, n=35)
+    gvopt_lap3 minus vopt_u [AUC]: +0.0034 (raw p 0.287, n=35)
+    gvopt_lap3 minus vopt_u [accuracy]: +0.0058 (raw p 0.367, n=35)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0149 (raw p 0.219, n=35)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0043 (raw p 0.680, n=35)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0000 (raw p 0.957, n=35)
+
+=== P4 split B, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*gvopt_lap3                                  35    +0.041  <0.001 <0.001     94%   +0.0162  +0.0196
+*typed_decisive_coverage                     35    +0.012   0.019  0.019     74%   +0.0037  +0.0063
+ vopt_u                                      35    +0.031  <0.001            83%   +0.0150  +0.0179
+    gvopt_lap3 minus vopt_u [log-loss]: +0.0106 (raw p 0.007, n=35)
+    gvopt_lap3 minus vopt_u [AUC]: +0.0012 (raw p 0.743, n=35)
+    gvopt_lap3 minus vopt_u [accuracy]: +0.0017 (raw p 0.789, n=35)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0188 (raw p 0.158, n=35)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0113 (raw p 0.078, n=35)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0115 (raw p 0.078, n=35)
