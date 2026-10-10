@@ -1,0 +1,64 @@
+
+=== P5 split A, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*typed_decisive_coverage                     40    +0.023   0.008  0.008     68%   +0.0077  +0.0131
+ typed_decisive_coverage_shuffled            40    +0.010   0.092            62%   -0.0004  +0.0050
+ typed_decisive_coverage_typeonly            40    -0.007   0.368            48%   -0.0051  -0.0026
+ vopt_u                                      40    +0.014   0.206            62%   +0.0076  +0.0145
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0300 (raw p 0.001, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0127 (raw p <0.001, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0158 (raw p 0.001, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0133 (raw p 0.183, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0080 (raw p 0.017, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0082 (raw p 0.060, n=40)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0088 (raw p 0.320, n=40)
+    typed_decisive_coverage minus vopt_u [AUC]: +0.0000 (raw p 0.375, n=40)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0014 (raw p 0.762, n=40)
+
+=== P5 split A, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*typed_decisive_coverage                     40    +0.009   0.183  0.183     60%   +0.0033  +0.0085
+ typed_decisive_coverage_shuffled            40    -0.010   0.192            40%   -0.0026  +0.0041
+ typed_decisive_coverage_typeonly            40    -0.015   0.048            38%   -0.0073  -0.0037
+ vopt_u                                      40    +0.017   0.068            65%   +0.0093  +0.0156
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0241 (raw p 0.004, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0105 (raw p 0.001, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0122 (raw p 0.005, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0183 (raw p 0.032, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0058 (raw p 0.037, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0045 (raw p 0.227, n=40)
+    typed_decisive_coverage minus vopt_u [log-loss]: -0.0086 (raw p 0.745, n=40)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0060 (raw p 0.397, n=40)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0071 (raw p 0.232, n=40)
+
+=== P5 split B, single: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*typed_decisive_coverage                     40    +0.029  <0.001 <0.001     70%   +0.0038  +0.0076
+ typed_decisive_coverage_shuffled            40    +0.024   0.019            62%   +0.0000  +0.0044
+ typed_decisive_coverage_typeonly            40    +0.019   0.019            72%   -0.0040  +0.0008
+ vopt_u                                      40    +0.001   0.452            57%   +0.0018  +0.0056
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0107 (raw p 0.237, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0078 (raw p 0.014, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0068 (raw p 0.141, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: +0.0052 (raw p 0.618, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0038 (raw p 0.354, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0032 (raw p 0.497, n=40)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0281 (raw p 0.037, n=40)
+    typed_decisive_coverage minus vopt_u [AUC]: +0.0020 (raw p 0.705, n=40)
+    typed_decisive_coverage minus vopt_u [accuracy]: +0.0019 (raw p 0.558, n=40)
+
+=== P5 split B, sequential: gain over Random (mean over seeds; share of seeds better; raw p; Holm over candidates) ===
+rule                                          n  log-loss   raw p   Holm  better       AUC      acc
+*typed_decisive_coverage                     40    +0.023   0.031  0.031     65%   +0.0025  +0.0072
+ typed_decisive_coverage_shuffled            40    +0.027   0.002            72%   +0.0004  +0.0038
+ typed_decisive_coverage_typeonly            40    +0.018   0.013            68%   -0.0023  +0.0005
+ vopt_u                                      40    -0.007   0.921            57%   +0.0035  +0.0173
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [log-loss]: +0.0049 (raw p 0.675, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [AUC]: +0.0048 (raw p 0.216, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_typeonly [accuracy]: +0.0067 (raw p 0.307, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [log-loss]: -0.0049 (raw p 0.795, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [AUC]: +0.0021 (raw p 0.581, n=40)
+    typed_decisive_coverage minus typed_decisive_coverage_shuffled [accuracy]: +0.0034 (raw p 0.503, n=40)
+    typed_decisive_coverage minus vopt_u [log-loss]: +0.0293 (raw p 0.079, n=40)
+    typed_decisive_coverage minus vopt_u [AUC]: -0.0010 (raw p 0.952, n=40)
+    typed_decisive_coverage minus vopt_u [accuracy]: -0.0100 (raw p 0.077, n=40)

@@ -14,6 +14,9 @@ NARR = HERE / "graph_exploration" / "overnight2_narrative.md"
 
 def build() -> str:
     text = NARR.read_text() if NARR.exists() else "(narrative not yet written)\n"
+    parts = (HERE / "graph_exploration" / "overnight2_parts56.md"); text = text.replace("{PARTS_5_6}", parts.read_text() if parts.exists() else "")
+    typed = (HERE / "graph_exploration" / "overnight2_part_typed.md"); text = text.replace("{PART5_TYPED}", typed.read_text() if typed.exists() else "")
+    text = text.replace("{TABLE_P5}", mt.table("P5")).replace("{POOLED_TYPED}", (HERE / "results" / "new_methods" / "pooled_typed_report.txt").read_text().rstrip())
     text = text.replace("{TABLE_P1}", mt.table("P1")).replace("{TABLE_P3}", mt.table("P3")).replace("{TABLE_P4}", mt.table("P4")).replace("{TABLE_P5}", mt.table("P5")).replace("{TABLE_P6}", mt.table("P6")).replace("{TABLE_P2}", (HERE / "results" / "new_methods" / "graph_p2" / "choose_p2_summary.txt").read_text().rstrip())
     return text.rstrip("\n") + "\n\n"
 
