@@ -31,7 +31,7 @@ import run_pair_endpoint_study as single_study  # noqa: E402
 
 BUDGETS = (10, 20, 40, 60)
 TYPE_NAMES = {0: "t1x1", 2: "tc6x2", 3: "t13", 4: "htr"}
-DEV_SEEDS = tuple(range(2000, 2020)); CONFIRM_SEEDS = tuple(range(3000, 3035))
+DEV_SEEDS = tuple(range(2000, 2020)); CONFIRM_SEEDS = tuple(range(3000, 3035)) + tuple(range(4000, 4035))
 USED_SEEDS_BY_EARLIER_WORK = set(range(400, 430)) | set(range(500, 535)) | set(range(600, 630)) | set(range(700, 1400)) | {42, 79, 123, 202, 303}
 assert not (set(DEV_SEEDS) | set(CONFIRM_SEEDS)) & USED_SEEDS_BY_EARLIER_WORK
 
