@@ -104,16 +104,16 @@ def no_tie(ctx, labelled, seed):
     return lambda test: core.head_d(head, fn, test)
 
 
-def symmetric(ctx, labelled, seed):
+def symmetric(ctx, labelled, seed, aw: float = .25, all_ideal: bool = False):
     lr, steps = _lr_steps(ctx, labelled)
     def fn(paths): return torch.cat([ctx.features.get(paths), mirror_features(ctx, paths)], dim=1)
     torch.manual_seed(seed); head = SymmetricHead(core.new_head(FEATURE_DIM, seed))
-    rows = ju_study.rows_of(ctx.exp, labelled); refs, bad = core.anchors(ctx, fn)
+    rows = ju_study.rows_of(ctx.exp, labelled); refs, bad = core.anchors(ctx, fn, all_ideal)
     if len(rows):
         xa, xb = fn(list(rows.resolved_img1)), fn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
         weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
     else: xa = xb = torch.empty(0, 2 * FEATURE_DIM); typ = torch.empty(0, dtype=torch.long); weight = torch.empty(0); winner = np.array([], dtype=object)
-    core.frozen.fit_head(head, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, bad_weight=ctx.exp.cfg.bad_anchor_weight)
+    core.frozen.fit_head(head, xa, xb, typ, weight, winner, refs, bad, lr, steps, ctx.exp.cfg.weight_decay, anchor_weight=aw, bad_weight=ctx.exp.cfg.bad_anchor_weight)
     head.eval(); return lambda test: core.head_d(head, fn, test)
 
 
@@ -232,3 +232,62 @@ def _anchor_grid(aw, bw=None):
 
 
 LEARNERS.update({"aw2": _anchor_grid(2.0), "aw8": _anchor_grid(8.0), "aw16": _anchor_grid(16.0), "aw32": _anchor_grid(32.0), "aw4_bw0": _anchor_grid(4.0, 0.0), "aw4_bw1": _anchor_grid(4.0, 1.0), "aw8_bw1": _anchor_grid(8.0, 1.0)})
+
+
+def _anchor_all(aw):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=aw, all_ideal=True)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"aw8_all": _anchor_all(8.0), "aw4_all": _anchor_all(4.0), "aw025_all": _anchor_all(0.25)})
+
+
+def _aw_schedule(aw, lr, steps):
+    def learner(ctx, labelled, seed):
+        fn = core.identity_features(ctx); head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=aw)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"aw8_lr3e4": _aw_schedule(8.0, 3e-4, 100), "aw8_lr3e3": _aw_schedule(8.0, 3e-3, 100), "aw8_s300": _aw_schedule(8.0, 1e-3, 300), "aw8_lr3e3_s300": _aw_schedule(8.0, 3e-3, 300), "aw8_s30": _aw_schedule(8.0, 1e-3, 30)})
+
+
+def _aw_n(c, all_ideal=True):
+    """Anchor weight that shrinks with the number of pair rows N (anchors are a fixed amount of data, pair data grows): weight = c / N, so c = 400 gives 10 at N = 40 and 4.4 at N = 90."""
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx); n = max(len(ju_study.rows_of(ctx.exp, labelled)), 1)
+        head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=c / n, all_ideal=all_ideal)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+def _aw_all_schedule(aw, lr, steps):
+    def learner(ctx, labelled, seed):
+        fn = core.identity_features(ctx); head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed, anchor_weight=aw, all_ideal=True)
+        return lambda test: core.head_d(head, fn, test)
+    return learner
+
+
+LEARNERS.update({"awN400_all": _aw_n(400.0), "awN800_all": _aw_n(800.0), "aw8_all_lr3e4": _aw_all_schedule(8.0, 3e-4, 100), "aw8_all_lr3e3": _aw_all_schedule(8.0, 3e-3, 100),
+                 "aw8_all_s300": _aw_all_schedule(8.0, 1e-3, 300), "aw16_all": _aw_all_schedule(16.0, 1e-3, 100)})
+
+
+def _ensemble_aw(k, aw, all_ideal):
+    def learner(ctx, labelled, seed):
+        lr, steps = _lr_steps(ctx, labelled); fn = core.identity_features(ctx)
+        heads = [core.fit_generic(ctx, labelled, fn, FEATURE_DIM, lr, steps, seed * 100 + j, anchor_weight=aw, all_ideal=all_ideal) for j in range(k)]
+        return lambda test: np.mean([core.head_d(h, fn, test) for h in heads], axis=0)
+    return learner
+
+
+LEARNERS.update({"sym_aw8_all": lambda c, l, s: symmetric(c, l, s, 8.0, True), "sym_aw8": lambda c, l, s: symmetric(c, l, s, 8.0, False),
+                 "ens5_aw8_all": _ensemble_aw(5, 8.0, True), "meta_aw8_all": lambda c, l, s: metadata_aw(c, l, s, 8.0, True)})
+
+
+def metadata_aw(ctx, labelled, seed, aw, all_ideal, scale: float = 1.0):
+    lr, steps = _lr_steps(ctx, labelled); fn = metadata_features(ctx, scale)
+    head = core.fit_generic(ctx, labelled, fn, FEATURE_DIM + 4, lr, steps, seed, anchor_weight=aw, all_ideal=all_ideal)
+    return lambda test: core.head_d(head, fn, test)

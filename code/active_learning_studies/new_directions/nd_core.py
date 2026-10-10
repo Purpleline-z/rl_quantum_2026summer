@@ -91,17 +91,19 @@ def new_head(dim: int, seed: int, hidden: int = 256, dropout: float = .2) -> nn.
     return nn.Sequential(nn.Linear(dim, hidden), nn.ReLU(inplace=True), nn.Dropout(dropout), nn.Linear(hidden, 5))
 
 
-def anchors(ctx, featfn):
-    refs = {c: featfn(ps) for c, ps in ctx.exp.references.items()}; bad = featfn(ctx.exp.bad_paths) if ctx.exp.bad_paths else None
+def anchors(ctx, featfn, all_ideal: bool = False):
+    """Reference (ideal-image) anchors per class; ``all_ideal`` also adds the utility-validation and outer-test ideal images of the seed's split (their class labels are absolute labels the lab
+    owns; the preference endpoint evaluates held-out PAIR groups, never ideal-image classification, and ideal images are excluded from the pair universe by content identity)."""
+    refs = {c: featfn(list(ps) + (list(ctx.exp.utility_images.get(c, [])) + list(ctx.exp.test_images.get(c, [])) if all_ideal else [])) for c, ps in ctx.exp.references.items()}; bad = featfn(ctx.exp.bad_paths) if ctx.exp.bad_paths else None
     return refs, bad
 
 
-def fit_generic(ctx, judgments, featfn, dim: int, lr: float, steps: int, seed: int = 0, extra=None, rows=None, hidden: int = 256, anchor_weight: float = .25, bad_weight=None) -> nn.Module:
+def fit_generic(ctx, judgments, featfn, dim: int, lr: float, steps: int, seed: int = 0, extra=None, rows=None, hidden: int = 256, anchor_weight: float = .25, bad_weight=None, all_ideal: bool = False) -> nn.Module:
     """Train a head with exactly the repository's loss (``frozen.fit_head``) on ``featfn``-features of the rows of ``judgments`` (or of ``rows``).
 
     ``extra`` = optional (img1 paths, img2 paths, type_idx array, weight array, winner array) of additional (e.g. pseudo-labelled) rows."""
     rows = ju_study.rows_of(ctx.exp, judgments) if rows is None else rows
-    head = new_head(dim, seed, hidden); refs, bad = anchors(ctx, featfn)
+    head = new_head(dim, seed, hidden); refs, bad = anchors(ctx, featfn, all_ideal)
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
         weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()

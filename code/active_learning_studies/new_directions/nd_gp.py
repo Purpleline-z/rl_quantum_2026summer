@@ -74,8 +74,8 @@ class GP:
     def solve_all(self, K, lam, mask=None): return {kk: self.solve(K, lam, kk, mask) for kk in ACTIVE}
 
 
-def fit_gp(ctx, labelled, seed: int, tune_length: bool = True):
-    rows = ju_study.rows_of(ctx.exp, labelled); gp = GP(ctx, rows); folds = grouped_folds(rows, 3, seed)
+def fit_gp(ctx, labelled, seed: int, tune_length: bool = True, anchor_weight: float = .25):
+    rows = ju_study.rows_of(ctx.exp, labelled); gp = GP(ctx, rows, anchor_weight=anchor_weight); folds = grouped_folds(rows, 3, seed)
     def cv(factor, lam):
         K = kernel(ctx, factor); losses = []
         for f in range(3):
@@ -112,4 +112,4 @@ def ensemble_mlp_gp(ctx, labelled, seed):
     return predictor
 
 
-LEARNERS = {"ensemble_mlp_gp": ensemble_mlp_gp, "gp_preference": gp_preference, "gp_tuned_length": gp_tuned_length}
+LEARNERS = {"gp_aw8": lambda c, l, s: fit_gp(c, l, s, tune_length=False, anchor_weight=8.0)[0], "ensemble_mlp_gp": ensemble_mlp_gp, "gp_preference": gp_preference, "gp_tuned_length": gp_tuned_length}
