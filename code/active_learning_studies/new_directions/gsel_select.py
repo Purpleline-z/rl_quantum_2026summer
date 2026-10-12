@@ -169,6 +169,26 @@ HTR50 = {0: 1 / 6, 2: 1 / 6, 3: 1 / 6, 4: .5}; ALLOC = {0: .25, 2: .30, 3: .10, 
 REGISTRY.update({"qcov_htr50": quota_coverage(HTR50), "qcov_htr50_shuffled": quota_coverage(HTR50, True), "qcov_alloc": quota_coverage(ALLOC), "qcov_alloc_shuffled": quota_coverage(ALLOC, True), "qcov_alloc_typeonly": quota_coverage(ALLOC, typeonly=True)})
 
 
+def oracle_decisive(quota: dict | None = None):
+    """DIAGNOSTIC ONLY (reads the hidden outcome of the candidates; never a method): typed coverage with P(decisive) replaced by the true decisive flag (0.05 for ties / not-applicable), optionally with the type quota.
+    Upper bound for 'how much can decisive-enrichment alone give under the tuned learner'."""
+    def select(cands, labeled, model, cache, budget, seed=0):
+        ctx = ns.CTX_REF["ctx"]; g = gt.ImageGraph(cands, labeled, cache, gt.reference_types(ctx.exp), seed); p = np.array([1.0 if x["outcomes"][0][1] else .05 for x in cands])
+        if quota is None: return _coverage(g, cands, labeled, p, budget)
+        types = np.array([int(x["type_idx"]) for x in cands]); raw = {k: quota[k] * budget for k in quota}; q = {k: int(np.floor(v)) for k, v in raw.items()}
+        for k in sorted(raw, key=lambda k: -(raw[k] - q[k]))[: budget - sum(q.values())]: q[k] += 1
+        chosen = []; remaining = list(range(len(cands))); left = dict(q); allp = gt._pair_space(g, cands + labeled); allp = (allp - allp.mean(0)) / (allp.std(0) + 1e-6); allp = allp / np.sqrt(allp.shape[1])
+        allp = np.concatenate([allp, np.eye(5)[[int(x["type_idx"]) for x in cands + labeled]][:, list(gt.TYPES)]], axis=1); cand, lab = allp[:len(cands)], allp[len(cands):]; covered = lab.copy()
+        for _ in range(min(budget, len(cands))):
+            ok = [i for i in remaining if left.get(int(types[i]), 0) > 0] or remaining; dist = np.sqrt(((cand[ok][:, None] - covered[None]) ** 2).sum(2)).min(1); pick = ok[int(np.argmax(dist * p[ok]))]
+            chosen.append(pick); remaining.remove(pick); covered = np.vstack([covered, cand[pick]]); left[int(types[pick])] = left.get(int(types[pick]), 0) - 1
+        return [cands[i] for i in chosen]
+    return select
+
+
+REGISTRY.update({"ORACLE_tdc": oracle_decisive(), "ORACLE_qcov_alloc": oracle_decisive(ALLOC)})
+
+
 def register_extra(name: str, fn): REGISTRY[name] = fn
 
 
