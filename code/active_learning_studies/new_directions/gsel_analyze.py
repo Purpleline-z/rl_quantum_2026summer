@@ -5,6 +5,7 @@ signed-rank (two-sided); Holm over the family given by ``--holm`` (list of selec
 from __future__ import annotations
 
 import argparse
+import warnings
 import json
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon
 
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 METRICS = ("acc", "auc", "ll", "htr_acc", "htr_auc", "htr_ll", "other_acc")
 OTHER = ("t1x1_acc", "tc6x2_acc", "t13_acc")
 

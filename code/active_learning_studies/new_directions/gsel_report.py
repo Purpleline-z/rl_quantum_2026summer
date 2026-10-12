@@ -31,7 +31,19 @@ def block(name: str, cands, metrics, title: str) -> tuple[str, dict]:
     if pairs: text += "### Candidate minus its comparator arm (paired by seed and budget; uncorrected p)\n\n" + ga.md(pd.concat([ga.vs_control(f, c, k, metrics + ("other_acc",)) for c, k in pairs])) + "\n\n"
     other = ga.table(f, cands, metrics=("other_acc", "acc", "ll")); text += "### Other-type accuracy and overall accuracy / log-loss gains (secondary)\n\n" + ga.md(other.drop(columns=["holm"])) + "\n\n"
     text += "### Batch composition (mean over seeds)\n\n" + ga.md(ga.composition(f, ["random"] + [s for s in sorted(f.selector.unique()) if s != "random"])) + "\n\n"
-    return text, {"frame": f, "table": fam}
+    return text, {"frame": f, "table": fam, "metrics": metrics}
+
+
+def compact(res: dict, metrics) -> str:
+    """One row per candidate: gain [Holm p] for every (split, metric) cell of the pre-registered family."""
+    if not res: return "(not run yet)\n\n"
+    t = res["table"]; cols = [(sp, m) for m in metrics for sp in ("A", "B")]; rows = []
+    for c in t.selector.unique():
+        row = {"rule": c}
+        for sp, m in cols:
+            r = t[(t.selector == c) & (t.split == sp) & (t.metric == m)]; row[f"{m} {sp}"] = f"{r.iloc[0].gain:+.3f} [{r.iloc[0].holm:.4f}]" if len(r) else "n/a"
+        rows.append(row)
+    return "Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block\n\n" + ga.md(pd.DataFrame(rows)) + "\n\n"
 
 
 def verdicts(res: dict, label: str, graph_metrics) -> str:
@@ -43,6 +55,19 @@ def verdicts(res: dict, label: str, graph_metrics) -> str:
         g = t[t.selector == c]; ok = {split: all((g[(g.split == split) & (g.metric == m)].holm < .05).any() for m in graph_metrics) for split in ("A", "B")}
         lines.append(f"{c}: Holm<0.05 for {', '.join(graph_metrics)} in A={ok['A']}, B={ok['B']}")
     return out + "; ".join(lines) + "\n"
+
+
+def pooled(names, cands, metrics, title) -> str:
+    """Descriptive pooled estimate (S1 + S2 seeds of one start mode): mean per-seed gain with a seed-bootstrap 95% interval; NOT a test."""
+    frames = [ga.load([R / n]) for n in names if (R / n).exists()]; frames = [f for f in frames if not f.empty]
+    if len(frames) < 2: return f"### {title}\n\n(S2 not run yet)\n\n"
+    f = pd.concat(frames); rng = np.random.default_rng(0); rows = []
+    for c in cands:
+        g = ga.gains(f, c)
+        for split, gg in g.groupby("split"):
+            for m in metrics:
+                v = gg[m].to_numpy(); boot = [rng.choice(v, len(v)).mean() for _ in range(2000)]; rows.append({"selector": c, "split": split, "metric": m, "n_seeds": len(v), "gain": float(v.mean()), "ci_lo": float(np.percentile(boot, 2.5)), "ci_hi": float(np.percentile(boot, 97.5))})
+    t = pd.DataFrame(rows); return f"### {title}\n\n" + ga.md(t) + "\n\n"
 
 
 def dev_summary() -> str:
@@ -63,7 +88,15 @@ def main():
     t2, r2 = block("gs_conf2_cold", ["tdc", "gvopt_lap3@aw", "vopt_u@aw", "qcov_alloc"], amet, "Confirmation 2: cold start (10 random initial judgments), seeds 8200–8234, family A (16 tests)")
     t3, r3 = block("gs_conf3_htr", ["tdc", "gvopt_lap3@aw", "vopt_u@aw", "qcov_alloc"], ("htr_acc", "htr_auc"), "Confirmation 3: HTR block, seeds 8300–8334, family B (16 tests)")
     text += "## Pre-registered verdict inputs (Holm < 0.05 in both splits for both metrics)\n\n" + verdicts(r1, "conf1 regular, acc+auc", amet) + verdicts(r2, "conf2 cold, acc+auc", amet) + verdicts(r3, "conf3 HTR, htr_acc+htr_auc", ("htr_acc", "htr_auc")) + "\n"
-    text += t1 + t2 + t3 + dev_summary(); Path(a.out).write_text(text); print(f"wrote {a.out} ({len(text)} chars)")
+    s2c, rc = block("gs_s2_cold", ["tdc", "qcov_alloc"], amet, "Replication S2 (cold start), seeds 8340–8369, family of 8 tests")
+    s2r, rr = block("gs_s2_regular", ["tdc", "qcov_alloc"], amet, "Replication S2 (regular start), seeds 8370–8399, family of 8 tests")
+    text += verdicts(rc, "S2 cold, acc+auc", amet) + verdicts(rr, "S2 regular, acc+auc", amet) + "\n"
+    text += "## Compact view of the pre-registered cells\n\n"
+    for title, res, mets in (("Confirmation 1 (regular start, 8100–8134)", r1, amet), ("Confirmation 2 (cold start, 8200–8234)", r2, amet), ("Confirmation 3 (HTR, 8300–8334)", r3, ("htr_acc", "htr_auc")),
+                             ("Replication S2 cold (8340–8369)", rc, amet), ("Replication S2 regular (8370–8399)", rr, amet)): text += f"### {title}\n\n" + compact(res, mets)
+    text += t1 + t2 + t3 + s2c + s2r
+    text += "## Pooled descriptive estimates (S1 + S2 seeds; not tests)\n\n" + pooled(["gs_conf1", "gs_s2_regular"], ["tdc", "qcov_alloc"], ("acc", "auc"), "Regular start (seeds 8100–8134 and 8370–8399)")
+    text += pooled(["gs_conf2_cold", "gs_s2_cold"], ["tdc", "qcov_alloc"], ("acc", "auc"), "Cold start (seeds 8200–8234 and 8340–8369)") + dev_summary(); Path(a.out).write_text(text); print(f"wrote {a.out} ({len(text)} chars)")
 
 
 if __name__ == "__main__":
