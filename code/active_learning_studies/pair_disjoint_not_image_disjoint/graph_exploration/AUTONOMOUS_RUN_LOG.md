@@ -194,3 +194,12 @@ Reading: the only candidate with a ranking-quality signal is zeroshot_unc (zero-
 
 ### FROZEN PHASE 4 REPLICATION (written before seeds 480-499 were run; never used)
 Single candidate typed_zeroshot_coverage_unc; PRIMARY metric AUC gain over Random (ranking quality; log-loss secondary because of the shrinkage artefact), Holm over its 4 blocks. Success: Holm p < .05 and positive AUC gain in >= 2 of 4 blocks including both splits. Controls: typed_flat_coverage_a99, typed_zeroshot_coverage_unc_shuffled; Random in the same run. Seeds 480-499.
+
+### PHASE 4 RESULT (seeds 480-499, run once; `aggregate_phase4.py`; report 5.19): criterion NOT met as written (needs both splits), signal replicates
+zeroshot_unc AUC gain over Random A-sin / A-seq / B-sin / B-seq: +0.013 / +0.016 / +0.019 / +0.026 (Holm .059 / .059 / .006 / .003); log-loss +0.008 / +0.015 / +0.024 / +0.024 (n.s.).
+Controls AUC: flat coverage +0.006 / +0.009 / +0.001 / +0.010; shuffled posterior +0.012 / +0.014 / +0.013 / +0.012. Candidate minus flat +0.007 / +0.007 / +0.018 / +0.017 (B p .011 / .014); minus shuffled +0.001 / +0.002 / +0.006 / +0.015 (n.s.).
+Exploratory pooled 460-499 (n=40): AUC gain +0.015 / +0.017 / +0.015 / +0.021 (p <= .0005 each); minus flat +0.008 / +0.008 / +0.014 / +0.017; minus shuffled +0.007 / +0.003 / +0.009 / +0.013 (B p .036 / .003 uncorrected).
+Missing control identified: coverage x own-head uncertainty WITHOUT the answerability prior (`typed_flat_unc_coverage_a99`).
+
+### FROZEN PHASE 5 (written before seeds 500-519 were run; never used)
+Question: does the zero-shot answerability prior add AUC over coverage x own-head uncertainty alone? Strategies: typed_zeroshot_coverage_unc, typed_flat_unc_coverage_a99, random. PRIMARY: paired AUC difference zeroshot_unc minus flat_unc, Wilcoxon, Holm over 4 blocks; success = Holm < .05 and positive in >= 2 blocks. Secondary: zeroshot_unc vs Random (third fresh set), log-loss. Seeds 500-519.

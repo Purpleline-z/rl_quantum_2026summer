@@ -201,6 +201,7 @@ def _gcn_pair_rule(kind: str, lr: float = 1e-3):
 
 
 FACTORIES = {
+             "typed_flat_unc_coverage_a99": lambda refs: typed_decisive_coverage(refs, flat=True, uncertainty_power=1.0, alpha=.99),
              "typed_zeroshot_coverage_unc_shuffled": lambda refs: typed_decisive_coverage(refs, True, zeroshot=1.0, uncertainty_power=1.0, alpha=.99),
              "typed_decisive_coverage_ul_k10a99_shuffled": lambda refs: typed_decisive_coverage(refs, True, unlabeled=True, k=10, alpha=.99), "typed_flat_coverage_ul_k10": lambda refs: typed_decisive_coverage(refs, flat=True, unlabeled=True, k=10, alpha=.99),
              "typed_zeroshot_coverage_a9_shuffled": lambda refs: typed_decisive_coverage(refs, True, zeroshot=1.0, alpha=.9),

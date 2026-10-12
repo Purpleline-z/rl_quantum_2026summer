@@ -1166,6 +1166,138 @@ Replication criterion (Holm p < 0.05, positive log-loss gain and AUC gain >= 0 i
 
 **Overall conclusion of the graph exploration.** Across 4 frozen candidates and 2 fresh confirmation sets (45 seeds in total for the §5.16 candidates, 20 for this test), no graph-aware rule showed a significant, reproducible improvement over Random that could be attributed to the graph. The graph features predict whether a judgment is decisive (AUC 0.83 on all 521 rows, a data-level diagnostic), but that predictor did not translate into better held-out preference prediction at these budgets. Possible reasons, not tested: the head sees only 10-60 judgments so selection effects are small compared with seed variance (sd about 0.1), and the comparison graph is nearly a matching (§5.14), leaving no ranking structure to exploit.
 
+### 5.18 Unlabelled trajectory images in the graph, and what limits the endpoint
+
+**Unlabelled nodes.** Of the 1124 trajectory images, 824 occur in no label-sheet row. Their SimCLR features are available (identical to the study cache on the 444 shared images). For identity safety an image is added only if its feature vector is not a near-duplicate (cosine of mean-centred vectors > 0.9999) of any label-sheet image or ideal image, because ideal images are partly copies of trajectory frames; this removes 323 images and leaves 501 unlabelled nodes (`unlabeled_nodes.py`, with tests). Temporal chain edges are not used (`data/temporal_constraints.json` is marked tentative and needs physics-team confirmation). Nodes carry no label; they only change the kNN graph, the label propagation of the typed reference images and the SGC smoothing.
+
+**Does it help? (data-level diagnostic, labels of all 521 rows used, so design-informing only).** AUC of the 8 propagated-posterior features (plus type one-hot) for predicting decisive / tie / not_apply, grouped 5-fold CV, 20 repeats: base graph k=10, alpha 0.9: 0.788 / 0.889 / 0.885; base graph with alpha 0.99: 0.852 / 0.919 / 0.924; with the 501 unlabelled nodes and alpha 0.99: 0.828-0.863 / 0.898-0.909 / 0.914-0.930. The improvement comes from the propagation strength alpha, not from the unlabelled nodes. In the selector (development seeds) unlabelled nodes gave no consistent benefit either (k=40 variants clearly worse in split A and B-single).
+
+**A label-free answerability prior.** A single unfitted feature, the difference |q_a(t) - q_b(t)| of the two images' propagated posterior for the queried type t, predicts whether a judgment is decisive with AUC 0.78 (alpha 0.9) to 0.84 (alpha 0.99); tie is predicted by min(q_a(t), q_b(t)) (AUC 0.88-0.90), not_apply by max(q_a(t), q_b(t)) (0.90, inverted). It needs no revealed judgments (`zeroshot_decisive` in `graph_typed.py`). The feature was chosen among 8 by looking at all labels, and all later seeds share the same 168 pair groups, so tests on later seeds are not independent of this choice.
+
+**Why the log-loss endpoint is hard to improve with a selector (three diagnostics).**
+1. *Mix artefact.* `fit_head` divides the summed loss by the number of rows; tie rows add |a-b| and not_apply rows add relu(a)+relu(b), i.e. they shrink the scores. For the same random labelled set (20 seeds, budgets 10-60, both splits), training on decisive rows only instead of all rows raises raw test log-loss by +0.39 (split A) and +0.47 (split B), in 100% of seeds (p < 1e-4), while AUC changes by -0.002 / -0.006 (p 0.67 / 0.23) and accuracy is unchanged; adding back only the tie rows restores almost all of the log-loss (mean over budgets, split A: all rows 0.598, decisive only 0.987, decisive+tie 0.609, decisive+not_apply 0.863). A hidden-outcome selector (`oracle_decisive_coverage`, an upper bound for answerability, not a valid selector) is therefore much worse than Random on log-loss (-0.16 in split A single-shot, development seeds). Raw log-loss partly measures this shrinkage, not ranking; AUC and accuracy are insensitive to it. Across 16108 (cell, budget) pairs of 50 strategies, the decisive-share difference to Random correlates only weakly with the log-loss gain (Spearman -0.08 to -0.01), because ordinary rules differ little in decisive share.
+2. *Little room.* On 10 development seeds the test AUC of the head trained on the initial 10 groups / plus 60 random judgments / plus all pool judgments is 0.854 / 0.891 / 0.938 (split A) and 0.870 / 0.918 / 0.954 (split B). Over all 35 seeds Random's AUC rises only from 0.878 (budget 10) to 0.905 (budget 60). Budget 60 is 78-94% of the pool in split A. Selector differences are therefore bounded by a few hundredths of AUC.
+3. *Type difficulty.* The same development analysis per type (split A; initial / random-60 / full pool): (1x1) 0.64 / 0.67 / 0.72 is the hard type; type 3 (0.98 / 0.99 / 1.00) and type 4 (0.92 / 0.97 / 1.00) are nearly saturated.
+
+### 5.19 Zero-shot answerability rules: fresh-seed tests
+
+**Design.** Rules (`graph_typed.py`): farthest-first coverage in the graph-propagated pair space, weighted by the label-free answerability prior |q_a - q_b|^p (alpha 0.99 or 0.9), optionally times the head's own uncertainty (`zeroshot_unc`), optionally with the unlabelled nodes. After development on seeds 400-409 (10 seeds, noisy), three candidates were frozen before looking at any fresh seed: `typed_decisive_coverage_ul_k10a99` (learned P(decisive), unlabelled nodes), `typed_zeroshot_coverage_a9`, `typed_zeroshot_coverage_unc`; controls were coverage with P = 1 (flat) and the shuffled-posterior version of each. Because of the mix artefact, AUC was made co-primary with log-loss. Phase 3 (seeds 460-479): success = Holm p < 0.05 and positive gain in both metrics in at least two blocks including both splits (Holm over 3 candidates x 4 blocks = 12 tests per metric).
+
+#### log-loss: gain over Random, seeds 460-479 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over 12 candidate tests))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage_ul_k10a99 | +0.035 [+0.006, +0.066] (60%, p 0.076, Holm 0.765) | +0.041 [+0.005, +0.080] (70%, p 0.058, Holm 0.699) | +0.024 [-0.010, +0.057] (65%, p 0.189, Holm 1.000) | +0.027 [-0.012, +0.066] (60%, p 0.245, Holm 1.000) |
+| typed_zeroshot_coverage_a9 | +0.032 [-0.010, +0.077] (60%, p 0.261, Holm 1.000) | +0.032 [-0.024, +0.092] (60%, p 0.498, Holm 1.000) | +0.038 [-0.015, +0.096] (65%, p 0.202, Holm 1.000) | +0.040 [-0.003, +0.086] (75%, p 0.070, Holm 0.765) |
+| typed_zeroshot_coverage_unc | +0.043 [-0.003, +0.088] (75%, p 0.097, Holm 0.876) | +0.031 [-0.023, +0.093] (75%, p 0.114, Holm 0.912) | -0.022 [-0.075, +0.028] (45%, p 0.475, Holm 1.000) | -0.024 [-0.090, +0.033] (65%, p 1.000, Holm 1.000) |
+| typed_flat_coverage_a99 (control/reference) | +0.050 [+0.022, +0.081] (75%, p 0.004) | +0.051 [+0.009, +0.098] (65%, p 0.058) | +0.048 [+0.003, +0.095] (70%, p 0.076) | +0.018 [-0.034, +0.067] (60%, p 0.312) |
+| typed_flat_coverage_ul_k10 (control/reference) | +0.037 [+0.008, +0.065] (85%, p 0.014) | +0.038 [+0.001, +0.072] (75%, p 0.036) | +0.067 [+0.020, +0.115] (85%, p 0.001) | +0.059 [+0.014, +0.101] (85%, p 0.004) |
+| typed_decisive_coverage_ul_k10a99_shuffled (control/reference) | +0.055 [+0.020, +0.093] (70%, p 0.011) | +0.055 [+0.005, +0.106] (70%, p 0.053) | +0.029 [-0.020, +0.078] (65%, p 0.105) | +0.034 [-0.004, +0.068] (75%, p 0.064) |
+| typed_zeroshot_coverage_a9_shuffled (control/reference) | +0.011 [-0.026, +0.049] (60%, p 0.596) | +0.013 [-0.032, +0.062] (55%, p 0.701) | +0.039 [+0.001, +0.076] (70%, p 0.048) | +0.044 [+0.006, +0.084] (65%, p 0.058) |
+| typed_zeroshot_coverage_unc_shuffled (control/reference) | +0.020 [-0.015, +0.052] (65%, p 0.058) | +0.069 [+0.035, +0.103] (80%, p 0.001) | -0.002 [-0.068, +0.056] (65%, p 0.546) | +0.017 [-0.042, +0.068] (70%, p 0.294) |
+| typed_decisive_coverage (control/reference) | +0.009 [-0.046, +0.060] (70%, p 0.330) | +0.004 [-0.055, +0.059] (45%, p 0.674) | +0.062 [+0.024, +0.101] (75%, p 0.007) | +0.040 [-0.001, +0.082] (75%, p 0.070) |
+
+n seeds per cell: [20]
+
+#### AUC: gain over Random, seeds 460-479 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over 12 candidate tests))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_decisive_coverage_ul_k10a99 | +0.006 [-0.001, +0.012] (65%, p 0.090, Holm 0.348) | +0.010 [-0.000, +0.020] (70%, p 0.083, Holm 0.348) | +0.007 [-0.001, +0.015] (75%, p 0.053, Holm 0.319) | +0.012 [+0.003, +0.021] (75%, p 0.017, Holm 0.155) |
+| typed_zeroshot_coverage_a9 | +0.006 [-0.004, +0.015] (55%, p 0.312, Holm 0.624) | +0.006 [-0.007, +0.020] (50%, p 0.622, Holm 0.624) | +0.008 [-0.001, +0.017] (70%, p 0.070, Holm 0.348) | +0.010 [+0.001, +0.018] (85%, p 0.030, Holm 0.213) |
+| typed_zeroshot_coverage_unc | +0.017 [+0.006, +0.029] (80%, p 0.006, Holm 0.064) | +0.018 [+0.005, +0.034] (85%, p 0.006, Holm 0.061) | +0.012 [+0.003, +0.021] (65%, p 0.027, Holm 0.213) | +0.015 [+0.007, +0.023] (85%, p 0.002, Holm 0.024) |
+| typed_flat_coverage_a99 (control/reference) | +0.009 [-0.002, +0.019] (75%, p 0.064) | +0.008 [-0.005, +0.023] (50%, p 0.388) | +0.002 [-0.012, +0.015] (50%, p 0.869) | -0.002 [-0.015, +0.010] (55%, p 0.869) |
+| typed_flat_coverage_ul_k10 (control/reference) | -0.002 [-0.011, +0.006] (45%, p 0.869) | -0.001 [-0.010, +0.007] (55%, p 0.784) | +0.002 [-0.010, +0.013] (55%, p 0.674) | +0.003 [-0.008, +0.014] (65%, p 0.277) |
+| typed_decisive_coverage_ul_k10a99_shuffled (control/reference) | +0.001 [-0.007, +0.010] (40%, p 0.596) | +0.002 [-0.011, +0.015] (45%, p 0.841) | -0.002 [-0.016, +0.009] (60%, p 0.388) | +0.000 [-0.010, +0.011] (65%, p 0.522) |
+| typed_zeroshot_coverage_a9_shuffled (control/reference) | +0.004 [-0.007, +0.014] (60%, p 0.368) | +0.004 [-0.007, +0.017] (45%, p 0.985) | +0.006 [-0.004, +0.016] (60%, p 0.216) | +0.008 [-0.004, +0.019] (70%, p 0.133) |
+| typed_zeroshot_coverage_unc_shuffled (control/reference) | +0.005 [-0.004, +0.013] (60%, p 0.261) | +0.015 [+0.007, +0.023] (75%, p 0.001) | -0.000 [-0.011, +0.012] (50%, p 0.956) | +0.003 [-0.008, +0.014] (60%, p 0.596) |
+| typed_decisive_coverage (control/reference) | +0.007 [-0.002, +0.016] (65%, p 0.177) | +0.008 [-0.003, +0.019] (65%, p 0.202) | +0.011 [+0.002, +0.020] (60%, p 0.053) | +0.011 [+0.002, +0.020] (70%, p 0.033) |
+
+n seeds per cell: [20]
+
+#### Paired differences, log-loss gain (candidate minus control; positive = the candidate's ingredient helps)
+
+| candidate minus control | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| decisive_coverage_ul_k10a99 minus decisive_coverage_ul_k10a99_shuffled | -0.019 [-0.062, +0.021] (p 0.522) | -0.014 [-0.046, +0.020] (p 0.277) | -0.005 [-0.045, +0.036] (p 0.674) | -0.007 [-0.040, +0.027] (p 0.927) |
+| decisive_coverage_ul_k10a99 minus flat_coverage_ul_k10 | -0.002 [-0.030, +0.030] (p 0.546) | +0.003 [-0.030, +0.042] (p 0.729) | -0.043 [-0.082, -0.004] (p 0.058) | -0.032 [-0.076, +0.012] (p 0.231) |
+| zeroshot_coverage_a9 minus zeroshot_coverage_a9_shuffled | +0.021 [-0.031, +0.077] (p 0.898) | +0.019 [-0.027, +0.067] (p 0.622) | -0.000 [-0.064, +0.071] (p 0.729) | -0.003 [-0.053, +0.050] (p 0.729) |
+| zeroshot_coverage_a9 minus flat_coverage_a99 | -0.018 [-0.055, +0.019] (p 0.330) | -0.019 [-0.055, +0.020] (p 0.202) | -0.010 [-0.076, +0.051] (p 0.956) | +0.023 [-0.038, +0.081] (p 0.409) |
+| zeroshot_coverage_unc minus zeroshot_coverage_unc_shuffled | +0.023 [-0.019, +0.063] (p 0.189) | -0.037 [-0.084, +0.012] (p 0.105) | -0.020 [-0.074, +0.035] (p 0.294) | -0.041 [-0.084, +0.003] (p 0.048) |
+| zeroshot_coverage_unc minus flat_coverage_a99 | -0.008 [-0.051, +0.036] (p 0.674) | -0.020 [-0.066, +0.026] (p 0.452) | -0.070 [-0.147, +0.006] (p 0.123) | -0.041 [-0.139, +0.047] (p 0.729) |
+
+#### Paired differences, AUC gain (candidate minus control; positive = the candidate's ingredient helps)
+
+| candidate minus control | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| decisive_coverage_ul_k10a99 minus decisive_coverage_ul_k10a99_shuffled | +0.006 [-0.006, +0.016] (p 0.231) | +0.008 [-0.001, +0.017] (p 0.216) | +0.010 [-0.003, +0.022] (p 0.245) | +0.012 [+0.002, +0.021] (p 0.040) |
+| decisive_coverage_ul_k10a99 minus flat_coverage_ul_k10 | +0.008 [+0.001, +0.016] (p 0.027) | +0.011 [+0.003, +0.020] (p 0.064) | +0.006 [-0.003, +0.015] (p 0.368) | +0.008 [-0.001, +0.018] (p 0.177) |
+| zeroshot_coverage_a9 minus zeroshot_coverage_a9_shuffled | +0.002 [-0.009, +0.014] (p 0.841) | +0.002 [-0.006, +0.012] (p 0.927) | +0.002 [-0.009, +0.014] (p 0.812) | +0.002 [-0.010, +0.014] (p 0.701) |
+| zeroshot_coverage_a9 minus flat_coverage_a99 | -0.003 [-0.012, +0.006] (p 0.475) | -0.002 [-0.010, +0.006] (p 0.648) | +0.007 [-0.008, +0.020] (p 0.294) | +0.012 [-0.002, +0.025] (p 0.083) |
+| zeroshot_coverage_unc minus zeroshot_coverage_unc_shuffled | +0.012 [+0.001, +0.023] (p 0.033) | +0.004 [-0.008, +0.015] (p 0.522) | +0.012 [+0.000, +0.023] (p 0.076) | +0.012 [+0.004, +0.022] (p 0.007) |
+| zeroshot_coverage_unc minus flat_coverage_a99 | +0.008 [-0.002, +0.019] (p 0.154) | +0.010 [-0.001, +0.021] (p 0.165) | +0.010 [-0.005, +0.025] (p 0.388) | +0.017 [+0.001, +0.034] (p 0.058) |
+
+#### Success criterion (Holm p < .05 and positive gain in BOTH log-loss and AUC in >= 2 blocks incl. both splits)
+
+- typed_decisive_coverage_ul_k10a99: blocks significant in both metrics [] -> NOT met
+- typed_zeroshot_coverage_a9: blocks significant in both metrics [] -> NOT met
+- typed_zeroshot_coverage_unc: blocks significant in both metrics [] -> NOT met
+
+**Phase 3 reading.** The preregistered criterion is not met by any candidate. On log-loss the flat coverage controls (+0.037 to +0.067) are as good as every candidate, so the raw log-loss gain of the coverage rules does not come from the answerability weighting or from the graph posterior. On AUC only `zeroshot_unc` stands out: +0.017 / +0.018 / +0.012 / +0.015 (raw p 0.006 / 0.006 / 0.027 / 0.002; Holm 0.064 / 0.061 / 0.213 / 0.024), the direction it had on the development seeds.
+
+**Phase 4 replication (seeds 480-499; frozen before the run).** Single candidate `zeroshot_unc`; primary metric AUC gain, Holm over its 4 blocks; success = Holm p < 0.05 and positive gain in at least two blocks including both splits.
+
+#### log-loss (secondary): gain over Random, seeds 480-499 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over the 4 blocks for the candidate))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.008 [-0.036, +0.049] (50%, p 0.648, Holm 1.000) | +0.015 [-0.023, +0.053] (60%, p 0.498, Holm 1.000) | +0.024 [-0.030, +0.072] (75%, p 0.349, Holm 1.000) | +0.024 [-0.044, +0.085] (60%, p 0.261, Holm 1.000) |
+| typed_flat_coverage_a99 (control) | +0.032 [-0.008, +0.070] (75%, p 0.097) | +0.058 [+0.006, +0.108] (70%, p 0.048) | +0.015 [-0.014, +0.045] (55%, p 0.452) | +0.045 [+0.011, +0.078] (80%, p 0.044) |
+| typed_zeroshot_coverage_unc_shuffled (control) | +0.043 [+0.006, +0.081] (70%, p 0.044) | +0.059 [+0.015, +0.102] (75%, p 0.006) | +0.069 [+0.036, +0.102] (75%, p 0.002) | +0.050 [-0.001, +0.106] (70%, p 0.076) |
+
+n seeds per cell: [20]
+
+#### AUC (PRIMARY): gain over Random, seeds 480-499 (mean [95% bootstrap CI] (share of seeds better, raw p; Holm over the 4 blocks for the candidate))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.013 [+0.001, +0.026] (75%, p 0.033, Holm 0.059) | +0.016 [+0.004, +0.029] (60%, p 0.030, Holm 0.059) | +0.019 [+0.007, +0.029] (80%, p 0.002, Holm 0.006) | +0.026 [+0.014, +0.038] (85%, p 0.001, Holm 0.003) |
+| typed_flat_coverage_a99 (control) | +0.006 [-0.006, +0.019] (60%, p 0.409) | +0.009 [-0.005, +0.022] (60%, p 0.091) | +0.001 [-0.006, +0.010] (50%, p 0.927) | +0.010 [-0.000, +0.020] (70%, p 0.053) |
+| typed_zeroshot_coverage_unc_shuffled (control) | +0.012 [+0.003, +0.021] (65%, p 0.024) | +0.014 [+0.007, +0.021] (95%, p 0.000) | +0.013 [+0.002, +0.023] (70%, p 0.036) | +0.012 [-0.002, +0.026] (65%, p 0.154) |
+
+n seeds per cell: [20]
+
+#### Paired differences, AUC gain (candidate minus control)
+
+| candidate minus | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| flat_coverage_a99 | +0.007 [-0.004, +0.019] (p 0.349) | +0.007 [-0.004, +0.021] (p 0.349) | +0.018 [+0.003, +0.030] (p 0.011) | +0.017 [+0.005, +0.027] (p 0.014) |
+| zeroshot_coverage_unc_shuffled | +0.001 [-0.009, +0.011] (p 0.674) | +0.002 [-0.009, +0.013] (p 0.701) | +0.006 [-0.008, +0.020] (p 0.245) | +0.015 [-0.003, +0.031] (p 0.114) |
+
+#### Paired differences, log-loss gain (candidate minus control)
+
+| candidate minus | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| flat_coverage_a99 | -0.024 [-0.064, +0.021] (p 0.090) | -0.043 [-0.091, +0.010] (p 0.036) | +0.008 [-0.052, +0.062] (p 0.522) | -0.021 [-0.075, +0.030] (p 0.571) |
+| zeroshot_coverage_unc_shuffled | -0.035 [-0.080, +0.006] (p 0.216) | -0.043 [-0.091, +0.005] (p 0.114) | -0.046 [-0.102, +0.008] (p 0.216) | -0.026 [-0.103, +0.045] (p 0.546) |
+
+Replication criterion (AUC: Holm p < .05 and positive in >= 2 blocks incl. both splits): significant blocks ['B-single', 'B-sequential'] -> NOT met
+
+**Phase 4 reading.** The AUC gains replicate in sign and size (+0.013 / +0.016 / +0.019 / +0.026) and are significant after Holm in both B blocks (0.006, 0.003) but only at Holm 0.059 in both A blocks, so the criterion as written (both splits) is not met. Against the controls: in split B the candidate beats flat coverage (+0.018 / +0.017, p 0.011 / 0.014) and, directionally, its shuffled-posterior version (+0.006 / +0.015, p 0.25 / 0.11); in split A the shuffled version is as good (+0.001 / +0.002). Log-loss: no gain over Random for the candidate and no advantage over the flat or shuffled controls.
+
+**Exploratory pooled summary (not preregistered; the two fresh sets were each tested separately first; n = 40).**
+
+Exploratory pooled summary over the two fresh sets (seeds 460-499, n=40; NOT preregistered; sets 460-479 and 480-499 were each tested separately before pooling)
+
+| block | AUC gain vs Random | minus flat coverage | minus shuffled posterior |
+|---|---|---|---|
+| A-single (n=40) | +0.015 [+0.007, +0.024] (p 0.0004) | +0.008 [+0.000, +0.016] (p 0.0972) | +0.007 [-0.001, +0.014] (p 0.0703) |
+| A-sequential (n=40) | +0.017 [+0.008, +0.027] (p 0.0005) | +0.008 [+0.001, +0.017] (p 0.0918) | +0.003 [-0.005, +0.011] (p 0.4762) |
+| B-single (n=40) | +0.015 [+0.008, +0.022] (p 0.0001) | +0.014 [+0.003, +0.024] (p 0.0106) | +0.009 [-0.000, +0.018] (p 0.0356) |
+| B-sequential (n=40) | +0.021 [+0.013, +0.028] (p 0.0000) | +0.017 [+0.007, +0.027] (p 0.0023) | +0.013 [+0.004, +0.023] (p 0.0031) |
+
+**What this supports, and what it does not.** There is a small, consistent improvement in ranking quality over Random (about +0.015 to +0.02 AUC, i.e. a sizeable fraction of the +0.03 to +0.05 gap between Random and the full-pool ceiling, depending on budget and seeds), seen on the development seeds and on two fresh seed sets, in all four blocks. It comes from the combination coverage x own-head uncertainty x answerability prior: flat coverage gives about +0.005 on average and is clearly worse in split B. How much of it is due to the zero-shot answerability prior itself is not settled: the shuffled-posterior control is equally good in split A and somewhat worse in split B (pooled +0.009 and +0.013, p 0.036 and 0.003, not corrected). The strict preregistered criteria were not met in phases 3 and 4, the prior was chosen using the labels of all rows, effects are within +0.02 AUC, and the log-loss endpoint cannot be used to judge selectors without accounting for the outcome-mix artefact (§5.18). A model-side change (a graph-regularised reward model) or a second encoder would be needed for larger effects; both are outside the fixed protocol.
+
 ## 6. Conclusion
 
 The implemented protocol separates pair-disjoint acquisition groups, SHA-256 content-identity exclusion of outer-test images, validation-only training decisions, and artifact-level auditing, and its results change what can be claimed about acquisition strategies.
