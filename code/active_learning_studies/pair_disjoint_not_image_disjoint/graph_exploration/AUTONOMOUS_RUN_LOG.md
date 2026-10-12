@@ -210,3 +210,8 @@ Paired zeroshot_unc minus flat_unc (AUC): +0.005 / -0.003 / +0.009 / +0.015 (Hol
 
 ### FROZEN PHASE 6 (reference comparison with non-graph embedding baselines; seeds 500-519, no new candidate)
 The advisor's first question: simple graph-aware acquisition vs SimCLR-embedding methods. Run image_coverage_uncertainty, core_set_relation, bald_decisive, laplace_bald on the same seeds 500-519. Report paired AUC (primary) and log-loss differences zeroshot_unc minus each baseline, raw p and Holm over the 16 comparisons. No selection among them afterwards.
+
+### PHASE 6 RESULT (seeds 500-519; `aggregate_phase6.py`; report 5.19)
+AUC gain over Random A-sin / A-seq / B-sin / B-seq: zeroshot_unc +0.009 / +0.015 / +0.023 / +0.025; image_coverage_uncertainty -0.003 / -0.002 / -0.005 / 0.000; core_set_relation +0.013 / +0.011 / +0.009 / +0.003; bald_decisive +0.006 / +0.013 / +0.013 / +0.007; laplace_bald +0.012 / +0.012 / +0.014 / +0.004.
+Paired zeroshot_unc minus baseline (AUC): A ~ 0 against core_set / bald_decisive / laplace_bald (p > .49); B-seq +0.022 / +0.018 / +0.020 vs core_set / bald_decisive / laplace_bald (Holm .041 / .041 / .012); vs image_coverage_uncertainty +0.027 (B-sin, Holm .003) and +0.025 (B-seq, Holm .002). Log-loss: not better than core_set_relation.
+Overall: ranking-quality gain over Random about +0.01..+0.025 AUC, reproduced on 3 fresh sets; mostly from coverage in the propagated space x own-head uncertainty; prior adds in B-seq only; on par with the best non-graph baselines in A, ahead in B. All preregistered success criteria (as written) were NOT met. Seeds 400-519 used; next seeds >= 520.

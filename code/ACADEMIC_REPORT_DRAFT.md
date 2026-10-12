@@ -1296,7 +1296,81 @@ Exploratory pooled summary over the two fresh sets (seeds 460-499, n=40; NOT pre
 | B-single (n=40) | +0.015 [+0.008, +0.022] (p 0.0001) | +0.014 [+0.003, +0.024] (p 0.0106) | +0.009 [-0.000, +0.018] (p 0.0356) |
 | B-sequential (n=40) | +0.021 [+0.013, +0.028] (p 0.0000) | +0.017 [+0.007, +0.027] (p 0.0023) | +0.013 [+0.004, +0.023] (p 0.0031) |
 
-**What this supports, and what it does not.** There is a small, consistent improvement in ranking quality over Random (about +0.015 to +0.02 AUC, i.e. a sizeable fraction of the +0.03 to +0.05 gap between Random and the full-pool ceiling, depending on budget and seeds), seen on the development seeds and on two fresh seed sets, in all four blocks. It comes from the combination coverage x own-head uncertainty x answerability prior: flat coverage gives about +0.005 on average and is clearly worse in split B. How much of it is due to the zero-shot answerability prior itself is not settled: the shuffled-posterior control is equally good in split A and somewhat worse in split B (pooled +0.009 and +0.013, p 0.036 and 0.003, not corrected). The strict preregistered criteria were not met in phases 3 and 4, the prior was chosen using the labels of all rows, effects are within +0.02 AUC, and the log-loss endpoint cannot be used to judge selectors without accounting for the outcome-mix artefact (§5.18). A model-side change (a graph-regularised reward model) or a second encoder would be needed for larger effects; both are outside the fixed protocol.
+**Phase 5 (seeds 500-519; frozen before the run): does the answerability prior add anything?** Control missing in phases 3-4: coverage x own-head uncertainty without the prior (`typed_flat_unc_coverage_a99`). Primary: paired AUC difference `zeroshot_unc` minus this control, Holm over 4 blocks; success = Holm p < 0.05 and positive in at least two blocks. The gain of `zeroshot_unc` over Random is also a third fresh-seed test.
+
+#### AUC: gain over Random, seeds 500-519 (mean [95% bootstrap CI] (share of seeds better, raw p))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.009 [+0.003, +0.016] (70%, p 0.017) | +0.015 [+0.005, +0.024] (70%, p 0.007) | +0.023 [+0.016, +0.031] (95%, p 0.000) | +0.025 [+0.015, +0.036] (90%, p 0.000) |
+| typed_flat_unc_coverage_a99 | +0.004 [-0.002, +0.011] (60%, p 0.261) | +0.018 [+0.007, +0.029] (80%, p 0.002) | +0.014 [+0.006, +0.022] (80%, p 0.003) | +0.009 [-0.003, +0.022] (60%, p 0.231) |
+
+Paired difference AUC (typed_zeroshot_coverage_unc minus typed_flat_unc_coverage_a99):
+
+| | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| difference | +0.005 [-0.004, +0.015] (50%, p 0.349), Holm 0.698 | -0.003 [-0.013, +0.006] (45%, p 0.756), Holm 0.756 | +0.009 [+0.001, +0.017] (60%, p 0.165), Holm 0.495 | +0.015 [+0.009, +0.022] (80%, p 0.001), Holm 0.003 |
+
+#### log-loss: gain over Random, seeds 500-519 (mean [95% bootstrap CI] (share of seeds better, raw p))
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.010 [-0.032, +0.052] (50%, p 0.622) | +0.030 [-0.012, +0.072] (65%, p 0.245) | +0.046 [+0.015, +0.076] (75%, p 0.014) | +0.050 [+0.001, +0.102] (65%, p 0.083) |
+| typed_flat_unc_coverage_a99 | +0.020 [-0.003, +0.044] (65%, p 0.143) | +0.085 [+0.036, +0.140] (65%, p 0.009) | +0.077 [+0.049, +0.108] (95%, p 0.000) | +0.054 [-0.004, +0.113] (65%, p 0.123) |
+
+Paired difference log-loss (typed_zeroshot_coverage_unc minus typed_flat_unc_coverage_a99):
+
+| | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| difference | -0.010 [-0.062, +0.042] (40%, p 0.648), Holm 1.000 | -0.055 [-0.108, -0.001] (40%, p 0.083), Holm 0.330 | -0.031 [-0.074, +0.009] (40%, p 0.294), Holm 0.883 | -0.003 [-0.043, +0.038] (40%, p 0.756), Holm 1.000 |
+
+Primary criterion (paired AUC difference, Holm < .05 and positive in >= 2 of 4 blocks): significant blocks ['B-sequential'] -> NOT met
+
+**Phase 5 reading.** `zeroshot_unc` again beats Random on AUC in all four blocks (+0.009 / +0.015 / +0.023 / +0.025), a third independent replication of sign and size. The prior adds ranking quality over coverage x uncertainty alone only in B-sequential (+0.015, Holm 0.003); in the other blocks the difference is small (+0.005 / -0.003 / +0.009, not significant). The primary criterion is not met. On log-loss the control without prior is as good or better.
+
+**Phase 6 (seeds 500-519; reference comparison frozen before the run): graph-aware rule against non-graph embedding baselines.** The advisor's first question was whether a simple graph-aware acquisition beats SimCLR-embedding methods. Four non-graph baselines of the earlier study (`image_coverage_uncertainty`, `core_set_relation`, `bald_decisive`, `laplace_bald`) were run on the same seeds; paired differences with raw p and Holm over 16 comparisons per metric.
+
+#### log-loss: gain over Random, seeds 500-519 (mean [95% bootstrap CI], share of seeds better)
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.010 [-0.032, +0.052] (50%) | +0.030 [-0.014, +0.074] (65%) | +0.046 [+0.016, +0.076] (75%) | +0.050 [+0.002, +0.102] (65%) |
+| image_coverage_uncertainty | -0.012 [-0.068, +0.040] (55%) | -0.022 [-0.075, +0.029] (40%) | -0.002 [-0.041, +0.038] (55%) | -0.013 [-0.058, +0.035] (45%) |
+| core_set_relation | +0.090 [+0.026, +0.161] (80%) | +0.102 [+0.025, +0.190] (55%) | +0.070 [+0.039, +0.101] (80%) | +0.050 [+0.010, +0.092] (70%) |
+| bald_decisive | +0.007 [-0.054, +0.064] (60%) | +0.044 [-0.027, +0.113] (60%) | +0.056 [+0.020, +0.091] (70%) | +0.038 [-0.014, +0.089] (70%) |
+| laplace_bald | +0.044 [-0.013, +0.099] (70%) | +0.042 [-0.020, +0.108] (65%) | +0.038 [+0.002, +0.073] (70%) | -0.007 [-0.052, +0.036] (45%) |
+
+Paired difference (typed_zeroshot_coverage_unc minus baseline), log-loss (raw p; Holm over 16)
+
+| baseline | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| image_coverage_uncertainty | +0.022 [-0.038, +0.089] (p 0.985, Holm 1.000) | +0.052 [+0.003, +0.104] (p 0.105, Holm 1.000) | +0.048 [-0.003, +0.101] (p 0.040, Holm 0.560) | +0.063 [+0.006, +0.130] (p 0.076, Holm 0.986) |
+| core_set_relation | -0.080 [-0.141, -0.022] (p 0.021, Holm 0.344) | -0.072 [-0.150, +0.002] (p 0.154, Holm 1.000) | -0.024 [-0.074, +0.027] (p 0.409, Holm 1.000) | +0.000 [-0.060, +0.058] (p 0.956, Holm 1.000) |
+| bald_decisive | +0.003 [-0.078, +0.084] (p 0.756, Holm 1.000) | -0.014 [-0.070, +0.046] (p 0.571, Holm 1.000) | -0.010 [-0.049, +0.028] (p 0.784, Holm 1.000) | +0.013 [-0.021, +0.044] (p 0.452, Holm 1.000) |
+| laplace_bald | -0.035 [-0.106, +0.033] (p 0.409, Holm 1.000) | -0.012 [-0.064, +0.038] (p 0.701, Holm 1.000) | +0.008 [-0.020, +0.038] (p 0.729, Holm 1.000) | +0.058 [+0.014, +0.102] (p 0.024, Holm 0.359) |
+
+#### AUC: gain over Random, seeds 500-519 (mean [95% bootstrap CI], share of seeds better)
+
+| rule | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| typed_zeroshot_coverage_unc | +0.009 [+0.003, +0.016] (70%) | +0.015 [+0.006, +0.024] (70%) | +0.023 [+0.016, +0.031] (95%) | +0.025 [+0.015, +0.037] (90%) |
+| image_coverage_uncertainty | -0.003 [-0.014, +0.007] (50%) | -0.002 [-0.014, +0.009] (55%) | -0.005 [-0.015, +0.005] (50%) | -0.000 [-0.008, +0.008] (35%) |
+| core_set_relation | +0.013 [+0.002, +0.024] (75%) | +0.011 [-0.003, +0.026] (50%) | +0.009 [+0.001, +0.016] (65%) | +0.003 [-0.008, +0.013] (50%) |
+| bald_decisive | +0.006 [-0.006, +0.019] (65%) | +0.013 [+0.001, +0.027] (50%) | +0.013 [+0.006, +0.020] (80%) | +0.007 [-0.004, +0.018] (65%) |
+| laplace_bald | +0.012 [+0.002, +0.022] (80%) | +0.012 [-0.001, +0.026] (60%) | +0.014 [+0.006, +0.022] (80%) | +0.004 [-0.004, +0.013] (60%) |
+
+Paired difference (typed_zeroshot_coverage_unc minus baseline), AUC (raw p; Holm over 16)
+
+| baseline | A-single | A-sequential | B-single | B-sequential |
+|---|---|---|---|---|
+| image_coverage_uncertainty | +0.012 [+0.002, +0.024] (p 0.097, Holm 0.681) | +0.017 [+0.006, +0.030] (p 0.009, Holm 0.104) | +0.027 [+0.016, +0.040] (p 0.000, Holm 0.003) | +0.025 [+0.014, +0.040] (p 0.000, Holm 0.002) |
+| core_set_relation | -0.004 [-0.014, +0.006] (p 0.546, Holm 1.000) | +0.004 [-0.010, +0.018] (p 0.784, Holm 1.000) | +0.014 [+0.003, +0.025] (p 0.021, Holm 0.215) | +0.022 [+0.008, +0.036] (p 0.003, Holm 0.041) |
+| bald_decisive | +0.003 [-0.011, +0.018] (p 0.498, Holm 1.000) | +0.002 [-0.009, +0.012] (p 0.841, Holm 1.000) | +0.009 [+0.000, +0.019] (p 0.076, Holm 0.607) | +0.018 [+0.009, +0.027] (p 0.003, Holm 0.041) |
+| laplace_bald | -0.002 [-0.014, +0.009] (p 0.729, Holm 1.000) | +0.003 [-0.007, +0.011] (p 0.498, Holm 1.000) | +0.009 [+0.003, +0.016] (p 0.021, Holm 0.215) | +0.020 [+0.011, +0.029] (p 0.001, Holm 0.012) |
+
+**Phase 6 reading.** In split A the graph-aware rule is not distinguishable from `core_set_relation`, `bald_decisive` and `laplace_bald` (AUC differences -0.004 to +0.004, all p > 0.49); it is ahead of `image_coverage_uncertainty` (+0.012 / +0.017, Holm 0.68 / 0.10). In split B it is ahead of all four on AUC (+0.009 to +0.027; Holm 0.003 / 0.002 against `image_coverage_uncertainty`, 0.041 / 0.012 against `core_set_relation` / `laplace_bald` and 0.041 against `bald_decisive` in B-sequential; not significant after Holm in B-single against three of them). On log-loss it is not better than `core_set_relation` (which gains +0.05 to +0.10 over Random) or the BALD variants; recall that log-loss is affected by the outcome-mix artefact (§5.18).
+
+**What this supports, and what it does not.** There is a small, consistent improvement in ranking quality over Random (about +0.01 to +0.025 AUC; the gap between Random at budget 60 and the full-pool ceiling is about 0.03-0.05 AUC), seen on development seeds and on three fresh seed sets (460-479, 480-499, 500-519), in all four blocks. It is mainly the effect of coverage in the graph-propagated pair space combined with the head's own uncertainty: the same rule without the answerability prior (`flat_unc`) already gains +0.004 / +0.018 / +0.014 / +0.009, and the shuffled-posterior control is about as good in split A. The label-free answerability prior adds measurable ranking quality in split B (sequential: +0.015, Holm 0.003 in phase 5; versus flat coverage +0.018 / +0.017 in phase 4), not in split A. Against non-graph embedding baselines the rule is on par in split A and ahead on AUC in split B. The strict preregistered criteria were not met in phases 3, 4 and 5 (each needed significance in both splits or in both metrics), the prior was chosen using the labels of all rows, effects are within +0.03 AUC, and the log-loss endpoint cannot be used to judge selectors without accounting for the outcome-mix artefact (§5.18). The unlabelled trajectory images did not help. A model-side change (a graph-regularised reward model) or a second encoder would be needed for larger effects; both are outside the fixed protocol.
 
 ## 6. Conclusion
 
