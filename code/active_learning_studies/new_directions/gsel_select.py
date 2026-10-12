@@ -165,6 +165,10 @@ def _vopt_ridge(ridge):
 REGISTRY.update({"vopt_ridge4@aw": _vopt_ridge(4.0), "vopt_ridge10@aw": _vopt_ridge(10.0)})
 
 
+HTR50 = {0: 1 / 6, 2: 1 / 6, 3: 1 / 6, 4: .5}; ALLOC = {0: .25, 2: .30, 3: .10, 4: .35}   # ALLOC: less RT13 (saturated under aw8_all in dev1), more HTR/c(6x2)
+REGISTRY.update({"qcov_htr50": quota_coverage(HTR50), "qcov_htr50_shuffled": quota_coverage(HTR50, True), "qcov_alloc": quota_coverage(ALLOC), "qcov_alloc_shuffled": quota_coverage(ALLOC, True)})
+
+
 def register_extra(name: str, fn): REGISTRY[name] = fn
 
 
