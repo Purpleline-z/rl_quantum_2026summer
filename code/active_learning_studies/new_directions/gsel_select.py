@@ -97,10 +97,24 @@ def htr_rule(kind: str, shuffle: bool = False, floor: float = 0.0, aw: bool = Fa
             order = np.argsort(-w, kind="stable")[:budget]; return [cands[i] for i in order]
         if kind in ("cov_amb", "cov_bridge"):
             p = gt.decisive_probability(g, cands, labeled); return _coverage(g, cands, labeled, (floor + w) * p, budget)
+        if kind == "vopt_htr":   # class-priority control without any graph: weight 1 for HTR judgments, ``floor`` for the rest
+            target = np.array([1.0 if int(x["type_idx"]) == HTR else floor for x in cands]); target = target / max(float(target.mean()), 1e-9); m = ns._selection_model(ns.CTX_REF["ctx"], 8.0, True) if aw else model
+            return nm.vopt(cands, labeled, m, cache, budget, seed, sensitivity=False, target_decisive=lambda c, l, ca: target)
         if kind in ("vopt_amb", "vopt_bridge"):
             target = (floor + w) / max(float((floor + w).mean()), 1e-9); m = ns._selection_model(ns.CTX_REF["ctx"], 8.0, True) if aw else model
             return nm.vopt(cands, labeled, m, cache, budget, seed, sensitivity=False, target_decisive=lambda c, l, ca: target)
         raise ValueError(kind)
+    return select
+
+
+def vopt_dec(kind: str, aw: bool = True, power: float = 1.0):
+    """vopt_u (target weights) with the graph-informed P(decisive) of each judgment as the target weight: ``kind`` 'graph' = label-spreading features, 'typeonly' = type one-hot only
+    (no reference/graph features), 'shuffled' = graph destroyed.  The decisive-weight ingredient of typed coverage combined with the variance-reduction design."""
+    def select(cands, labeled, model, cache, budget, seed=0):
+        ctx = ns.CTX_REF["ctx"]; refs = {} if kind == "typeonly" else gt.reference_types(ctx.exp)
+        g = gt.ImageGraph(cands, labeled, cache, refs, seed, kind == "shuffled"); p = gt.decisive_probability(g, cands, labeled) ** power; target = p / max(float(p.mean()), 1e-9)
+        m = ns._selection_model(ctx, 8.0, True) if aw else model
+        return nm.vopt(cands, labeled, m, cache, budget, seed, sensitivity=False, target_decisive=lambda c, l, ca: target)
     return select
 
 
@@ -123,6 +137,7 @@ def quota_coverage(shares: dict, shuffle: bool = False):
 
 
 REGISTRY = {
+    "vopt_dec@aw": None, "vopt_dec_typeonly@aw": None, "vopt_dec_shuffled@aw": None,
     "vopt_u": _vopt_u(False), "vopt_u@aw": _vopt_u(True),
     "tdc": _tdc("typed_decisive_coverage"), "tdc_typeonly": _tdc("typed_decisive_coverage_typeonly"), "tdc_shuffled": _tdc("typed_decisive_coverage_shuffled"),
     "tcu": _tdc("typed_coverage_uniform"),
@@ -131,9 +146,23 @@ REGISTRY = {
     "htr_amb": htr_rule("amb"), "htr_amb_shuffled": htr_rule("amb", True), "htr_bridge": htr_rule("bridge"), "htr_bridge_shuffled": htr_rule("bridge", True),
     "htr_cov_amb": htr_rule("cov_amb", floor=.1), "htr_cov_amb_shuffled": htr_rule("cov_amb", True, floor=.1),
     "htr_cov_bridge": htr_rule("cov_bridge", floor=.1), "htr_cov_bridge_shuffled": htr_rule("cov_bridge", True, floor=.1),
+    "htr_vopt_prio@aw": htr_rule("vopt_htr", floor=.3, aw=True),
     "htr_vopt_amb@aw": htr_rule("vopt_amb", floor=.3, aw=True), "htr_vopt_amb_shuffled@aw": htr_rule("vopt_amb", True, floor=.3, aw=True),
     "htr_vopt_bridge@aw": htr_rule("vopt_bridge", floor=.3, aw=True), "htr_vopt_bridge_shuffled@aw": htr_rule("vopt_bridge", True, floor=.3, aw=True),
 }
+
+
+REGISTRY.update({"vopt_dec@aw": vopt_dec("graph"), "vopt_dec_typeonly@aw": vopt_dec("typeonly"), "vopt_dec_shuffled@aw": vopt_dec("shuffled")})
+
+
+def _vopt_ridge(ridge):
+    """Non-graph control for the Laplacian prior: vopt_u with prior precision ``ridge`` * I (the graph prior adds about 3 to the mean diagonal)."""
+    def select(cands, labeled, model, cache, budget, seed=0):
+        return gv.design(cands, labeled, ns._selection_model(ns.CTX_REF["ctx"], 8.0, True), cache, budget, seed, "none", False, ridge=ridge)
+    return select
+
+
+REGISTRY.update({"vopt_ridge4@aw": _vopt_ridge(4.0), "vopt_ridge10@aw": _vopt_ridge(10.0)})
 
 
 def register_extra(name: str, fn): REGISTRY[name] = fn
@@ -149,7 +178,7 @@ def per_type_auc(d, test) -> dict:
 
 def composition(picks, ids) -> dict:
     t = [int(x["type_idx"]) for x in picks]; imgs = {p for x in picks for p in (x["img1"], x["img2"])}
-    return {**{f"pick_{n}": int(sum(1 for v in t if v == k)) for k, n in core.TYPE_NAMES.items()}, "pick_images": len(imgs), "pick_ids": [x["pair_id"] for x in picks]}
+    return {**{f"pick_{n}": int(sum(1 for v in t if v == k)) for k, n in core.TYPE_NAMES.items()}, "pick_images": len(imgs), "pick_decisive": int(sum(1 for x in picks if x["outcomes"][0][1])), "pick_ids": [x["pair_id"] for x in picks]}
 
 
 def main() -> None:

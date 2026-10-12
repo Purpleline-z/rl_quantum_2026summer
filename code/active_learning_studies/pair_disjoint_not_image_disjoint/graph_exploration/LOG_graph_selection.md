@@ -1,0 +1,8 @@
+# Run log, Prompt 2 (graph selection under aw8_all; branch claude/graph-selection-htr-1012)
+Times are container UTC (2026-10-12). Dev observations are NOT evidence (20 dev seeds, many comparisons, winner's curse); only the pre-registered confirmations count.
+
+- 06:30 start; branch from `claude/integration`; seeds 8000–8399 registered as used (`nd_core.py`).
+- 06:45 `gsel_select.py`/`gsel_analyze.py` written (new harness, aw8_all learner, per-type AUC, batch composition). Smoke test OK (8 selectors, 1 seed, 16 s per budget).
+- 07:10 dev1 (frozen rules, regular start) done. Observations (dev, uncorrected): all rules' overall gain over Random under aw8_all is small (AUC +0.00 to +0.009, acc +0.00 to +0.013). Rules that do variance reduction (vopt_u, gvopt_lap3 and its SHUFFLED control) show larger HTR gains (HTR acc +0.02 to +0.05). tdc beats its shuffled/type-only controls on AUC/ll (uncorrected p 0.005–0.04) but its HTR share of the batch is lower than Random's.
+- 07:45 dev1 cold start done: gvopt_lap3@aw acc +0.011/+0.019 and AUC +0.005/+0.014 (A/B), HTR acc +0.05; the shuffled control is equally good (+0.011/+0.018, HTR +0.049/+0.052) -> not a graph effect. tdc cold: AUC +0.006/+0.013, B AUC Holm-significant even within dev.
+- 08:05 dev2 (HTR rules, regular start) done: every vopt-based rule (vopt_u@aw, class-priority vopt without any graph, graph-ambiguity/bridge weighted vopt and their shuffled controls) gives the same HTR acc gain (+0.04 A, +0.02 B) -> the weighting by HTR/RT13 ambiguity adds nothing to vopt_u@aw; ranking-only rules (htr_amb, htr_bridge) do nothing; the coverage variants htr_cov_amb/htr_cov_bridge are better than their shuffled controls in direction (HTR acc +0.039/+0.017 vs +0.025/+0.008).

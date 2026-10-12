@@ -83,11 +83,11 @@ def vs_control(frame, selector, control, metrics=("acc", "auc", "ll")) -> pd.Dat
 
 
 def composition(frame, selectors) -> pd.DataFrame:
-    cols = [c for c in frame.columns if c.startswith("pick_") and c != "pick_ids"]; rows = []
+    cols = [c for c in frame.columns if c.startswith("pick_") and c not in ("pick_ids", "pick_decisive")]; rows = []
     for s in selectors:
         g = frame[frame.selector == s]
         for b, gb in g.groupby("budget"):
-            tot = gb[[c for c in cols if c != "pick_images"]].sum(axis=1).mean(); row = {"selector": s, "budget": b, "n_picks": float(tot), "unique_images": float(gb.pick_images.mean())}
+            tot = gb[[c for c in cols if c != "pick_images"]].sum(axis=1).mean(); row = {"selector": s, "budget": b, "n_picks": float(tot), "unique_images": float(gb.pick_images.mean()), "decisive_share": float(gb.pick_decisive.mean() / max(tot, 1e-9)) if "pick_decisive" in gb and gb.pick_decisive.notna().any() else float("nan")}
             for c in cols:
                 if c != "pick_images": row["share_" + c[5:]] = float(gb[c].mean() / max(tot, 1e-9))
             rows.append(row)
