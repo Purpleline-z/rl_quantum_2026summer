@@ -118,10 +118,10 @@ def vopt_dec(kind: str, aw: bool = True, power: float = 1.0):
     return select
 
 
-def quota_coverage(shares: dict, shuffle: bool = False):
+def quota_coverage(shares: dict, shuffle: bool = False, typeonly: bool = False):
     """Typed coverage whose batch is split by type quota (largest-remainder rounding of ``shares``): the mechanism test for 'the gain of typed coverage is its type allocation'."""
     def select(cands, labeled, model, cache, budget, seed=0):
-        g = _graph(cands, labeled, cache, shuffle, seed); p = gt.decisive_probability(g, cands, labeled); types = np.array([int(x["type_idx"]) for x in cands])
+        ctx = ns.CTX_REF["ctx"]; g = gt.ImageGraph(cands, labeled, cache, {} if typeonly else gt.reference_types(ctx.exp), seed, shuffle); p = gt.decisive_probability(g, cands, labeled); types = np.array([int(x["type_idx"]) for x in cands])
         raw = {k: shares[k] * budget for k in shares}; quota = {k: int(np.floor(v)) for k, v in raw.items()}
         for k in sorted(raw, key=lambda k: -(raw[k] - quota[k]))[: budget - sum(quota.values())]: quota[k] += 1
         chosen = []
@@ -166,7 +166,7 @@ REGISTRY.update({"vopt_ridge4@aw": _vopt_ridge(4.0), "vopt_ridge10@aw": _vopt_ri
 
 
 HTR50 = {0: 1 / 6, 2: 1 / 6, 3: 1 / 6, 4: .5}; ALLOC = {0: .25, 2: .30, 3: .10, 4: .35}   # ALLOC: less RT13 (saturated under aw8_all in dev1), more HTR/c(6x2)
-REGISTRY.update({"qcov_htr50": quota_coverage(HTR50), "qcov_htr50_shuffled": quota_coverage(HTR50, True), "qcov_alloc": quota_coverage(ALLOC), "qcov_alloc_shuffled": quota_coverage(ALLOC, True)})
+REGISTRY.update({"qcov_htr50": quota_coverage(HTR50), "qcov_htr50_shuffled": quota_coverage(HTR50, True), "qcov_alloc": quota_coverage(ALLOC), "qcov_alloc_shuffled": quota_coverage(ALLOC, True), "qcov_alloc_typeonly": quota_coverage(ALLOC, typeonly=True)})
 
 
 def register_extra(name: str, fn): REGISTRY[name] = fn
