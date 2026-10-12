@@ -131,7 +131,7 @@ def _anchor_loss(scores: dict[str, torch.Tensor], cols: dict[str, int]) -> torch
     return torch.stack(values).mean()
 
 
-def fit_mlp_graph(ctx, labelled, seed, gd: GraphData | None, featfn, node_x: torch.Tensor | None, dim: int, lap: float = 0.0, rankq: float = 0.0, cons: float = 0.0,
+def fit_mlp_graph(ctx, labelled, seed, gd: GraphData | None, featfn, node_x: torch.Tensor | None, dim: int, lap: float = 0.0, rankq: float = 0.0, cons: float = 0.0, ridge: float = 0.0,
                   aw: float = 8.0, cons_dropout: float = 0.3, q: torch.Tensor | None = None):
     """MLP head (the repository's head on whatever ``featfn`` returns) with optional graph terms evaluated on ``node_x`` (the features the head consumes for every node).
     With lap = rankq = cons = 0 this is exactly ``nd_learners.aw8_all``."""
@@ -156,6 +156,8 @@ def fit_mlp_graph(ctx, labelled, seed, gd: GraphData | None, featfn, node_x: tor
         if cons > 0:   # no-graph control: unlabelled nodes' scores must be stable under feature dropout
             u = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen); xu = node_x[u]; keep = (torch.rand(xu.shape, generator=gen) > cons_dropout).float() / (1 - cons_dropout)
             loss = loss + cons * ((head(xu)[:, active] - head(xu * keep)[:, active]) ** 2).sum(1).mean()
+        if ridge > 0:   # no-graph control: shrink the scores of random (mostly unlabelled) nodes towards 0, same kind of strength knob as lap
+            u = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen); loss = loss + ridge * (head(node_x[u])[:, active] ** 2).sum(1).mean()
         opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); opt.step()
     return head.eval()
 
@@ -220,7 +222,7 @@ def d_from_scores(score_fn, test) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------ learner registry
-def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, sgc=False, shuffle=False, q_kind="graph"):
+def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuffle=False, q_kind="graph"):
     def learner(ctx, labelled, seed):
         gd = graph_for(ctx, k, shuffle); cache = ctx.features.cache
         if sgc: featfn = lambda paths: gd.propagate_features([str(p) for p in paths], cache, shuffle_ext=shuffle); node_x = gd.propagated_nodes(); dim = gd.x.shape[1]
@@ -230,7 +232,7 @@ def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, sgc=False, shuffle=False, q
             if q_kind == "graph": q = gd.q()
             else:   # no-graph control: class posterior from the cosine similarity to the class means of the labelled ideal images
                 cls = torch.stack([gd.xn[[i for i, c in gd.source_class.items() if c == t]].mean(0) for t in ACTIVE]); sim = gd.xn @ F.normalize(cls, dim=1).T; q = torch.softmax(sim * 20.0, 1)
-        head = fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, dim, lap=lap, rankq=rankq, cons=cons, q=q)
+        head = fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, dim, lap=lap, rankq=rankq, cons=cons, ridge=ridge, q=q)
         return lambda test: core.head_d(head, featfn, test)
     return learner
 
@@ -260,5 +262,9 @@ LEARNERS["lap0.3_sgc_k10"] = _mlp_learner(lap=0.3, sgc=True)
 LEARNERS["rq0.3_sgc_k10"] = _mlp_learner(rankq=0.3, sgc=True)
 LEARNERS["gcn2_lap0.3_k10"] = _gcn_learner(lap=0.3)
 for _lam in (0.1, 0.3, 1.0): LEARNERS[f"lap{_lam:g}_sgc_k10"] = _mlp_learner(lap=_lam, sgc=True)
+for _k in (10, 20):
+    for _lam in (10.0, 30.0):
+        LEARNERS[f"lap{_lam:g}_k{_k}"] = _mlp_learner(k=_k, lap=_lam); LEARNERS[f"lap{_lam:g}_k{_k}_shuf"] = _mlp_learner(k=_k, lap=_lam, shuffle=True)
+for _lam in (0.1, 0.3, 1.0, 3.0, 10.0): LEARNERS[f"ridge{_lam:g}"] = _mlp_learner(ridge=_lam)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
