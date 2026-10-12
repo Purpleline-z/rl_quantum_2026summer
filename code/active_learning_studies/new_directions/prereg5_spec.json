@@ -1,0 +1,160 @@
+{
+ "tests": [
+  {
+   "family": "K1",
+   "split": "A",
+   "metric": "auc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K1",
+   "split": "A",
+   "metric": "acc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K1",
+   "split": "A",
+   "metric": "ll",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K1",
+   "split": "B",
+   "metric": "auc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K1",
+   "split": "B",
+   "metric": "acc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K1",
+   "split": "B",
+   "metric": "ll",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "A",
+   "metric": "auc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "A",
+   "metric": "acc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "A",
+   "metric": "ll",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "B",
+   "metric": "auc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "B",
+   "metric": "acc",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "K2",
+   "split": "B",
+   "metric": "ll",
+   "a": [
+    "random",
+    "gp_aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  }
+ ]
+}

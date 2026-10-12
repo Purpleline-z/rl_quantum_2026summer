@@ -1,0 +1,186 @@
+{
+ "tests": [
+  {
+   "family": "G1",
+   "split": "A",
+   "metric": "auc",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G1",
+   "split": "A",
+   "metric": "acc",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G1",
+   "split": "A",
+   "metric": "ll",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G1",
+   "split": "B",
+   "metric": "auc",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G1",
+   "split": "B",
+   "metric": "acc",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G1",
+   "split": "B",
+   "metric": "ll",
+   "a": [
+    "random",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G2",
+   "split": "A",
+   "metric": "auc",
+   "a": [
+    "vopt_u",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "G2",
+   "split": "A",
+   "metric": "acc",
+   "a": [
+    "vopt_u",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "G2",
+   "split": "B",
+   "metric": "auc",
+   "a": [
+    "vopt_u",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "G2",
+   "split": "B",
+   "metric": "acc",
+   "a": [
+    "vopt_u",
+    "aw8"
+   ],
+   "b": [
+    "random",
+    "aw8"
+   ]
+  },
+  {
+   "family": "G3",
+   "split": "A",
+   "metric": "auc",
+   "a": [
+    "vopt_u",
+    "baseline"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G3",
+   "split": "A",
+   "metric": "acc",
+   "a": [
+    "vopt_u",
+    "baseline"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G3",
+   "split": "B",
+   "metric": "auc",
+   "a": [
+    "vopt_u",
+    "baseline"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  },
+  {
+   "family": "G3",
+   "split": "B",
+   "metric": "acc",
+   "a": [
+    "vopt_u",
+    "baseline"
+   ],
+   "b": [
+    "random",
+    "baseline"
+   ]
+  }
+ ]
+}
