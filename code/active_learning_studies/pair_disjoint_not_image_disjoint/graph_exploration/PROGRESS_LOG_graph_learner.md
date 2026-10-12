@@ -7,3 +7,4 @@
 - 09:42–09:51 dev_cold: 10-random-judgment cold start on the dev seeds.
 - 09:53 froze 4 candidates + controls + family + success rule (`PREREGISTRATION_G1.md`, `G1_spec.json`), committed (3999406bf) before any confirmation seed was run; launched `scripts_gl/chain_confirm.sh`.
 - 11:08 confirmation 1 (7100–7134) finished; success rule applied once by `gl_tables.py confirm`: see `RESULTS_graph_learner.md`.
+- 13:33 confirmation 2 and cold-start confirmation finished; rule applied once per experiment. Results in RESULTS_graph_learner.md. lap1/lap3/lap10 pass all three; lap3_rq3 fails confirmation 2. Docs written 13:40.
