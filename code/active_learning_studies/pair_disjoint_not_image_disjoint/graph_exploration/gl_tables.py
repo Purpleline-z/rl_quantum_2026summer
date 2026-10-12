@@ -91,11 +91,38 @@ def confirm_report(spec, dirs):
     return out, to_md(out[cols].assign(**{k: out[k].astype(float) for k in ("gain", "lo", "hi", "share_better", "p", "holm")}), "{:+.4f}")
 
 
+def budget_table(frame, learners, ref="aw8_all", metrics=("auc", "acc")):
+    """Mean gain over the reference at every budget (per-seed means over draws, then mean over seeds)."""
+    rows = []
+    for split in sorted(frame.split.unique()):
+        g = frame[frame.split == split]; mean = lambda l, m: g[g.learner == l].groupby(["seed", "budget"])[m].mean()
+        for l in learners:
+            for m in metrics:
+                d = (c.SIGN[m] * (mean(l, m) - mean(ref, m))).dropna().groupby(level="budget").mean(); rows.append({"split": split, "learner": l, "metric": m, **{f"b{b}": v for b, v in d.items()}})
+    return pd.DataFrame(rows)
+
+
+def type_table(frame, learners, ref="aw8_all"):
+    """Per-pair-type accuracy gain over the reference (types: 1x1, c(6x2), sqrt13, HTR); seeds without test pairs of a type are skipped."""
+    rows = []
+    for split in sorted(frame.split.unique()):
+        for l in learners:
+            r = {"split": split, "learner": l}
+            for m in ("t1x1_acc", "tc6x2_acc", "t13_acc", "htr_acc"):
+                try: s = summarize(gain(frame, split, m, l, ref)); r[m] = s["gain"]; r[m + "_p"] = s["p"]
+                except Exception: pass
+            rows.append(r)
+    return pd.DataFrame(rows)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == "dev":
         ref = "aw8_all"; dirs = [a for a in sys.argv[2:] if not a.startswith("--")]; frame = load(dirs); t = dev_table(frame, ref)
         t = t[[c_ for c_ in t.columns if not c_.endswith("_lo") and not c_.endswith("_hi")]]
         print(to_md(t))
+    elif mode in ("budget", "types"):
+        cands = [a.split("=", 1)[1].split(",") for a in sys.argv[2:] if a.startswith("--learners=")][0]; dirs = [a for a in sys.argv[2:] if not a.startswith("--")]; frame = load(dirs)
+        print(to_md(budget_table(frame, cands) if mode == "budget" else type_table(frame, cands)))
     elif mode == "confirm":
         spec = json.loads(Path(sys.argv[2]).read_text()); out, md = confirm_report(spec, sys.argv[3:]); print(md); print(); print(to_md(verdicts(out, spec), "{}"))
