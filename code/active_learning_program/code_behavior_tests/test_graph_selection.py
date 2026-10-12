@@ -62,7 +62,7 @@ def real():
         cands, labeled, ccache = ju_study.make_candidates(ctx, ctx.pool, ctx.initial, model, 2000); yield gsel_select, ctx, model, cands, labeled, ccache
 
 
-MODEL_FREE = ["tdc", "tdc_typeonly", "tdc_shuffled", "tcu", "htr_amb", "htr_amb_shuffled", "htr_bridge", "htr_bridge_shuffled", "htr_cov_amb", "htr_cov_amb_shuffled", "htr_cov_bridge", "htr_cov_bridge_shuffled"]
+MODEL_FREE = ["qcov_alloc", "qcov_alloc_shuffled", "qcov_alloc_typeonly", "qcov_htr50", "tdc", "tdc_typeonly", "tdc_shuffled", "tcu", "htr_amb", "htr_amb_shuffled", "htr_bridge", "htr_bridge_shuffled", "htr_cov_amb", "htr_cov_amb_shuffled", "htr_cov_bridge", "htr_cov_bridge_shuffled"]
 
 
 @needs_cache
@@ -95,3 +95,11 @@ def test_htr_priority_rules_only_pick_htr_or_rt13_for_ranking_rules(real):
     gsel, ctx, model, cands, labeled, cache = real
     for name in ("htr_amb", "htr_bridge"):
         picks = gsel.REGISTRY[name](cands, labeled, model, cache, 10, 3); assert all(int(x["type_idx"]) in (3, 4) for x in picks)
+
+
+@needs_cache
+def test_quota_coverage_respects_the_type_allocation_and_controls_keep_the_quota(real):
+    gsel, ctx, model, cands, labeled, cache = real
+    for name in ("qcov_alloc", "qcov_alloc_shuffled", "qcov_alloc_typeonly"):
+        picks = gsel.REGISTRY[name](cands, labeled, model, cache, 20, 3); counts = {k: sum(1 for x in picks if int(x["type_idx"]) == k) for k in (0, 2, 3, 4)}
+        assert counts == {0: 5, 2: 6, 3: 2, 4: 7}, (name, counts)
