@@ -36,11 +36,17 @@ def reference_types(exp) -> dict[str, int]:
 
 class ImageGraph:
     """kNN graph over candidate, revealed and reference images, with the propagated type posterior."""
-    def __init__(self, cands, labeled, cache, refs: dict[str, int], seed: int = 0, shuffle: bool = False):
-        refs = {p: t for p, t in refs.items() if p in cache}
+    def __init__(self, cands, labeled, cache, refs: dict[str, int], seed: int = 0, shuffle: bool = False, unlabeled: bool = False, k: int = K_NEIGHBOURS, alpha: float = ALPHA):
+        refs = {p: t for p, t in refs.items() if p in cache}; self.alpha = alpha
         self.paths = sorted({p for items in (cands, labeled) for x in items for p in (x["img1"], x["img2"])} | set(refs)); self.index = {p: i for i, p in enumerate(self.paths)}
-        x = np.stack([nps._feature(cache, p) for p in self.paths]).astype(np.float64); x = x - x.mean(0); self.features = x
-        self.adjacency = gs.knn_graph(x, K_NEIGHBOURS)
+        x = np.stack([nps._feature(cache, p) for p in self.paths]).astype(np.float64)
+        if unlabeled:  # extra label-free nodes (unlabeled_nodes.py): trajectory images that are in no pair and are no copy of any pair/ideal image
+            import unlabeled_nodes
+            extra = unlabeled_nodes.load_unlabeled()
+            if extra:
+                self.paths = self.paths + sorted(extra); self.index = {p: i for i, p in enumerate(self.paths)}; x = np.vstack([x, np.stack([extra[p] for p in sorted(extra)])])
+        x = x - x.mean(0); self.features = x
+        self.adjacency = gs.knn_graph(x, k)
         self.q = self._type_posterior(refs)
         if shuffle:  # control: the posterior of every image is replaced by that of a random other image
             self.q = self.q[np.random.default_rng(seed * 1_000_003 + 23).permutation(len(self.q))]
@@ -50,7 +56,7 @@ class ImageGraph:
         for p, t in refs.items(): y[self.index[p], TYPES.index(t)] = 1.0
         if not refs: return np.full((n, len(TYPES)), 1 / len(TYPES))
         d = np.maximum(self.adjacency.sum(1), 1); s = self.adjacency / np.sqrt(np.outer(d, d))
-        f = np.maximum(np.linalg.solve(np.eye(n) - ALPHA * s, y), 0); return f / np.maximum(f.sum(1, keepdims=True), 1e-9)
+        f = np.maximum(np.linalg.solve(np.eye(n) - self.alpha * s, y), 0); return f / np.maximum(f.sum(1, keepdims=True), 1e-9)
 
     def judgment_features(self, items) -> np.ndarray:
         out = []
@@ -74,7 +80,7 @@ def decisive_probability(graph: ImageGraph, cands, labeled, c: float = 1.0) -> n
 
 
 # ---------------------------------------------------------------------------------------------------- row-level rules
-def _graph(cands, labeled, cache, refs, seed, shuffle): return ImageGraph(cands, labeled, cache, refs, seed, shuffle)
+def _graph(cands, labeled, cache, refs, seed, shuffle, **kw): return ImageGraph(cands, labeled, cache, refs, seed, shuffle, **kw)
 
 
 def typed_decisive_uncertainty(refs, shuffle=False):
@@ -96,9 +102,10 @@ def _pair_space(graph: ImageGraph, items, steps: int = gs.PROPAGATION_STEPS):
     return np.concatenate([(a + b) / 2, np.abs(a - b), a * b], axis=1)
 
 
-def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0, q_weight: float = 0.0):
+def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0, q_weight: float = 0.0, oracle: bool = False, **graph_kw):
+    """oracle=True replaces P(decisive) by the candidates' TRUE outcome (+0.02): an UPPER BOUND on what any answerability model could give, NOT a valid selector (reads hidden labels)."""
     def select(cands, labeled, model, cache, budget, seed=0):
-        g = _graph(cands, labeled, cache, refs, seed, shuffle); p = decisive_probability(g, cands, labeled) ** gamma
+        g = _graph(cands, labeled, cache, refs, seed, shuffle, **graph_kw); p = (np.array([float(x["outcomes"][0][1]) for x in cands]) * .98 + .02 if oracle else decisive_probability(g, cands, labeled)) ** gamma
         if uncertainty_power: p = p * (0.25 + ju._own_uncertainty(model, cands, cache)) ** uncertainty_power
         allp = _pair_space(g, cands + labeled); allp = (allp - allp.mean(0)) / (allp.std(0) + 1e-6); allp = allp / np.sqrt(allp.shape[1])
         onehot = np.eye(5)[[int(x["type_idx"]) for x in cands + labeled]][:, list(TYPES)]; allp = np.concatenate([allp, onehot], axis=1)
@@ -188,6 +195,10 @@ def _gcn_pair_rule(kind: str, lr: float = 1e-3):
 
 
 FACTORIES = {
+             "typed_decisive_coverage_a99": lambda refs: typed_decisive_coverage(refs, alpha=.99), "typed_decisive_coverage_a99_shuffled": lambda refs: typed_decisive_coverage(refs, True, alpha=.99),
+             "typed_decisive_coverage_ul_k40a99": lambda refs: typed_decisive_coverage(refs, unlabeled=True, k=40, alpha=.99), "typed_decisive_coverage_ul_k40a99_shuffled": lambda refs: typed_decisive_coverage(refs, True, unlabeled=True, k=40, alpha=.99),
+             "typed_decisive_coverage_ul_k10a99": lambda refs: typed_decisive_coverage(refs, unlabeled=True, k=10, alpha=.99),
+             "oracle_decisive_coverage": lambda refs: typed_decisive_coverage(refs, oracle=True), "oracle_decisive_coverage_unc": lambda refs: typed_decisive_coverage(refs, uncertainty_power=1.0, oracle=True),
              "typed_decisive_probcover_q02": lambda refs: typed_decisive_probcover(refs, delta_q=0.02), "typed_decisive_probcover_q05": lambda refs: typed_decisive_probcover(refs, delta_q=0.05),
              "typed_decisive_probcover_q10": lambda refs: typed_decisive_probcover(refs, delta_q=0.10), "typed_decisive_probcover_unc_q05": lambda refs: typed_decisive_probcover(refs, delta_q=0.05, uncertainty_power=1.0),
              "typed_decisive_probcover_q05_typeonly": lambda refs: typed_decisive_probcover({}, delta_q=0.05), "typed_decisive_probcover_q05_shuffled": lambda refs: typed_decisive_probcover(refs, True, delta_q=0.05),
