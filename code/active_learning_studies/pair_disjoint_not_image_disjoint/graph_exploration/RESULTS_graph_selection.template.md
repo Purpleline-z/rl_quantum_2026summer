@@ -46,11 +46,19 @@ Comparators, paired differences to the controls, other-type accuracy and batch c
 
 ### 3.5 Replication S2 (fresh seeds)
 
+**S2 cold start (seeds 8340–8369, 30 seeds)**
+
 <!--TABLE:compact_s2c-->
+**S2 regular start (seeds 8370–8399, 30 seeds)**
+
 <!--TABLE:compact_s2r-->
 ### 3.5b Larger replication S3 (fresh seeds)
 
+**S3 regular start (seeds 8400–8439, 40 seeds)**
+
 <!--TABLE:compact_s3r-->
+**S3 cold start (seeds 8440–8479, 40 seeds)**
+
 <!--TABLE:compact_s3c-->
 ### 3.5c Graph specificity (all replication blocks)
 

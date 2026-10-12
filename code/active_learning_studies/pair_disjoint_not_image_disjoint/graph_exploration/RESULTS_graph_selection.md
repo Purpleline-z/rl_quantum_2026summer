@@ -81,6 +81,8 @@ Comparators, paired differences to the controls, other-type accuracy and batch c
 
 ### 3.5 Replication S2 (fresh seeds)
 
+**S2 cold start (seeds 8340–8369, 30 seeds)**
+
 Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 
 | rule | acc A | acc B | auc A | auc B |
@@ -88,6 +90,8 @@ Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 | tdc | +0.008 [0.2689] | +0.002 [1.0000] | +0.005 [0.2983] | +0.001 [1.0000] |
 | qcov_alloc | +0.008 [0.2346] | +0.006 [0.4377] | +0.006 [0.2983] | +0.005 [0.9256] |
 
+
+**S2 regular start (seeds 8370–8399, 30 seeds)**
 
 Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 
@@ -99,6 +103,8 @@ Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 
 ### 3.5b Larger replication S3 (fresh seeds)
 
+**S3 regular start (seeds 8400–8439, 40 seeds)**
+
 Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 
 | rule | acc A | acc B | auc A | auc B |
@@ -106,6 +112,8 @@ Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 | tdc | +0.005 [0.0929] | +0.009 [0.0929] | +0.004 [0.0929] | +0.008 [0.0001] |
 | qcov_alloc | +0.006 [0.0330] | +0.013 [0.0084] | +0.008 [0.0024] | +0.010 [0.0000] |
 
+
+**S3 cold start (seeds 8440–8479, 40 seeds)**
 
 Gain over Random [Holm-adjusted p]; Holm family = all rows x cells of this block
 
