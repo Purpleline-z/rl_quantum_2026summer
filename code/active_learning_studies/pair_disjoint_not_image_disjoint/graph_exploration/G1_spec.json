@@ -1,0 +1,7 @@
+{"reference": "aw8_all", "splits": ["A", "B"],
+ "candidates": ["lap1_k10", "lap3_k10", "lap10_k10", "lap3_rq3_k10"],
+ "controls": {"lap1_k10": {"shuf": "lap1_k10_shuf", "noise3": "lap1_k10_n3"},
+              "lap3_k10": {"shuf": "lap3_k10_shuf", "noise3": "lap3_k10_n3"},
+              "lap10_k10": {"shuf": "lap10_k10_shuf", "noise3": "lap10_k10_n3"},
+              "lap3_rq3_k10": {"shuf": "lap3_rq3_k10_shuf"}},
+ "secondary_metrics": ["ll", "htr_acc", "htr_ll"]}

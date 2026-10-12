@@ -60,9 +60,42 @@ def to_md(df, floatfmt="{:+.4f}"):
     return "\n".join(out)
 
 
+def build_tests(spec):
+    """Tests of a G-spec: main family (candidate - reference, A/B x AUC/accuracy; Holm), control rows (candidate - own shuffled-graph control, AUC/accuracy; uncorrected, plus any extra
+    controls listed), secondary exploratory families (log-loss and HTR metrics; Holm within family, not part of the success rule)."""
+    ref, T = spec["reference"], []
+    cell = lambda l: ["random", l]
+    for cand in spec["candidates"]:
+        for split in spec["splits"]:
+            for m in ("auc", "acc"): T.append({"family": "main", "kind": "vs_ref", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+            for ctl_name, ctl in spec["controls"].get(cand, {}).items():
+                for m in ("auc", "acc"): T.append({"family": "control:" + ctl_name, "kind": "vs_ctl:" + ctl_name, "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ctl)})
+            for m in spec.get("secondary_metrics", ["ll", "htr_acc", "htr_ll"]): T.append({"family": "secondary:" + m, "kind": "vs_ref", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+    return {"tests": T}
+
+
+def verdicts(out, spec):
+    """Success rule of the pre-registration, applied to the test table: per candidate, (i) all four reference differences positive, (ii) >= 3 of them with Holm p < 0.05,
+    (iii) beats its shuffled-graph control (positive and uncorrected p < 0.05 for AUC or accuracy in >= 1 split)."""
+    rows = []
+    for cand in spec["candidates"]:
+        main = out[(out.family == "main") & (out.cand == cand)]; ctl = out[(out.kind == "vs_ctl:shuf") & (out.cand == cand)]
+        i = bool((main.gain > 0).all() and len(main) == 4); ii = int((main.holm < 0.05).sum()); iii = bool(((ctl.gain > 0) & (ctl.p < 0.05)).any())
+        rows.append({"candidate": cand, "all_four_positive": i, "n_holm_sig": ii, "beats_shuffled": iii, "CONFIRMED": bool(i and ii >= 3 and iii)})
+    return pd.DataFrame(rows)
+
+
+def confirm_report(spec, dirs):
+    out = c.run(build_tests(spec), load(dirs)); out["cells"] = [f"{a[1]} - {b[1]}" for a, b in zip(out.a, out.b)]
+    cols = ["family", "split", "metric", "cells", "n_seeds", "gain", "lo", "hi", "share_better", "p", "holm"]
+    return out, to_md(out[cols].assign(**{k: out[k].astype(float) for k in ("gain", "lo", "hi", "share_better", "p", "holm")}), "{:+.4f}")
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == "dev":
         ref = "aw8_all"; dirs = [a for a in sys.argv[2:] if not a.startswith("--")]; frame = load(dirs); t = dev_table(frame, ref)
         t = t[[c_ for c_ in t.columns if not c_.endswith("_lo") and not c_.endswith("_hi")]]
         print(to_md(t))
+    elif mode == "confirm":
+        spec = json.loads(Path(sys.argv[2]).read_text()); out, md = confirm_report(spec, sys.argv[3:]); print(md); print(); print(to_md(verdicts(out, spec), "{}"))
