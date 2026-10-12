@@ -102,10 +102,16 @@ def _pair_space(graph: ImageGraph, items, steps: int = gs.PROPAGATION_STEPS):
     return np.concatenate([(a + b) / 2, np.abs(a - b), a * b], axis=1)
 
 
-def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0, q_weight: float = 0.0, oracle: bool = False, **graph_kw):
+def zeroshot_decisive(graph: ImageGraph, cands, power: float = 1.0) -> np.ndarray:
+    """Label-free, parameter-free answerability prior: |q_a(t) - q_b(t)|^power, the difference of the two images' propagated posterior of the queried type t.
+    A judgment is decisive when one image looks like type t and the other does not; tie when both do (large min q), not_apply when neither does (data-level diagnostic: single-feature AUC .84 / .90 / .90)."""
+    f = graph.judgment_features(cands)[:, 2]; return np.clip(f, 0.02, 1.0) ** power
+
+
+def typed_decisive_coverage(refs, shuffle=False, gamma: float = 1.0, uncertainty_power: float = 0.0, q_weight: float = 0.0, oracle: bool = False, zeroshot: float | None = None, flat: bool = False, **graph_kw):
     """oracle=True replaces P(decisive) by the candidates' TRUE outcome (+0.02): an UPPER BOUND on what any answerability model could give, NOT a valid selector (reads hidden labels)."""
     def select(cands, labeled, model, cache, budget, seed=0):
-        g = _graph(cands, labeled, cache, refs, seed, shuffle, **graph_kw); p = (np.array([float(x["outcomes"][0][1]) for x in cands]) * .98 + .02 if oracle else decisive_probability(g, cands, labeled)) ** gamma
+        g = _graph(cands, labeled, cache, refs, seed, shuffle, **graph_kw); p = (np.array([float(x["outcomes"][0][1]) for x in cands]) * .98 + .02 if oracle else np.ones(len(cands)) if flat else zeroshot_decisive(g, cands, zeroshot) if zeroshot is not None else decisive_probability(g, cands, labeled)) ** gamma
         if uncertainty_power: p = p * (0.25 + ju._own_uncertainty(model, cands, cache)) ** uncertainty_power
         allp = _pair_space(g, cands + labeled); allp = (allp - allp.mean(0)) / (allp.std(0) + 1e-6); allp = allp / np.sqrt(allp.shape[1])
         onehot = np.eye(5)[[int(x["type_idx"]) for x in cands + labeled]][:, list(TYPES)]; allp = np.concatenate([allp, onehot], axis=1)
@@ -195,6 +201,11 @@ def _gcn_pair_rule(kind: str, lr: float = 1e-3):
 
 
 FACTORIES = {
+             "typed_zeroshot_coverage": lambda refs: typed_decisive_coverage(refs, zeroshot=1.0, alpha=.99), "typed_zeroshot_coverage_p05": lambda refs: typed_decisive_coverage(refs, zeroshot=.5, alpha=.99),
+             "typed_zeroshot_coverage_ul": lambda refs: typed_decisive_coverage(refs, zeroshot=1.0, unlabeled=True, k=40, alpha=.99), "typed_zeroshot_coverage_unc": lambda refs: typed_decisive_coverage(refs, zeroshot=1.0, uncertainty_power=1.0, alpha=.99),
+             "typed_zeroshot_coverage_ul_unc": lambda refs: typed_decisive_coverage(refs, zeroshot=1.0, uncertainty_power=1.0, unlabeled=True, k=40, alpha=.99),
+             "typed_zeroshot_coverage_a9": lambda refs: typed_decisive_coverage(refs, zeroshot=1.0, alpha=.9),
+             "typed_flat_coverage_a99": lambda refs: typed_decisive_coverage(refs, flat=True, alpha=.99), "typed_zeroshot_coverage_shuffled": lambda refs: typed_decisive_coverage(refs, True, zeroshot=1.0, alpha=.99),
              "typed_decisive_coverage_a99": lambda refs: typed_decisive_coverage(refs, alpha=.99), "typed_decisive_coverage_a99_shuffled": lambda refs: typed_decisive_coverage(refs, True, alpha=.99),
              "typed_decisive_coverage_ul_k40a99": lambda refs: typed_decisive_coverage(refs, unlabeled=True, k=40, alpha=.99), "typed_decisive_coverage_ul_k40a99_shuffled": lambda refs: typed_decisive_coverage(refs, True, unlabeled=True, k=40, alpha=.99),
              "typed_decisive_coverage_ul_k10a99": lambda refs: typed_decisive_coverage(refs, unlabeled=True, k=10, alpha=.99),

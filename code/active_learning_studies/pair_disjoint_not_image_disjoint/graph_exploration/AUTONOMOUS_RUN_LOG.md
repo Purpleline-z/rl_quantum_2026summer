@@ -147,3 +147,11 @@ User request: add the unlabelled images to the graph; choose and execute own res
 ### Plan for the night (decided by Claude)
 Because (i) shuffled/typeonly controls match the real rule, the answerability predictor's quality seems not to be the lever; (ii) before more variants, measure the HEADROOM: `oracle_decisive_coverage` uses the candidates' TRUE outcome as P(decisive) (hidden-label upper bound, NOT a valid selector). If even the oracle gives only ~+0.05, no answerability model can give a breakthrough, and the work should go to a different lever (what the head learns from; budget allocation over types). 
 Step A (DEV 400-409, both splits): oracle_decisive_coverage, oracle_decisive_coverage_unc, typed_decisive_coverage_a99, _ul_k40a99, _ul_k10a99. Reference: typed_decisive_coverage, typeonly, shuffled (cells exist).
+
+### Finding during step A: an unfitted answerability prior (`graph_exploration/unlabeled/single_feature_auc.py`)
+Single-feature AUCs over all 521 rows (no model fitted; reference images random 60% per class; mean of 5 draws). With the propagated type posterior q (type of the queried judgment = t):
+- decisive vs rest: |q_a(t) - q_b(t)| AUC .78 (alpha .9), .84 (alpha .99, base graph), .82 (+unlabelled k40 a.99). Meaning: one image looks like type t and the other does not.
+- tie: min(q_a(t), q_b(t)) AUC .88-.90 (both images look like type t). not_apply: max(q_a(t), q_b(t)) AUC .10 inverted = .90 (neither looks like type t).
+=> `zeroshot_decisive` = |q_a(t)-q_b(t)|^power is a label-free, parameter-free P(decisive) usable from budget 0. In-run the learned logistic (13 features) is fitted on only 10-60 revealed rows and is likely much noisier than this prior (hypothesis, tested by the next rounds).
+Caveat (selection by looking at labels of all rows): choosing |q_a-q_b| among 8 features x 5 graph settings used all 521 labels, and all later seeds share these 168 groups. It is a single physically motivated feature, but the fresh-seed test is not independent of this choice.
+New rules registered (graph_typed.py): typed_zeroshot_coverage (alpha .99), _p05, _ul (unlabelled nodes, k40), _unc, _ul_unc, _a9 (alpha .9, isolates the propagation strength), flat control `typed_flat_coverage_a99` (coverage in the same space, P = 1), `typed_zeroshot_coverage_shuffled`.
