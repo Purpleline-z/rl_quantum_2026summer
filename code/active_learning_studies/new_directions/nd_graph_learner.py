@@ -57,12 +57,15 @@ def excluded_identities(ctx) -> set[str]:
 # ------------------------------------------------------------------------------------------ the graph
 class GraphData:
     """kNN graph over the allowed nodes of one (seed, split) context."""
-    def __init__(self, ctx, k: int = 10, shuffle: int | None = None):
+    def __init__(self, ctx, k: int = 10, shuffle: int | None = None, noise: float = 0.0):
         cache = ctx.features.cache; all_paths = sorted(cache); hashes = content_hashes(all_paths); bad = excluded_identities(ctx)
         self.paths = [p for p in all_paths if hashes[p] not in bad]; self.index = {p: i for i, p in enumerate(self.paths)}; n = len(self.paths); self.k = k
         self.x = torch.stack([cache[p] for p in self.paths]).float(); mu = self.x.mean(0); xc = self.x - mu
         self.mu = mu; self.xn = xc / xc.norm(dim=1, keepdim=True).clamp_min(1e-9)
-        sim = self.xn @ self.xn.T; sim.fill_diagonal_(-2.0); self.nbr = sim.topk(k, dim=1).indices            # (n, k) nearest nodes
+        xs = self.xn
+        if noise > 0:   # dose-response control: the topology is built from features with added isotropic noise of norm `noise` (unit-norm features), everything else stays clean
+            g = torch.Generator().manual_seed(12345); xs = self.xn + noise * torch.randn(self.xn.shape, generator=g) / self.xn.shape[1] ** 0.5
+        sim = xs @ xs.T; sim.fill_diagonal_(-2.0); self.nbr = sim.topk(k, dim=1).indices            # (n, k) nearest nodes
         a = torch.zeros(n, n, dtype=torch.bool); a[torch.arange(n)[:, None].expand_as(self.nbr), self.nbr] = True; a = a | a.T      # symmetric kNN adjacency
         self.shuffled = shuffle is not None
         if shuffle is not None:   # control: permute node identities (topology and degree sequence kept, correspondence with the features destroyed)
@@ -110,10 +113,10 @@ class GraphData:
         return self._px
 
 
-def graph_for(ctx, k: int, shuffle: bool = False) -> GraphData:
-    key = (id(ctx), k, shuffle)
+def graph_for(ctx, k: int, shuffle: bool = False, noise: float = 0.0) -> GraphData:
+    key = (id(ctx), k, shuffle, noise)
     cached = ctx.__dict__.setdefault("_graphs", {})
-    if key not in cached: cached[key] = GraphData(ctx, k, shuffle=ctx.seed if shuffle else None)
+    if key not in cached: cached[key] = GraphData(ctx, k, shuffle=ctx.seed if shuffle else None, noise=noise)
     return cached[key]
 
 
@@ -222,9 +225,9 @@ def d_from_scores(score_fn, test) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------ learner registry
-def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuffle=False, q_kind="graph"):
+def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuffle=False, q_kind="graph", noise=0.0):
     def learner(ctx, labelled, seed):
-        gd = graph_for(ctx, k, shuffle); cache = ctx.features.cache
+        gd = graph_for(ctx, k, shuffle, noise); cache = ctx.features.cache
         if sgc: featfn = lambda paths: gd.propagate_features([str(p) for p in paths], cache, shuffle_ext=shuffle); node_x = gd.propagated_nodes(); dim = gd.x.shape[1]
         else: featfn = core.identity_features(ctx); node_x = gd.x; dim = gd.x.shape[1]
         q = None
@@ -266,5 +269,9 @@ for _k in (10, 20):
     for _lam in (10.0, 30.0):
         LEARNERS[f"lap{_lam:g}_k{_k}"] = _mlp_learner(k=_k, lap=_lam); LEARNERS[f"lap{_lam:g}_k{_k}_shuf"] = _mlp_learner(k=_k, lap=_lam, shuffle=True)
 for _lam in (0.1, 0.3, 1.0, 3.0, 10.0): LEARNERS[f"ridge{_lam:g}"] = _mlp_learner(ridge=_lam)
+for _lam in (1.0, 3.0, 10.0):
+    for _sg in (1.0, 3.0): LEARNERS[f"lap{_lam:g}_k10_n{_sg:g}"] = _mlp_learner(lap=_lam, noise=_sg)
+for _l, _r in ((3.0, 1.0), (3.0, 3.0), (10.0, 1.0)):
+    LEARNERS[f"lap{_l:g}_rq{_r:g}_k10"] = _mlp_learner(lap=_l, rankq=_r); LEARNERS[f"lap{_l:g}_rq{_r:g}_k10_shuf"] = _mlp_learner(lap=_l, rankq=_r, shuffle=True)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
