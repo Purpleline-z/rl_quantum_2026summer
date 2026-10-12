@@ -1,0 +1,9 @@
+# GPU / user tasks left by the graph-learner branch
+
+All CPU experiments used frozen SimCLR features and an MLP head. The following need a GPU (or the user) and were **not** run:
+
+1. **Laplacian regulariser in end-to-end fine-tuning.** In `Experiment.train` (end-to-end model, Task 3c recipe), add `λ · mean_{(i,j)∈kNN edges}Σ_k (s_k(i) − s_k(j))²` on random edges of a kNN graph built from the *frozen* initial encoder features (same node set rules as `nd_graph_learner.GraphData`: all trajectory + ideal images minus validation/test and outer-test ideal images by content hash). Try λ ∈ {1, 3, 10} with the reference-anchor weight at 8 (or 2/8/32 as in `new_directions` GPU task 1). Compare with and without the graph term on identical label sets, keep the shuffled-graph and noisy-graph controls (`GraphData(..., shuffle=...)`, `noise=3.0`). Changing the training loss changes the Task-3c cache hash; run it as a separate experiment tag.
+2. **Other graphs.** Rebuild the kNN graph from other frozen encoders (DINOv2, CLIP image tower, ImageNet ResNet-50) or from the fine-tuned encoder of the previous round and check whether the Laplacian gain grows with graph quality. A useful readout is the same-class share of ideal–ideal edges (`gl_mechanism.py`), which was ≈0.80 for k = 10 SimCLR (chance 0.25).
+3. **Prospective test.** When new growth data arrive, run active-learning arms (random vs `aw8_all` vs `lap3_k10`) on the *new* images: the graph can include the unlabelled new images, which is where this method should help most. This avoids the "same 168 groups" limit of all the CPU results.
+4. **HTR.** The exploratory secondary family showed HTR-accuracy gains for the Laplacian learners; test with more HTR pairs (more reference images, or labelled HTR pairs) before believing it.
+5. (User decision) whether to report `lap3_k10` as the default learner in the paper draft; I did not touch `code/ACADEMIC_REPORT_DRAFT.md`.
