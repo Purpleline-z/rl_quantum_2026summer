@@ -203,3 +203,10 @@ Missing control identified: coverage x own-head uncertainty WITHOUT the answerab
 
 ### FROZEN PHASE 5 (written before seeds 500-519 were run; never used)
 Question: does the zero-shot answerability prior add AUC over coverage x own-head uncertainty alone? Strategies: typed_zeroshot_coverage_unc, typed_flat_unc_coverage_a99, random. PRIMARY: paired AUC difference zeroshot_unc minus flat_unc, Wilcoxon, Holm over 4 blocks; success = Holm < .05 and positive in >= 2 blocks. Secondary: zeroshot_unc vs Random (third fresh set), log-loss. Seeds 500-519.
+
+### PHASE 5 RESULT (seeds 500-519, run once; `aggregate_phase5.py`): primary criterion NOT met; the candidate's AUC gain over Random replicates a third time
+zeroshot_unc AUC gain over Random A-sin / A-seq / B-sin / B-seq: +0.009 / +0.015 / +0.023 / +0.025 (raw p .017 / .007 / <.001 / <.001). Control flat_unc (coverage x own-head uncertainty, P = 1): +0.004 / +0.018 / +0.014 / +0.009.
+Paired zeroshot_unc minus flat_unc (AUC): +0.005 / -0.003 / +0.009 / +0.015 (Holm .70 / .76 / .50 / .003). => The answerability prior adds ranking quality only in B-sequential; most of the AUC gain comes from coverage in the graph-propagated pair space x own-head uncertainty. Log-loss: flat_unc is as good or better (+0.020 / +0.085 / +0.077 / +0.054 vs +0.010 / +0.030 / +0.046 / +0.050).
+
+### FROZEN PHASE 6 (reference comparison with non-graph embedding baselines; seeds 500-519, no new candidate)
+The advisor's first question: simple graph-aware acquisition vs SimCLR-embedding methods. Run image_coverage_uncertainty, core_set_relation, bald_decisive, laplace_bald on the same seeds 500-519. Report paired AUC (primary) and log-loss differences zeroshot_unc minus each baseline, raw p and Holm over the 16 comparisons. No selection among them afterwards.
