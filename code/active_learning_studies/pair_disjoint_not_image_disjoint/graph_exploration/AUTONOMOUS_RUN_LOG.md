@@ -170,3 +170,17 @@ New rules registered (graph_typed.py): typed_zeroshot_coverage (alpha .99), _p05
 - Across all 16108 (cell, budget) pairs of 50 strategies (`share_vs_gain.py`): Spearman(decisive-share difference to Random, log-loss gain) between -0.08 and -0.01; with AUC gain +0.05..+0.09. Ordinary rules differ little in decisive share (+-0.15), so the effect is large only at the extremes (oracle, decisive-only).
 - Headroom (10 DEV seeds): test AUC of the head trained on initial 10 groups / +60 random judgments / ALL pool judgments: A .854 / .891 / .938; B .870 / .918 / .954. Per type (A; initial / random60 / full): type0 (1x1) .64 / .67 / .72 (hard), type2 .84 / .84 / .90, type3 .98 / .99 / 1.00 and type4 .92 / .97 / 1.00 (saturated). Mean over all 35 seeds: Random AUC .878 (budget 10) -> .905 (budget 60); calibrated log-loss of Random in A does not improve with budget (.49 -> .58).
   => The endpoint leaves little room: ranking quality is mostly set by the initial 10 groups; budget 60 is 78-94% of the pool in split A. Differences between selectors are bounded by about +-0.03 AUC. Expect small effects for ANY selector.
+
+### Zero-shot / unlabelled-node DEV result (seeds 400-409, 10 seeds; log-loss gain A-sin / A-seq / B-sin / B-seq; AUC gain below)
+ul_k10a99 (learned P, unlabelled nodes) +0.117 / +0.130 / -0.001 / +0.092 | AUC +0.015 / +0.014 / +0.009 / +0.027
+zeroshot_a9 (alpha .9) +0.098 / +0.109 / +0.016 / +0.076 | AUC +0.017 / +0.018 / +0.006 / +0.014
+zeroshot_unc (a.99) +0.033 / +0.007 / -0.005 / +0.057 | AUC +0.020 / +0.012 / +0.010 / +0.017 (AUC positive in all 4 blocks)
+zeroshot (a.99) +0.026 / +0.039 / +0.004 / +0.064; zeroshot_ul (unlabelled k40) -0.055 / -0.043 / -0.025 / +0.035; zeroshot_ul_unc +0.008 / +0.001 / -0.060 / +0.025; flat coverage (P=1; a99) -0.005 / +0.009 / +0.003 / +0.050 | AUC ~ -0.004..-0.010; zeroshot shuffled +0.028 / +0.069 / -0.004 / +0.090.
+Unlabelled nodes: no consistent benefit (k40 variants clearly worse in A/B-single; k10 about equal to without).
+
+### FROZEN PHASE 3 TEST (written before seeds 460-479 were run; fresh seeds, never used)
+Because the composition ablation shows raw log-loss is partly a shrinkage/mix artefact, AUC (ranking) is co-primary with log-loss.
+Candidates (3): (1) typed_decisive_coverage_ul_k10a99 (learned P(decisive); graph with 501 unlabelled nodes; alpha .99), (2) typed_zeroshot_coverage_a9 (label-free |q_a-q_b| prior, alpha .9), (3) typed_zeroshot_coverage_unc (same x own-head uncertainty, alpha .99).
+Controls (not in the Holm family): typed_flat_coverage_a99 (coverage, P=1, same space as 2/3), typed_flat_coverage_ul_k10 (flat, same space as 1), shuffled-posterior versions of 1, 2, 3. Reference: typed_decisive_coverage (phase-1 rule, third replication). Baseline Random in the same run.
+Holm family: 3 candidates x 4 blocks, separately for log-loss and AUC (12 tests each). SUCCESS = a candidate with Holm p < 0.05 and positive gain in BOTH log-loss and AUC in >= 2 of the 4 blocks incl. both splits. Graph claim additionally needs real minus shuffled > 0 and real minus flat > 0 (paired Wilcoxon p < .05).
+Seeds 460-479, both splits, both conditions.
