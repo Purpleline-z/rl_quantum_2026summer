@@ -49,6 +49,8 @@ Honesty rules: report failure if it happens; no tuning on confirmation seeds; ev
 - Decisive-weighted random sampling (gamma 1/2/4) is not good (B-single -0.06 to -0.10): coverage is needed.
 - Round 3: variants around coverage_unc (gamma 2, uncertainty power 2, q-coordinates in the coverage space) plus its type-only and shuffled controls. Then freeze <= 4 candidates.
 
+
+## ===== Session 2 log (parallel session, same branch) =====
 ### Round 3 (DEV 400-409, finished 2026-10-09 in a fresh container; feature cache rebuilt, `launch_round.sh` path bug fixed)
 Log-loss gain over Random, blocks A-single / A-seq / B-single / B-seq (AUC gain in the second line):
 - typed_decisive_coverage_unc (reference): +0.108 / +0.138 / +0.029 / +0.091; AUC +0.019 / +0.022 / +0.005 / +0.020.
@@ -94,3 +96,38 @@ typed_decisive_coverage log-loss gain A-single / A-seq / B-single / B-seq: +0.03
 Controls: typeonly +0.033 / +0.046 / +0.042 / +0.030; shuffled +0.048 / +0.062 / +0.062 / +0.050 (shuffled is as good or better -> no graph effect). core_set_relation +0.072 / +0.072 / -0.027 / -0.048; typiclust_pairs ~ Random or worse.
 Conclusion: no graph-attributable improvement. Common ingredient of real/typeonly/shuffled (type-aware decisive weighting + coverage) gives a consistent ~+0.03..+0.06, not pre-registered, not significant per block after Holm.
 Untried: per-type quotas, joint multinomial outcome model / expected-information formulation, graph with unlabelled trajectory images, GCN as reward model (advisor decision), second encoder (GPU).
+
+## ===== Session 1 log (original autonomous run) =====
+### Round 3 (DEV 400-409): log-loss gain over Random, blocks A-single, A-seq, B-single, B-seq
+- coverage_unc +0.108 / +0.138 / +0.029 / +0.091 (AUC +0.019 / +0.022 / +0.005 / +0.020); its type-only control +0.119 / +0.056 / -0.017 / +0.056 (AUC +0.010 / -0.005 / -0.006 / +0.001); its shuffled-posterior control +0.103 / +0.096 / -0.043 / +0.022 (AUC +0.008 / +0.009 / -0.006 / +0.003).
+  So on DEV the real graph posterior beats both controls in A-seq, B-single and B-seq on log-loss and in all four blocks on AUC; in A-single the type-only control is as good.
+- Variants not better than coverage_unc: unc_u2 (uncertainty squared) +0.116 / +0.145 / -0.009 / +0.070; unc_g2 +0.098 / +0.109 / -0.003 / +0.067; unc_q (type-posterior coordinates in the coverage space) +0.077 / +0.088 / +0.009 / +0.034.
+
+### FROZEN CANDIDATES (written before any confirmation seed was run; DEV selection only)
+1. `typed_decisive_coverage_unc`   (primary)
+2. `typed_decisive_coverage`       (plain coverage x P(decisive); strongest in B-sequential on DEV)
+3. `typed_decisive_bald`           (Laplace-BALD x P(decisive); information-based variant)
+Controls reported alongside, not candidates: `typed_decisive_coverage_unc_typeonly`, `typed_decisive_coverage_unc_shuffled`. Embedding baselines on the same confirm cells (second wave): core_set_relation, bald_decisive, typiclust_pairs, laplace_bald, uncertainty.
+Test: seed-level Wilcoxon on the log-loss gain over Random (mean over budgets 10/20/40/60), Holm over the 3 candidates within each of the four blocks; AUC reported. Success criterion as fixed at the top of this file.
+CONFIRM seeds: 410-429 and 42, 79, 123, 202, 303 (25 seeds). No changes to the candidates after this point.
+
+### CONFIRM results (25 unseen seeds; frozen candidates; Holm over the 3 candidates per block). Full output: results/judgment_unit_study/confirm_report.txt (regenerate with `python3 aggregate_confirm.py`)
+**The pre-registered success criterion is NOT met.** No candidate has Holm p < 0.05 in both splits.
+- typed_decisive_coverage (plain coverage x P(decisive)): split B significant in both conditions (single-shot +0.062 log-loss, Holm p 0.014, AUC +0.013; sequential +0.083, Holm p 0.002, AUC +0.019) but not in split A (-0.007 and -0.010, Holm p 1.0).
+- typed_decisive_coverage_unc (primary): A -0.002 / -0.008, B +0.002 / +0.050 (Holm 0.055): not significant anywhere. typed_decisive_bald: A +0.007 / -0.006, B +0.019 / +0.049 (Holm 0.055).
+- Controls: the shuffled-posterior control of coverage_unc is as good as or better than the real rule in B-sequential (+0.081 vs +0.050) and in B-single (+0.031 vs +0.002); the type-only control is +0.026 / +0.030 in A and -0.005 / +0.040 in B. The graph type-posterior therefore does NOT explain the B gain; coverage in graph-propagated pair space does, and coverage rules without any graph (core_set_relation: A +0.042 / +0.050, B-seq +0.075) do as well.
+- The development gains (+0.1 to +0.14 in split A) did not replicate (A about 0 on 25 unseen seeds). Reason checked: on dev seeds 400-409 Random's log-loss was unusually poor (0.648 vs 0.548 on confirm seeds) while the candidate's own log-loss was similar (0.510 vs 0.554); with 10 dev seeds and about 20 variants tried, the dev choice was optimistic (selection on seeds where Random happened to do badly).
+- Wave 2 (embedding baselines on the same confirm cells) running; numbers above for those rows are partial in split B until it finishes (n=20 of 25).
+
+### Round 4: REPLICATION on fresh seeds 430-459 (30 seeds, split B only, both conditions). Pre-registered before running (2026-10-09 19:45 UTC).
+Motivation: `typed_decisive_coverage` was significant in split B in the confirmation (+0.062 single-shot, Holm 0.014; +0.083 sequential, Holm 0.002) but its own controls were never run, and the controls of the primary rule showed that the type posterior is not responsible. No tuning: the rules are exactly the existing `typed_decisive_coverage`, `typed_decisive_coverage_typeonly` (decisive predictor from the type one-hot only), `typed_decisive_coverage_shuffled` (type posterior shuffled over images), and the embedding baseline `core_set_relation`; Random = 5 draws.
+- H1 (primary): typed_decisive_coverage has a positive log-loss gain over Random in split B; seed-level Wilcoxon, Holm over the two conditions.
+- H2 (does the graph help?): real minus shuffled and real minus type-only, paired over seeds, reported with raw p (4 comparisons: 2 controls x 2 conditions; not corrected, say so).
+- Not tested: split A (null in the confirmation).
+Interpretation rule decided now: if H2 differences are not clearly positive, the conclusion is "coverage in graph-propagated space helps in split B, the type posterior / graph structure is not shown to be responsible".
+
+### Round 4 results (seeds 430-459, split B; results/judgment_unit_study/replication_report.txt)
+typed_decisive_coverage: single-shot +0.042 log-loss (raw p 0.029, Holm over the two conditions 0.059, AUC +0.008), sequential +0.030 (Holm 0.39). Controls as good: type-only +0.038 / +0.038, shuffled posterior +0.060 / +0.034; paired rule minus type-only +0.004 / -0.008, minus shuffled -0.018 / -0.003 (all n.s.). Core-set baseline -0.015 / -0.019 (its confirmation gain of +0.063 did not replicate); rule minus Core-set +0.057 (raw p 0.058) / +0.049 (0.12).
+Verdict: H1 not significant after Holm (single-shot borderline); H2 not supported (graph posterior adds nothing over the type-only decisive predictor). Honest summary: type-aware decisive weighting of a coverage rule gives a small gain (about 0.03-0.06 log-loss) in split B; the graph is not responsible; split A null.
+Report: section 5.15 now contains the confirmation, the verdict and the replication (generated by make_confirm_section.py --insert); abstract and conclusion were NOT changed.
+

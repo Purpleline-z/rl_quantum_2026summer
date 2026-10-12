@@ -7,7 +7,7 @@ import argparse
 
 import numpy as np
 
-import aggregate_confirm as ac
+import aggregate_confirm_session2 as ac
 import aggregate_graph_vs_random as agg
 
 ac.SEEDS = list(range(430, 450))
