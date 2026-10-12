@@ -35,6 +35,14 @@ DEV_SEEDS = tuple(range(2000, 2020)); CONFIRM_SEEDS = tuple(range(3000, 3035)) +
 USED_SEEDS_BY_EARLIER_WORK = set(range(400, 430)) | set(range(500, 535)) | set(range(600, 630)) | set(range(700, 1400)) | {42, 79, 123, 202, 303}
 assert not (set(DEV_SEEDS) | set(CONFIRM_SEEDS)) & USED_SEEDS_BY_EARLIER_WORK
 
+# graph-learner study (branch claude/graph-learner-*): its own seed blocks; everything used before (including this module's 2000-6034 blocks and 400-459, 700-1739 of the graph / judgment-unit work) is excluded
+ND_SEEDS_ALL = set(DEV_SEEDS) | set(CONFIRM_SEEDS)
+USED_BEFORE_GRAPH_LEARNER = USED_SEEDS_BY_EARLIER_WORK | ND_SEEDS_ALL | set(range(400, 460)) | set(range(700, 1740)) | set(range(2000, 2020)) | set(range(3000, 6035))
+GL_DEV_SEEDS = tuple(range(7000, 7020)); GL_CONFIRM1 = tuple(range(7100, 7135)); GL_CONFIRM2 = tuple(range(7200, 7235)); GL_COLD = tuple(range(7300, 7335))
+GL_SEEDS_ALL = set(GL_DEV_SEEDS) | set(GL_CONFIRM1) | set(GL_CONFIRM2) | set(GL_COLD)
+assert not GL_SEEDS_ALL & USED_BEFORE_GRAPH_LEARNER and len(GL_SEEDS_ALL) == 20 + 3 * 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GL_SEEDS_ALL   # later studies must not reuse the graph-learner blocks
+
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
 

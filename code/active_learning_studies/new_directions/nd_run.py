@@ -35,6 +35,9 @@ def registry() -> dict:
     try:
         import nd_temporal; out.update(nd_temporal.LEARNERS)
     except ImportError: pass
+    try:
+        import nd_graph_learner; out.update(nd_graph_learner.LEARNERS)
+    except ImportError as error: print('graph learners unavailable:', error)
     return out
 
 
