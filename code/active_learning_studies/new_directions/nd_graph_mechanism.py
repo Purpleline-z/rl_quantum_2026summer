@@ -33,12 +33,25 @@ def _is_ideal(path: str) -> bool:
 
 
 # ------------------------------------------------------------------------------------------ topology features
+def _load_imagenet() -> dict:
+    """path (string as used by the feature cache) -> 512-d ImageNet-ResNet-18 feature, from image_representation_analysis (label-free, cached)."""
+    import pandas as pd
+    rep = core.HERE.parent / "image_representation_analysis" / "results" / "representation_exploration"; man = pd.read_csv(rep / "manifest.csv"); arr = torch.as_tensor(np.load(rep / "cache" / "imagenet_resnet18.npy")).float()
+    root = str(Path(core.single_study.DATA).resolve()) + "/"; out = {}
+    for p, v in zip(man.path, arr): out[root + p.split("data/original data/")[-1] if False else root + "original data/" + p.split("original data/")[-1]] = v
+    return out
+
+
 def topology_features(base: G.GraphData, feat: str, whiten: int, noise: float, lda: float = 0.0) -> torch.Tensor:
     """Unit-norm, mean-centred features used ONLY to decide which nodes are neighbours."""
     if feat == "final": x = base.x
     else:
         if not _LAYERS: _LAYERS.update(nd_gm_layers.load())
         if feat in ("l2", "l3", "l4"): x = torch.stack([_LAYERS[feat][p] for p in base.paths]).float()
+        elif feat in ("imnet", "imnet_simclr"):   # ImageNet ResNet-18 features of the old representation analysis (same 1278 images, order of its manifest.csv), topology only
+            if "imnet" not in _LAYERS: _LAYERS["imnet"] = _load_imagenet()
+            xi = torch.stack([_LAYERS["imnet"][p] for p in base.paths]).float()
+            x = xi if feat == "imnet" else torch.cat([F.normalize(xi - xi.mean(0), dim=1), F.normalize(base.x - base.x.mean(0), dim=1)], dim=1)
         elif feat == "l3l4": x = torch.cat([F.normalize(torch.stack([_LAYERS[l][p] for p in base.paths]).float(), dim=1) for l in ("l3", "l4")], dim=1)
         else: raise ValueError(feat)
     xc = x - x.mean(0)
@@ -231,3 +244,6 @@ _reg("gm_lap10_n0_shuf", lap=10, shuffle=True)    # shuffled-graph control of th
 
 # ---- round 7 (own idea, from the edge statistics): the closest neighbours are near-duplicate frames and carry no constraint; skip them
 _reg("gm10_ring3", lap=10, construct="ring", k=10, r0=3); _reg("gm10_ring6", lap=10, construct="ring", k=10, r0=6); _reg("gm10_drop20", lap=10, construct="drop", k=10, frac=0.2); _reg("gm10_drop40", lap=10, construct="drop", k=10, frac=0.4)
+
+# ---- round 8 (own idea, CPU stand-in for a second encoder): topology built from ImageNet-ResNet-18 features (cached by the old representation analysis) or from ImageNet + SimCLR; the head still reads SimCLR
+_reg("gm10_imnet", lap=10, feat="imnet"); _reg("gm10_imnet_simclr", lap=10, feat="imnet_simclr"); _reg("gm3_imnet", lap=3, feat="imnet")
