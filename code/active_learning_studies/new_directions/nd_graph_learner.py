@@ -284,5 +284,10 @@ LEARNERS["lap3_ha2h10_k10"] = _mlp_learner(lap=3.0, anchor_w={4: 2.0}, lap_w={4:
 for _st in (3.0, 4.0): LEARNERS[f"lap3_k10_st{_st:g}"] = _mlp_learner(lap=3.0, steps_scale=_st)
 LEARNERS["lap3_k10_st2lr2"] = _mlp_learner(lap=3.0, steps_scale=2.0, lr_scale=2.0)
 for _st in (2.0, 3.0, 4.0): LEARNERS[f"aw8_all_st{_st:g}"] = _mlp_learner(lap=0.0, steps_scale=_st)
+for _st in (6.0, 8.0): LEARNERS[f"lap3_k10_st{_st:g}"] = _mlp_learner(lap=3.0, steps_scale=_st)
+for _lam in (1.0, 10.0): LEARNERS[f"lap{_lam:g}_k10_st4"] = _mlp_learner(lap=_lam, steps_scale=4.0)
+LEARNERS["lap3_k10_st4lr0.5"] = _mlp_learner(lap=3.0, steps_scale=4.0, lr_scale=0.5)
+LEARNERS["lap3_k10_st4_shuf"] = _mlp_learner(lap=3.0, steps_scale=4.0, shuffle=True); LEARNERS["lap3_k10_st4_n3"] = _mlp_learner(lap=3.0, steps_scale=4.0, noise=3.0)
+LEARNERS["aw8_all_lr2"] = _mlp_learner(lap=0.0, lr_scale=2.0); LEARNERS["aw8_all_st2lr0.5"] = _mlp_learner(lap=0.0, steps_scale=2.0, lr_scale=0.5)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
