@@ -39,8 +39,12 @@ def confirm_learners_vs(exp, ref="aw8_all"):
 
 
 def table(name: str) -> str:
-    m0 = re.match(r"(c1|c2)_learn_vs_aw8$", name)
+    m0 = re.match(r"(c1|c2|cold)_learn_vs_aw8$", name)
     if m0: return confirm_learners_vs(m0.group(1) + "_learn")
+    if name == "c1_comp": return T.to_md(T.comp_table(T.load(dirs("c1_sel")), "lap3_k10"), "{:.1f}") if have("c1_sel") else "*c1_sel: not run*"
+    if name == "cold_learn":
+        if not have("cold_learn"): return "*cold_learn: not run*"
+        spec = json.loads((HERE / "SH2_spec_cold.json").read_text()); out, md = T.confirm_report(spec, [RES / "cold_learn"]); return md + "\n\nVerdicts by the pre-registered rule:\n\n" + T.to_md(T.verdicts_learner(out, spec), "{}")
     if name == "dev_sel_lap3":
         t = T.dev_table(T.load(dirs("sdev1", "sdev2")), "lap3_k10"); return T.to_md(t[[c for c in t.columns if not c.endswith("_holm")]])
     if name == "dev_sel_aw8": t = T.dev_table(T.load(dirs("sdev1")), "aw8_all"); return T.to_md(t[[c for c in t.columns if not c.endswith("_holm")]])
