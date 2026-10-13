@@ -3,6 +3,7 @@
   python3 tg_tables.py dev DIR [--base=lap3_k10_st4] [--metrics=auc,acc,far_auc,far_acc,ll] [--splits=A,B] [--learners=a,b]   paired gains of every learner over the baseline, per split
   python3 tg_tables.py confirm SPEC.json DIR [BLOCKED_DIR]                                                                   frozen test family: Holm over candidates x splits x {auc, acc}; verdicts; secondary endpoints
   python3 tg_tables.py budget DIR --cand=NAME [--base=...]                                                                    gain by budget
+  python3 tg_tables.py audit DIR [--cand=lap3_k10_st4] [--ref=aw8_all_st2lr0.5]                                               gain by time-gap / anchor stratum from the per-judgment CSVs of tg_audit_time.py
   python3 tg_tables.py edges DIR                                                                                              sizes of the edge sets (mean over cells)
 
 Gain = candidate - reference for auc / acc / far_* / near_* / inb_* ; reference - candidate for ll (positive = better).  Per-seed mean over (budget, draw) first, then Wilcoxon signed-rank over seeds (two-sided) and a
@@ -110,6 +111,36 @@ def budget_table(df, cand, base, metrics=("auc", "acc", "far_auc", "far_acc")) -
     return pd.DataFrame(rows)
 
 
+def audit_tables(d, cand, ref, bins=(5, 15, 40)) -> str:
+    """Per-judgment CSVs -> (1) overall per-seed gains (auc, acc, anchor-far auc / acc) and (2) accuracy / log-loss gain by time gap to the nearest labelled frame and by anchor proximity."""
+    from sklearn.metrics import roc_auc_score
+    df = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(str(Path(d) / "seed*.csv.gz")))], ignore_index=True); keys = ["seed", "split", "budget", "draw", "j"]
+    a = df[df.learner == cand].set_index(keys); b = df[df.learner == ref].set_index(keys)[["d"]]; j = a.join(b, rsuffix="_ref", how="inner"); z = j.d * j.sign; zr = j.d_ref * j.sign
+    j["acc_c"], j["acc_r"] = (z > 0).astype(float), (zr > 0).astype(float); j["ll_c"], j["ll_r"] = np.logaddexp(0, -z), np.logaddexp(0, -zr); j = j.reset_index(); j["far"] = j.anc_all_min > 0.03
+    out = [f"#### Overall and anchor-far (per-seed means over budgets; Wilcoxon over seeds): `{cand}` - `{ref}`\n"]; rows = []
+    for split, g in j.groupby("split"):
+        row = {"split": split}
+        for tag, sub in (("all", g), ("far", g[g.far])):
+            per = {"auc": [], "acc": []}; seeds = []
+            for (seed, budget, draw), c in sub.groupby(["seed", "budget", "draw"]):
+                if c.sign.nunique() < 2: continue
+                per["auc"].append((seed, roc_auc_score(c.sign > 0, c.d) - roc_auc_score(c.sign > 0, c.d_ref))); per["acc"].append((seed, (c.weight * (c.acc_c - c.acc_r)).sum() / c.weight.sum()))
+            for m in ("auc", "acc"):
+                s_ = pd.DataFrame(per[m], columns=["seed", "g"]).groupby("seed").g.mean(); sm = summarize(s_); row[f"{tag}_{m}"] = sm["gain"]; row[f"{tag}_{m}_p"] = sm["p"]; row["n_seeds"] = sm["n"]
+        rows.append(row)
+    out.append(md(pd.DataFrame(rows))); edges = [-1, *bins, 1e9]; labels = [f"<= {bins[0]}"] + [f"{bins[i]+1}-{bins[i+1]}" for i in range(len(bins) - 1)] + [f"> {bins[-1]}"]
+    j["time_gap"] = pd.cut(j.tgap_lab, edges, labels=labels); out.append("\n#### By frame gap of the test judgment's farther image to the nearest labelled frame of the same run (accuracy gain weighted; log-loss gain = ref - cand)\n"); rows = []
+    for (split, st), g in j.groupby(["split", "time_gap"], observed=True):
+        per = g.groupby("seed").apply(lambda x: pd.Series({"acc_gain": (x.weight * (x.acc_c - x.acc_r)).sum() / x.weight.sum(), "ll_gain": (x.weight * (x.ll_r - x.ll_c)).sum() / x.weight.sum(), "acc_ref": (x.weight * x.acc_r).sum() / x.weight.sum()}))
+        sa, sl = summarize(per.acc_gain), summarize(per.ll_gain); rows.append({"split": split, "frame gap": str(st), "n_judgments": len(g), "share": len(g) / len(j[j.split == split]), "acc_ref": per.acc_ref.mean(), "acc_gain": sa["gain"], "acc_p": sa["p"], "ll_gain": sl["gain"], "ll_p": sl["p"]})
+    out.append(md(pd.DataFrame(rows)))
+    j["anchor"] = np.where(j.far, "far (>0.03)", "near (<=0.03)"); out.append("\n#### By anchor proximity x frame gap\n"); rows = []
+    for (split, an, st), g in j.groupby(["split", "anchor", "time_gap"], observed=True):
+        per = g.groupby("seed").apply(lambda x: pd.Series({"acc_gain": (x.weight * (x.acc_c - x.acc_r)).sum() / x.weight.sum(), "acc_ref": (x.weight * x.acc_r).sum() / x.weight.sum()})); sa = summarize(per.acc_gain)
+        rows.append({"split": split, "anchor": an, "frame gap": str(st), "n_judgments": len(g), "acc_ref": per.acc_ref.mean(), "acc_gain": sa["gain"], "acc_p": sa["p"]})
+    out.append(md(pd.DataFrame(rows))); return "\n".join(out)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]; opts = dict(a[2:].split("=", 1) for a in sys.argv[2:] if a.startswith("--") and "=" in a); args = [a for a in sys.argv[2:] if not a.startswith("--")]
     if mode == "dev":
@@ -118,5 +149,7 @@ if __name__ == "__main__":
         spec = json.loads(Path(args[0]).read_text()); df = load(args[1]); blocked = load(args[2]) if len(args) > 2 else None; print(confirm(spec, df, blocked))
     elif mode == "budget":
         df = load(args[0]); print(md(budget_table(df, opts["cand"], opts.get("base", "lap3_k10_st4"))))
+    elif mode == "audit":
+        print(audit_tables(args[0], opts.get("cand", "lap3_k10_st4"), opts.get("ref", "aw8_all_st2lr0.5")))
     elif mode == "edges":
         df = load(args[0]); print(md(df[df.learner.str.startswith("tg_")].groupby(["learner", "split"])[["n_knn", "n_temporal"]].mean().reset_index(), "{:.0f}"))

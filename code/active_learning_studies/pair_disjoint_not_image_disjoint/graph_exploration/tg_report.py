@@ -28,8 +28,8 @@ def table(name: str) -> str:
     if name == "dev2": return dev("dev2")
     if name == "devb": return dev("devb", metrics="auc,acc,far_auc,far_acc,inb_auc,inb_acc,ll", splits="blocked")
     if name == "dev_pool": return dev("dev_pool") if have("dev_pool") else "*not run*"
-    if name == "graph_stats":
-        f = RES / "graph_stats.md"; return f.read_text() if f.exists() else "*not generated*"
+    if name in ("graph_stats", "run_stats", "audit_time"):
+        f = RES / f"{name}.md"; return f.read_text() if f.exists() else "*not generated*"
     if name == "confirm":
         if not have("confirm"): return "*confirmation: not run*"
         spec = json.loads((HERE / "TG1_spec.json").read_text()); return T.confirm(spec, T.load(RES / "confirm"), T.load(RES / "confirm_blocked") if have("confirm_blocked") else None)
