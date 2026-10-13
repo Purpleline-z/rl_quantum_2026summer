@@ -52,7 +52,9 @@ def stratum_gains(ct, cand, ref):
 def main():
     N = Numbers("strata"); out = []
     sources = [("development (rt 8800-8819)", "a1", "a1b", PAIRS["a1"]), ("development (rt 8800-8819)", "a1c", "a1b", PAIRS["a1c"])]
-    if (RES / "rt" / "c_a1").exists() and (RES / "rt" / "c_a1b").exists(): sources += [("confirmation (rt 8850-8884)", "c_a1", "c_a1b", PAIRS["a1"])]
+    complete = lambda d, pat: len(glob.glob(str(RES / "rt" / d / pat))) == 70      # 35 seeds x splits A, B; a partially finished red-team confirmation is NOT analysed
+    if complete("c_a1", "seed*.csv.gz") and complete("c_a1b", "seed*.csv"): sources += [("confirmation (rt 8850-8884)", "c_a1", "c_a1b", PAIRS["a1"])]
+    else: print("red-team confirmation block (rt/c_a1, rt/c_a1b) not complete: not included")
     for src, a1, a1b, pairs in sources:
         df = load_csvs(f"rt/{a1}", "seed*.csv.gz"); b = load_csvs(f"rt/{a1b}", "seed*.csv")
         ct = cell_table(df, b, sorted({x for p in pairs for x in p}))
@@ -73,6 +75,8 @@ def main():
         for lab, lo, hi in BINS[:-1] + [("<=0.003", -1, 0.003)]:
             sel = b[(b[col] > lo) & (b[col] <= hi)]; frac = len(sel) / len(b); rows.append(dict(anchor_set=name, stratum=lab, share_of_judgments=frac, n_judgments=len(sel), n_total=len(b)))
             N.put(f"af.{col}.{lab}", frac)
+    for col in ("anc_all_min", "anc_ref_min"):
+        N.put(f"af.{col}.le_0.001", float((b[col] <= 0.001).mean())); N.put(f"af.{col}.le_0.01", float((b[col] <= 0.01).mean()))
     pd.DataFrame(rows).to_csv(L.TABLES / "anchor_fractions.csv", index=False); N.put("af.n_total", len(b))
     # novelty of the test judgment with respect to the training images (distance to the nearest labelled image), learner-independent
     nov = df[df.learner == "aw8_all"]; rows = []
@@ -81,7 +85,16 @@ def main():
             q = g[col].quantile([0.1, 0.25, 0.5, 0.75, 0.9]).to_numpy(); rows.append(dict(budget=int(budget), column=col, q10=q[0], q25=q[1], median=q[2], q75=q[3], q90=q[4], share_le_0001=float((g[col] <= 0.001).mean()), share_le_001=float((g[col] <= 0.01).mean()), share_gt_003=float((g[col] > 0.03).mean())))
             for k, nm in zip(("q10", "q25", "median", "q75", "q90"), q): N.put(f"nov.b{int(budget)}.{col}.{k}", float(nm))
             N.put(f"nov.b{int(budget)}.{col}.share_le_001", float((g[col] <= 0.01).mean()))
-    pd.DataFrame(rows).to_csv(L.TABLES / "novelty.csv", index=False); N.save(); print(len(t), "strata rows")
+    pd.DataFrame(rows).to_csv(L.TABLES / "novelty.csv", index=False)
+    # compact summary table for the documents: AUC gain by stratum, split A / split B, per pair, per source
+    cols = ["near<=0.001", "0.001-0.01", "0.01-0.03", "far>0.03", "far>0.01 (red-team threshold)", "all"]; lines = ["| source | candidate - reference | " + " | ".join(cols) + " |", "|---|---|" + "---|" * len(cols)]
+    for src in t.source.unique():
+        for (cand, ref), g in t[(t.source == src) & (t.metric == "auc")].groupby(["cand", "ref"], sort=False):
+            cells = []
+            for c in cols:
+                x = g[g.stratum == c].set_index("split"); cells.append(" / ".join(L.fmt_gain(x.loc[s].gain, x.loc[s].lo, x.loc[s].hi) for s in ("A", "B")) if len(x) == 2 else "")
+            lines.append(f"| {src} | {cand} - {ref} | " + " | ".join(cells) + " |")
+    L.write(L.TABLES / "strata_summary.md", "\n".join(lines) + "\n"); N.save(); print(len(t), "strata rows")
 
 
 if __name__ == "__main__":

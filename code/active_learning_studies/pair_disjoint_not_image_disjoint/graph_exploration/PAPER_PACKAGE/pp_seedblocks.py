@@ -4,6 +4,7 @@
 Fails (AssertionError) if two declared blocks overlap, or if a confirmation directory contains seeds outside its block."""
 import glob
 import json
+import re
 
 import pandas as pd
 
@@ -18,6 +19,22 @@ CONFIRM_DIRS = {  # directory -> declared block (study, role)
     "sh/c1_learn": ("SH", "confirmation 1"), "sh/c1_sel": ("SH", "confirmation 1"), "sh/c1_sel4": ("SH", "confirmation 1"), "sh/c2_learn": ("SH", "confirmation 2"), "sh/c2_sel": ("SH", "confirmation 2"), "sh/cold_learn": ("SH", "cold-start confirmation"),
     "ge/conf1_class": ("GE", "confirmation 1"), "ge/conf1_dose": ("GE", "confirmation 1"), "ge/conf1_harsh": ("GE", "confirmation 1"), "ge/conf2_class": ("GE", "confirmation 2"), "ge/conf2_dose": ("GE", "confirmation 2"), "ge/conf2_harsh": ("GE", "confirmation 2"),
 }
+
+
+DESC = [  # (regex on the directory, description) - first match wins
+    (r"^confirm1$", "ND1 confirmation: default head / aw8 / aw8_all x random / vopt_u (PREREGISTRATION_1)"), (r"^confirm3_cold$", "ND3 cold-start confirmation (10 random initial judgments)"), (r"^confirm4_htr$", "ND4 HTR confirmation (baseline / aw8 / aw8_all)"),
+    (r"^confirm5_gp$", "ND5 confirmation of the GP preference learner"), (r"^(screen|sel)", "new-directions development screen (seeds 2000-2019)"),
+    (r"^gl/dev", "graph-learner development screens"), (r"^gl/confirm1$", "GL1 confirmation (PREREGISTRATION_G1)"), (r"^gl/confirm2$", "GL2 independent replication"), (r"^gl/cold$", "GLC cold-start confirmation"),
+    (r"^sh/sdev", "selection-htr development screens"), (r"^sh/c1_learn$", "SH1 learner family (aw8_all, aw8_all_st2lr0.5, lap3_k10, lap3_k10_st4, shuffled control), random selection"), (r"^sh/c2_learn$", "SH2 learner family, independent replication"),
+    (r"^sh/cold_learn$", "SHC learner family, cold start (15 seeds)"), (r"^sh/c[12]_sel$", "SH selection family under lap3_k10 (7 selectors incl. controls)"), (r"^sh/c1_sel4$", "SH selection family under lap3_k10_st4"),
+    (r"^gm/dev7_INVALID", "INVALID development round (graph cache key collision); kept for the record, never used"), (r"^gm/dev", "graph-mechanism development rounds (about 60 variants)"), (r"^gm/confirm[12]$", "GM1 / GM2 confirmations (noise dose, RT13-off candidate)"),
+    (r"^gm/quality", "per-seed graph statistics (same-class share, degree) used by the dose-response tests"), (r"^ge/conf[12]_class$", "GE classification endpoint (28 outer-test ideal images)"), (r"^ge/conf[12]_dose$", "GE dose-response of unlabelled frames"),
+    (r"^ge/conf[12]_harsh$", "GE harsh splits (held-out run / temperature tercile; contains .d.npz per-judgment scores)"), (r"^ge/dev", "graph-endpoint development screens"), (r"^rt/a1$", "red team: per-judgment scores of 4 learners (novelty columns)"),
+    (r"^rt/a1b$", "red team: distance of each held-out judgment to the nearest typed anchor"), (r"^rt/a1c$", "red team: per-judgment scores baseline / aw8 / aw8_all (anchor-weight check)"), (r"^rt/a3$", "red team: time-blocked evaluation"), (r"^rt/c_", "red team: pre-registered confirmation (RT1)")]
+
+
+def describe(rel):
+    return next((d for pat, d in DESC if re.search(pat, rel)), "")
 
 
 def main():
@@ -44,9 +61,9 @@ def main():
         if rel in CONFIRM_DIRS:
             s_, r_ = CONFIRM_DIRS[rel]; a, b = next((a, b) for s, r, a, b in SEED_BLOCKS if s == s_ and r == r_); assert min(seeds) >= a and max(seeds) <= b, f"{rel} has seeds outside its declared block"
         rows.append(dict(dir=rel, files=len(files), seeds=f"{min(seeds)}-{max(seeds)}", n_seeds=len(seeds), splits=",".join(sorted(str(x) for x in splits if x)), budgets=",".join(str(int(x)) for x in sorted(b for b in budgets if isinstance(b, (int, float)) and b == b)),
-                         n_learners=len({x for x in learners if x}), n_selectors=len({x for x in selectors if x}), declared_block=block))
+                         n_learners=len({x for x in learners if x}), n_selectors=len({x for x in selectors if x}), declared_block=block, description=describe(rel)))
     inv = pd.DataFrame(rows); inv.to_csv(L.TABLES / "inventory.csv", index=False); blocks.to_csv(L.TABLES / "seed_blocks.csv", index=False)
-    L.write(L.TABLES / "inventory.md", L.to_md(inv, "{}")); L.write(L.TABLES / "seed_blocks.md", L.to_md(blocks, "{}")); print(len(inv), "directories;", len(blocks), "blocks; no overlaps; confirmation directories inside their blocks")
+    L.write(L.TABLES / "inventory.md", L.to_md(inv, "{}")); L.write(L.TABLES / "directory_map.md", L.to_md(inv[["dir", "seeds", "n_seeds", "n_learners", "description"]], "{}")); L.write(L.TABLES / "seed_blocks.md", L.to_md(blocks, "{}")); print(len(inv), "directories;", len(blocks), "blocks; no overlaps; confirmation directories inside their blocks")
 
 
 if __name__ == "__main__":

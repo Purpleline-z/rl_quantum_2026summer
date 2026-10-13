@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 
 import pp_lib as L
-from pp_lib import ND, STUDIES as STUDIES_DIR
+from pp_lib import ND, Numbers, STUDIES as STUDIES_DIR
 from pp_registry import STUDIES
 
 REPO = L.PKG.parents[4]
@@ -37,6 +37,7 @@ def main():
     t = pd.DataFrame(rows); t.to_csv(L.TABLES / "prereg_order.csv", index=False); L.write(L.TABLES / "prereg_order.md", L.to_md(t, "{}"))
     prov = pd.DataFrame([dict(study=sid, name=s["name"], branch=s["branch"], tip_commit_at_import=s["tip"], docs="; ".join(s["docs"])) for sid, s in STUDIES.items()]); prov.to_csv(L.TABLES / "provenance.csv", index=False); L.write(L.TABLES / "provenance.md", L.to_md(prov, "{}"))
     bad = t[t.prereg_before_results == "False"]; nv = int((t.prereg_before_results == "n/a (not in history)").sum()); print(f"{len(t)} checks: {int((t.prereg_before_results == 'True').sum())} verified (pre-registration committed before the first result file), {len(bad)} violated, {nv} not verifiable")
+    N = Numbers("prov"); N.put("prov.total", len(t)); N.put("prov.verified", int((t.prereg_before_results == "True").sum())); N.put("prov.violated", len(bad)); N.put("prov.not_verifiable", nv); N.save()
     assert len(bad) == 0, bad
 
 

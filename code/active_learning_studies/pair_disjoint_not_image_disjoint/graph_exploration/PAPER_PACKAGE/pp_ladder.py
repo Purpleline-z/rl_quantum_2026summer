@@ -40,6 +40,16 @@ def main():
                 per = L.per_seed(f, split, m, (R, a), (R, b)); s = L.summarize(per); per_cache[(sid, blk, split, m)] = per
                 rows.append(dict(step=sid, label=label, block=blk, seeds=seeds, status=status, split=split, metric=m, a=a, b=b, **{k: s[k] for k in ("gain", "lo", "hi", "share_better", "p", "n")}))
                 for fld in ("gain", "lo", "hi", "p", "n"): N.put(f"ld.{sid}.{blk}.{split}.{m}.{fld}", s[fld])
+    # pooled estimates over the pre-registered blocks of a step (per-seed gains of different blocks concatenated; bootstrap over seeds); descriptive
+    POOLS = [("L3", "aw8_all -> lap3_k10 (pooled GL1+GL2)", [("GL1", "gl/confirm1"), ("GL2", "gl/confirm2")], "lap3_k10", "aw8_all"), ("L4", "lap3_k10 -> lap3_k10_st4 (pooled SH1+SH2)", [("SH1", "sh/c1_learn"), ("SH2", "sh/c2_learn")], "lap3_k10_st4", "lap3_k10"),
+             ("C2", "lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2)", [("SH1", "sh/c1_learn"), ("SH2", "sh/c2_learn")], "lap3_k10_st4", "aw8_all_st2lr0.5"),
+             ("C2c", "lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2+SHC cold start)", [("SH1", "sh/c1_learn"), ("SH2", "sh/c2_learn"), ("SHC", "sh/cold_learn")], "lap3_k10_st4", "aw8_all_st2lr0.5")]
+    for pid, label, blocks, a, b in POOLS:
+        for split in ("A", "B"):
+            for m in ("auc", "acc", "ll"):
+                per = pd.concat([L.per_seed(L.load_dir(rel).query("selector == @R"), split, m, (R, a), (R, b)) for _, rel in blocks]); s_ = L.summarize(per)
+                rows.append(dict(step="POOL-" + pid, label=label, block="+".join(x for x, _ in blocks), seeds=f"{len(per)} seeds", status="pooled over pre-registered blocks (descriptive)", split=split, metric=m, a=a, b=b, **{k: s_[k] for k in ("gain", "lo", "hi", "share_better", "p", "n")}))
+                for fld in ("gain", "lo", "hi", "n"): N.put(f"ld.POOL.{pid}.{split}.{m}.{fld}", s_[fld])
     t = pd.DataFrame(rows)
     # indicative sum of the four steps (primary block of each step): L1 ND1, L2 ND4, L3 GL1, L4 SH1; bootstrap each step's per-seed gains independently and add
     rng = np.random.default_rng(1); prim = [("L1", "ND1"), ("L2", "ND4"), ("L3", "GL1"), ("L4", "SH1")]; srows = []

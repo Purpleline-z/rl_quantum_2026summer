@@ -162,6 +162,8 @@ def run_ge():
         for _, r in resa["k1"].iterrows():
             TESTS.append(dict(exp=exp, block=block, family="class:K1(vs 1-NN)", split="paper-split", metric="acc", cells=r["method"], n=int(r.n_seeds), gain=float(r["diff"]), lo=np.nan, hi=np.nan, share_better=float(r.better / max(r.n_seeds, 1)), p=float(r.p), holm=float(r.holm)))
         for _, r in resa["k1"].iterrows(): N.put(f"c.{exp}.class.{tag(r['method'])}.diff", float(r["diff"])); N.put(f"c.{exp}.class.{tag(r['method'])}.holm", float(r.holm))
+        for nm_, a_, b_ in (("logreg_vs_nn", ("logreg", "none", -1), ("nn", "none", -1)), ("laplr_vs_logreg", ("laplr", "inductive", -1), ("logreg", "none", -1)), ("laplr_vs_laplr_shuf", ("laplr", "inductive", -1), ("laplr_shuf", "inductive", -1))):
+            r_ = GA.class_vs(fc, a_, b_); TESTS.append(dict(exp=exp, block=block, family="class:control", split="paper-split", metric="acc", cells=nm_, n=int(r_["n"]), gain=float(r_["diff"]), lo=np.nan, hi=np.nan, share_better=np.nan, p=float(r_["p"]), holm=np.nan)); N.put(f"c.{exp}.class.{nm_}.diff", float(r_["diff"])); N.put(f"c.{exp}.class.{nm_}.p", float(r_["p"]))
         ra = GR.verdict_a(resa); verdict(exp, "classification beats 1-NN (a), inductive", "MET" if "inductive: MET" in ra else "NOT met", ra)
 
 

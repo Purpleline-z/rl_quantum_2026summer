@@ -89,6 +89,13 @@ def evidence(exps, extra=""):
 
 
 ROWS = []
+SHORT = {"L1": "aw8 (anchor weight 0.25 -> 8) beats the default head", "L2": "aw8_all (all ideal images as anchors) beats the default head", "L2b": "aw8_all vs aw8", "L3": "Laplacian kNN-graph regulariser (lap3_k10) beats aw8_all", "L4": "4x training steps (lap3_k10_st4) beats lap3_k10",
+         "L5": "BEST: lap3_k10_st4 beats the tuned graph-free control", "L6": "whole recipe (lap3_k10_st4) vs aw8_all", "L7": "graph-free schedule tuning alone vs aw8_all", "L8": "real graph beats shuffled-graph control (a low bar)", "L9": "RT13-off variant beats lap3_k10 (not tested vs st4)",
+         "L10": "uniform lambda 10 beats lap3_k10", "L11": "Laplacian + type-posterior term beats aw8_all", "L12": "GP learner beats the anchor-weighted MLP head", "L13": "aw8_all improves HTR vs default head", "D1": "long schedule does not help graph-free aw8_all",
+         "D2": "graph-free consistency regulariser comes close (cons - st4 shown)", "G1": "gain tracks graph quality (noise dose-response; rho)", "G2": "10% random edge rewiring destroys the gain; local rewiring harmless", "G3": "shuffled graph is far worse than no graph (lambda 10)",
+         "G4": "more unlabelled frames: gain saturates at ~10% of frames", "G5": "harsh splits (held-out run / temperature; fixed test sets): gain kept", "G6": "paper's type-accuracy endpoint: no graph advantage", "S1": "vopt_u beats random with the default head",
+         "S2": "vopt_u beats random with the aw8 head", "S3": "4 selection rules beat random on the lap3_k10 learner", "S4": "HTR-directed selection (vopt_htr4)", "S5": "HTR: st4 vs tuned graph-free control", "S6": "HTR: st4 vs lap3_k10",
+         "R1": "gain concentrated in anchor-near judgments", "R2": "aw8 gain is not an anchor-copy artefact", "R3": "time-blocked split keeps the gain"}
 
 
 def add(cid, topic, text, status, seeds, auc, acc, far=("", ""), repl="", evid="", kind=""):
@@ -197,7 +204,9 @@ def build():
     for nm, r in (("GE1", c1), ("GE2", c2)): N.put(f"cl.G6.{nm}.laplr_ind.diff", float(r.gain)); N.put(f"cl.G6.{nm}.laplr_ind.holm", float(r.holm))
     for nm in ("GE1", "GE2"):
         r = CONF[(CONF.exp == nm) & (CONF.family == "class:K1(vs 1-NN)") & (CONF.cells.str.startswith("lap3_ref"))].iloc[0]; N.put(f"cl.G6.{nm}.lap3_ref.diff", float(r.gain)); N.put(f"cl.G6.{nm}.lap3_ref.holm", float(r.holm))
-    add("G6", "graph", "Paper's own endpoint (type accuracy of 28 outer-test ideal images): no graph method beats 1-NN in a way attributable to the graph (effect = laplr inductive minus 1-NN, accuracy; the Laplacian reward head is significantly WORSE)", "PRE-REGISTERED RULE: NOT MET in GE1, MET in GE2 (by laplr, whose gain equals plain logistic regression's: not a graph effect)", BLOCK["GE1"] + "; " + BLOCK["GE2"],
+    cn = CONF[(CONF.family == "class:control")]; lg = {r.exp: r for r in cn[cn.cells == "logreg_vs_nn"].itertuples()}; ll_ = {r.exp: r for r in cn[cn.cells == "laplr_vs_logreg"].itertuples()}
+    for e_ in ("GE1", "GE2"): N.put(f"cl.G6.{e_}.logreg_vs_nn", float(lg[e_].gain)); N.put(f"cl.G6.{e_}.laplr_vs_logreg", float(ll_[e_].gain))
+    add("G6", "graph", f"Paper's own endpoint (type accuracy of 28 outer-test ideal images): no graph method beats 1-NN in a way attributable to the graph (effect = laplr inductive minus 1-NN, accuracy; plain logistic regression minus 1-NN: GE1 {lg['GE1'].gain:+.3f}, GE2 {lg['GE2'].gain:+.3f}; laplr minus logistic regression: GE1 {ll_['GE1'].gain:+.3f}, GE2 {ll_['GE2'].gain:+.3f}; the Laplacian reward head is significantly WORSE than 1-NN)", "PRE-REGISTERED RULE: NOT MET in GE1, MET in GE2 (by laplr; most of its gain is plain logistic regression's own gain over 1-NN, laplr minus logistic regression is small: see the cell text)", BLOCK["GE1"] + "; " + BLOCK["GE2"],
         "n/a (accuracy endpoint)", f"GE1 {c1.gain:+.3f} (Holm {c1.holm:.2f}); GE2 {c2.gain:+.3f} (Holm {c2.holm:.3f})", ("not evaluated", "n/a"), "", evidence(["GE1"], "(PREREGISTRATION_GE1)"))
     # ------------------------------------------------------------------------------------------------ selection
     e = eff("ND1", "vopt_u - random [baseline]", "F3"); reg("S1", e)
@@ -228,6 +237,15 @@ def build():
     add("R1", "limits", "The learner gain over the graph-free control is concentrated in judgments with an image that is a (near-)copy of a typed anchor (accuracy column shows the anchor-NEAR stratum <= 0.001, ΔAUC; the AUC column is the all-judgments ΔAUC of these 20 seeds)", "AUDIT (red-team development, 20 seeds): not a confirmation", "RT dev 8800-8819 (20 seeds); RT1 confirmation block 8850-8884 used automatically if its files exist (see strata.csv)", allc("lap3_k10_st4", "aw8_all_st2lr0.5"), "near<=0.001: " + near, (far, tag), "", evidence(["RT"], "(rt/a1, a1b)"), kind="audit")
     far2, tag2 = far_cell("aw8_all", "baseline")
     add("R2", "limits", "The anchor-weight gain (aw8_all vs default head) is NOT an anchor-copy artefact: it is as large or larger in anchor-far judgments (accuracy column shows the anchor-NEAR stratum ΔAUC)", "AUDIT (red-team development, 20 seeds): not a confirmation", "RT dev 8800-8819, budgets 20/40, 2 draws", allc("aw8_all", "baseline"), "near<=0.001: " + near_cell("aw8_all", "baseline"), (far2, tag2), "", evidence(["RT"], "(rt/a1c, a1b)"), kind="audit")
+    rx = pd.read_csv(L.TABLES / "redteam_extra.csv") if (L.TABLES / "redteam_extra.csv").exists() and (L.TABLES / "redteam_extra.csv").stat().st_size > 5 else pd.DataFrame()
+    if len(rx[rx.audit == "a3"]) if len(rx) else 0:
+        g = lambda ref, m, f_: float(rx[(rx.audit == "a3") & (rx.cand == "lap3_k10_st4") & (rx.ref == ref) & (rx.group == "blocked") & (rx.metric == m)][f_].iloc[0])
+        for ref_, tag_ in (("aw8_all_st2lr0.5", ""), ("lap3_k10", "b"), ("lap3_k10_st4_shuf", "c")):
+            for m in ("auc", "acc"):
+                for f_ in ("gain", "lo", "hi"): N.put(f"cl.R3{tag_}.{m}.{f_}", g(ref_, m, f_))
+        fm = lambda m: L.fmt_gain(g("aw8_all_st2lr0.5", m, "gain"), g("aw8_all_st2lr0.5", m, "lo"), g("aw8_all_st2lr0.5", m, "hi"))
+        add("R3", "limits", "Time-blocked evaluation (hold out whole 100-frame blocks of a growth run; 25-frame buffer removed from training groups, pool and graph): the gain of lap3_k10_st4 over the tuned graph-free control survives (single 'blocked' split: AUC / accuracy)", "AUDIT (red-team development, 20 seeds): not a confirmation", "RT dev 8800-8819 (20 seeds)", fm("auc"), fm("acc"), ("not evaluated (blocked split has no anchor strata)", "n/a"),
+            "vs lap3_k10: AUC " + L.fmt_gain(g("lap3_k10", "auc", "gain")) + ", acc " + L.fmt_gain(g("lap3_k10", "acc", "gain")) + "; vs shuffled graph: AUC " + L.fmt_gain(g("lap3_k10_st4_shuf", "auc", "gain")), evidence(["RT"], "(rt/a3)"), kind="audit")
     return ROWS
 
 
@@ -250,7 +268,11 @@ def main():
     esc = lambda s: str(s).replace("|", "/").replace("\n", " ")
     head = "| ID | Claim | Status | Seeds (35 each unless noted) | ΔAUC split A / B [95% CI] | Δacc split A / B [95% CI] | Anchor-far check (ΔAUC, both images > 0.03 from every anchor; RT dev 20 seeds) | Further blocks (ΔAUC point estimates A / B) | Evidence (branch@commit) |\n|---|---|---|---|---|---|---|---|---|\n"
     body = "".join(f"| {r.id} | {esc(r.claim)} | **{esc(r.status)}** | {esc(r.seeds)} | {esc(r.dAUC)} | {esc(r.dACC)} | {esc(r.anchor_far)}{(' — ' + r.anchor_far_status) if r.anchor_far_status not in ('n/a', '') else ''} | {esc(r.replications)} | {esc(r.evidence)} |\n" for r in df.itertuples())
-    note = ("*Gains are paired over seeds on identical label sets (mean over budgets 10/20/40/60 and 3 label draws); for log-loss-free summary only AUC and accuracy are shown (log-loss in confirmations.csv). Intervals: 95% bootstrap over seeds (the 168 labelled pair groups are the same in every seed: intervals and p-values are optimistic). "
+    short_status = lambda s: ("CONFIRMED" + (" + replicated" if "replicated in" in s and "NOT replicated" not in s and "PARTLY" not in s else (" (partly / not robustly replicated)" if "replicated" in s or "PARTLY" in s else ""))) if s.startswith("PRE-REGISTERED, CONFIRMED") else ("NOT CONFIRMED" if s.startswith("PRE-REGISTERED, NOT") else ("PRE-REG. rule met, practical claim not supported" if "PRACTICAL" in s else ("PRE-REG. control" if "CONTROL" in s else ("PRE-REG. rule: mixed (see full table)" if s.startswith("PRE-REGISTERED") else ("DESCRIPTIVE" if s.startswith("DESCRIPTIVE") else ("DEVELOPMENT only" if s.startswith("DEVELOPMENT") else ("AUDIT (red-team dev)" if s.startswith("AUDIT") else s)))))))
+    pt = lambda x: re.sub(r" \[[^\]]*\]", "", str(x)); shorten = lambda t: (t.split(" (")[0].split(": ")[0] if len(t) > 100 else t)[:130]
+    comp = "| ID | Claim | Status | ΔAUC A / B | Δacc A / B | Anchor-far ΔAUC A / B |\n|---|---|---|---|---|---|\n" + "".join(f"| {r.id} | {esc(SHORT.get(r.id, shorten(r.claim)))} | {short_status(r.status)} | {esc(pt(r.dAUC))} | {esc(pt(r.dACC))} | {esc(pt(r.anchor_far))} |\n" for r in df.itertuples())
+    L.write(L.TABLES / "claims_onepage.md", "*Point estimates only (intervals, seeds and evidence in the full table below / `claims_table.md`). Splits A / B.*\n\n" + comp)
+    note = ("*Gains are paired over seeds on identical label sets (mean over budgets 10/20/40/60 and 3 label draws); only AUC and accuracy are shown (log-loss is in `confirmations.csv`). Intervals: 95% bootstrap over seeds (the 168 labelled pair groups are the same in every seed: intervals and p-values are optimistic). "
             "ND = new-directions-overnight, GL = graph-learner, SH = selection-htr, GM = graph-mechanism, GE = graph-endpoint, RT = red-team.*\n\n")
     L.write(L.TABLES / "claims_table.md", note + head + body)
     ap = "| ID | Documented claim (numbers NOT regenerated in this package) | Status | Source |\n|---|---|---|---|\n" + "".join(f"| {a} | {esc(b)} | {c} | {d} |\n" for a, b, c, d in appendix()); L.write(L.TABLES / "claims_appendix.md", ap)

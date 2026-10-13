@@ -100,6 +100,22 @@
 | C4: control: lap3_k10 vs its shuffled-graph control | GL2 (7200-7234) | control | A | acc | +0.093 [+0.081, +0.105] | <0.0001 |
 | C4: control: lap3_k10 vs its shuffled-graph control | GL2 (7200-7234) | control | B | auc | +0.082 [+0.070, +0.094] | <0.0001 |
 | C4: control: lap3_k10 vs its shuffled-graph control | GL2 (7200-7234) | control | B | acc | +0.104 [+0.092, +0.116] | <0.0001 |
+| POOL-L3: aw8_all -> lap3_k10 (pooled GL1+GL2) | GL1+GL2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | auc | +0.012 [+0.009, +0.016] | <0.0001 |
+| POOL-L3: aw8_all -> lap3_k10 (pooled GL1+GL2) | GL1+GL2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | acc | +0.011 [+0.006, +0.017] | 0.0002 |
+| POOL-L3: aw8_all -> lap3_k10 (pooled GL1+GL2) | GL1+GL2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | auc | +0.014 [+0.011, +0.017] | <0.0001 |
+| POOL-L3: aw8_all -> lap3_k10 (pooled GL1+GL2) | GL1+GL2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | acc | +0.012 [+0.007, +0.017] | <0.0001 |
+| POOL-L4: lap3_k10 -> lap3_k10_st4 (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | auc | +0.008 [+0.005, +0.011] | <0.0001 |
+| POOL-L4: lap3_k10 -> lap3_k10_st4 (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | acc | +0.012 [+0.008, +0.017] | <0.0001 |
+| POOL-L4: lap3_k10 -> lap3_k10_st4 (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | auc | +0.008 [+0.005, +0.011] | <0.0001 |
+| POOL-L4: lap3_k10 -> lap3_k10_st4 (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | acc | +0.013 [+0.008, +0.017] | <0.0001 |
+| POOL-C2: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | auc | +0.018 [+0.015, +0.021] | <0.0001 |
+| POOL-C2: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | A | acc | +0.021 [+0.016, +0.026] | <0.0001 |
+| POOL-C2: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | auc | +0.016 [+0.013, +0.020] | <0.0001 |
+| POOL-C2: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2) | SH1+SH2 (70 seeds) | pooled over pre-registered blocks (descriptive) | B | acc | +0.019 [+0.014, +0.024] | <0.0001 |
+| POOL-C2c: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2+SHC cold start) | SH1+SH2+SHC (85 seeds) | pooled over pre-registered blocks (descriptive) | A | auc | +0.019 [+0.016, +0.022] | <0.0001 |
+| POOL-C2c: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2+SHC cold start) | SH1+SH2+SHC (85 seeds) | pooled over pre-registered blocks (descriptive) | A | acc | +0.021 [+0.017, +0.025] | <0.0001 |
+| POOL-C2c: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2+SHC cold start) | SH1+SH2+SHC (85 seeds) | pooled over pre-registered blocks (descriptive) | B | auc | +0.018 [+0.015, +0.021] | <0.0001 |
+| POOL-C2c: lap3_k10_st4 vs tuned graph-free (pooled SH1+SH2+SHC cold start) | SH1+SH2+SHC (85 seeds) | pooled over pre-registered blocks (descriptive) | B | acc | +0.020 [+0.015, +0.024] | <0.0001 |
 | SUM: sum of L1+L2+L3+L4 (primary blocks; indicative: different seed blocks) | ND1+ND4+GL1+SH1 (4 blocks) | indicative | A | auc | +0.044 [+0.035, +0.054] |  |
 | SUM: sum of L1+L2+L3+L4 (primary blocks; indicative: different seed blocks) | ND1+ND4+GL1+SH1 (4 blocks) | indicative | A | acc | +0.055 [+0.040, +0.070] |  |
 | SUM: sum of L1+L2+L3+L4 (primary blocks; indicative: different seed blocks) | ND1+ND4+GL1+SH1 (4 blocks) | indicative | B | auc | +0.050 [+0.039, +0.062] |  |

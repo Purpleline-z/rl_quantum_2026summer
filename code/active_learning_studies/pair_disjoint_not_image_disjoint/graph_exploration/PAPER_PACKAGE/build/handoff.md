@@ -1,0 +1,26 @@
+# Handoff — paper package (branch `claude/paper-package-20261013`)
+
+## State
+Complete and reproducible: `cd code/active_learning_studies/pair_disjoint_not_image_disjoint/graph_exploration/PAPER_PACKAGE && make all` regenerates all tables, 9 figures (6 scripts, PNG and PDF each), the checked documents and the tests from the stored result files. Delivered: `RESULTS_paper_package.md` (claims table, abstract, figures, assumptions and limits, integrity checks), `SUMMARY_ZH_paper_package.md` (one page), this handoff and `GPU_TASKS_paper_package.md`; drafts and code in `PAPER_PACKAGE/`; `README.md` there maps every result directory, seed block and branch. The package ran **no experiment**; it uses no seed block; `nd_core.py` and `code/ACADEMIC_REPORT_DRAFT.md` are untouched.
+
+## Read this first (what the package changes about the story)
+1. **The anchor-far secondary endpoint exists only for the red team's development block** (20 seeds, per-judgment predictions). The confirmed learner gains (L3 to L5) are positive but concentrated in anchor-near judgments; anchor-far point estimates are positive with intervals that touch or include zero, so the paper should not say "generalises to unanchored frames" without the red team's confirmation block (seeds 8850–8884, still being written on `claude/redteam-20261013` when this was built; `pp_strata.py` and the Makefile pick it up automatically when all 70 files of `rt/c_a1` and `rt/c_a1b` exist; then re-run `make all`, update the sentences in `prose/` that quote the stratum numbers, and `check_prose.py` will tell you which ones moved).
+2. The brief quoted "39 % within 0.001 of a typed anchor (59 % within 0.01)": those are the numbers for the **reference images alone** (39% and 59% here); for all typed anchors (references, utility and outer-test ideal images, i.e. the anchors of `aw8_all`) the shares are 47% and 64% — see `tables/anchor_fractions.csv`. The package's anchor-far stratum uses all typed anchors (`anc_all_min` of `rt_a1b.py`), threshold 0.03; the red team's own threshold 0.01 is shown as sensitivity.
+3. Pre-registered statuses are **recomputed** with each study's own test code and frozen specs (`tables/verdicts.md`); two readings differ from a quick skim of the documents: `lap3_rq3_k10` and the uniform-lambda-10 learner are *not robustly* confirmed, and the graph-endpoint dose-response rule is met formally but the plateau check says more unlabelled frames do not help (claim G4).
+
+## Code map (`PAPER_PACKAGE/`)
+`pp_lib.py` (paths, loading with partial-file skipping, paired gains, bootstrap/Wilcoxon/Holm, number store), `pp_registry.py` (studies, branches, tip commits, pre-registration commits, seed blocks — **edit here when a study is added**), `pp_confirmations.py` (imports `nd_confirm`, `gl_tables`, `sh_tables`, `ge_report`; the GM test logic is copied from the `__main__` block of `gm_tables.py` because it is not importable), `pp_curves/ladder/selection/dose/strata/redteam_extra/wcurse/limits/claims.py`, `pp_style.py`, `figures/fig1…fig6*.py`, `check_prose.py`, `build_docs.py`, `sync_branches.sh`, `tests/test_package.py`, `prose/*.src.md`.
+
+## Pitfalls
+- `results/gm/dev7_INVALID_cache_key_collision` is an invalid development round (kept, never used); `results/sh/sdev6` is partial (12 seeds, only 8 of them with split B), the winner's-curse table says so (n per cell).
+- Cells are written after every budget; `pp_lib.load_dir` skips files with fewer records than the fullest file of the directory (same rule as `sh_tables.load`), so a half-finished directory never mixes cells. The red-team confirmation is analysed only when complete.
+- The development comparison `lap3_k10_st4` vs `aw8_all_st2lr0.5` pairs `sh/sdev5` with `sh/sdev6` on their 12 common seeds (identical random label sets per seed, so cross-directory pairing is valid).
+- The default head is called `baseline` in the data; it exists only in the ND blocks (`confirm1`, `confirm4_htr`) and in `rt/a1c`, never alongside `lap3_k10_st4`, hence the two-block learning curves and the ladder built from per-step blocks (the sum of steps is indicative only).
+- `pp_provenance.py` needs the branches' git history (`git fetch origin`); commit time is not file-creation time.
+- Importing the study modules adds `new_directions/` and `graph_exploration/` to `sys.path`; none needs torch. matplotlib is only used in `figures/` and `pp_style.py`.
+
+## What I would do next
+1. When the red-team confirmation is complete: `./sync_branches.sh && make all`, update the quoted stratum numbers, and decide whether the abstract may say anything about unanchored frames.
+2. Re-run the standard confirmation learners (`aw8_all`, `lap3_k10`, `lap3_k10_st4`, tuned graph-free) with per-judgment output on a fresh seed block (`rt_a1.py` does exactly this for 20 development seeds) so that every standard confirmation has an anchor-far version; this is CPU work (see GPU tasks).
+3. Add the branches that were still empty (representation, anchor exchange, temporal graph) to `pp_registry.py` and the claims table when they have pre-registered confirmations.
+4. Decide with the advisor which tier of claims (section 1 of the results document) goes into the paper; the abstract draft follows the "safe" and "hedge" tiers.

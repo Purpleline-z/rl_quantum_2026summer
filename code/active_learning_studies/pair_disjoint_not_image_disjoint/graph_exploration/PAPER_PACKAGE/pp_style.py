@@ -42,5 +42,5 @@ def save(fig, name, note=None, note_y=-0.115):
     """png + pdf into figures/; `note` (data source) is written under the figure."""
     L.FIGS.mkdir(exist_ok=True)
     if note: fig.text(0.5, note_y, note, fontsize=6.8, color=INK2, ha="center", va="top")
-    for ext in ("png", "pdf"): fig.savefig(L.FIGS / f"{name}.{ext}", dpi=170 if ext == "png" else None, bbox_inches="tight")
+    for ext in ("png", "pdf"): fig.savefig(L.FIGS / f"{name}.{ext}", dpi=170 if ext == "png" else None, bbox_inches="tight", metadata=({"CreationDate": None, "Creator": "pp_style.py"} if ext == "pdf" else None))   # no timestamps: regenerated files are byte-identical
     plt.close(fig); print("figure", name)
