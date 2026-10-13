@@ -125,3 +125,10 @@ for _name in ("s3", "s34", "i4", "is", "s3is", "mir", "mc", "w64", "w128"):
 LEARNERS["rp_cap"] = rep_learner("cap"); LEARNERS["rp_cap_shuf"] = rep_learner("cap", shuffle=True)
 for _g, _h in (("is", "s4"), ("s4", "is"), ("s34", "s4"), ("s4", "s34"), ("mc", "s4"), ("w64", "s4")):
     LEARNERS[f"rp_g{_g}_h{_h}"] = rep_learner(_h, graph=_g); LEARNERS[f"rp_g{_g}_h{_h}_shuf"] = rep_learner(_h, graph=_g, shuffle=True)
+
+# ---- stage B (development, seeds 8600-8619): (i) graph-free learner `aw8_all_st2lr0.5` on every representation (does the representation help the head by itself?), (ii) learning-rate re-tuning of the baseline and of the
+# three most promising representation learners (the repository's per-budget learning rate was tuned for the SimCLR final feature)
+for _name in ("s4", "s3", "s34", "i4", "is", "mir", "mc"): LEARNERS[f"rp_gf_{_name}"] = rep_learner(_name, lap=0.0, steps_scale=2.0, lr_scale=0.5)
+for _lr in (0.5, 2.0):
+    LEARNERS[f"rp_base_lr{_lr:g}"] = rep_learner("s4", lr_scale=_lr); LEARNERS[f"rp_gs4_his_lr{_lr:g}"] = rep_learner("is", graph="s4", lr_scale=_lr)
+    LEARNERS[f"rp_i4_lr{_lr:g}"] = rep_learner("i4", lr_scale=_lr); LEARNERS[f"rp_s3_lr{_lr:g}"] = rep_learner("s3", lr_scale=_lr)

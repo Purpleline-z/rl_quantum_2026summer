@@ -67,3 +67,11 @@ def test_other_representations_train_and_ensemble_averages(ctx_a):
     lab = core.random_labelled(ctx_a, 10, 0); test = core.TestSet(ctx_a)
     for n in ("rp_s3", "rp_w64", "rp_gis_hs4", "rp_cap_shuf"): d = R.LEARNERS[n](ctx_a, lab, 3)(test); assert np.isfinite(d).all() and len(d) == len(test.k)
     d1 = R.LEARNERS["rp_base"](ctx_a, lab, 3)(test); d5 = R.rep_learner("s4", ensemble=2)(ctx_a, lab, 3)(test); assert not np.allclose(d1, d5)
+
+
+def test_graph_free_representation_learner_equals_aw8_all_st2lr05(ctx_a):
+    import nd_graph_learner as G
+    import nd_representation as R
+    lab = core.random_labelled(ctx_a, 10, 0); test = core.TestSet(ctx_a)
+    assert np.allclose(R.LEARNERS["rp_gf_s4"](ctx_a, lab, 3)(test), G.LEARNERS["aw8_all_st2lr0.5"](ctx_a, lab, 3)(test), atol=1e-6)
+    d = R.LEARNERS["rp_gs4_his_lr2"](ctx_a, lab, 3)(test); assert np.isfinite(d).all()
