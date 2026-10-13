@@ -31,6 +31,7 @@ def table(name: str) -> str:
     if name == "dev_place": return run(["dev"] + dev + ["--refs=aw8_all", "--only=gm_lap10_n0,gm10_place_unl,gm10_place_it,gm10_place_ii,gm10_place_any"]) + "\n\n" + run(["types"] + dev + ["--learners=gm_lap10_n0,gm10_place_unl,gm10_place_it,gm10_place_ii,gm10_place_any"])
     if name == "dev_robust": return run(["dev"] + dev + ["--refs=aw8_all,lap3_k10", "--only=gm_lap10_n0,gm_lap10_n2,gm_lap10_n3,gm10_l1,gm3_l1,gmc10_l1,gm10_l1_n2,gm10_l1_n3,gm10_huber,gm10_type_no_rt13,gmc10_rt03,gmc10_rt01,gmc5_t_no_rt13,gmc20_t_no_rt13"])
     if name == "dev_cold": return run(["dev", str(RES / "dev_cold"), "--refs=aw8_all,lap3_k10"])
+    if name == "integrity": return (HERE / "gm_integrity.md").read_text().strip()
     if name == "dev_curve": return run(["curve", str(RES / "dev1"), "--learners=aw8_all,lap3_k10,gm_lap10_n0"])
     if name == "dev_qgain": return run(["qgain", str(RES / "dev1"), str(RES / "dev2"), "--names=gm_lap10_n0,gm10_mutual_k15,gm10_eps_d10,gm10_snn,gm10_gauss_k10,gm10_lscale_k10,gm10_bmatch_b10,gm10_pcaw32_k10,gm10_l3_k10,gm10_l2_k10,gm10_l3l4_k10,gm10_norm_k10"])
     if name == "graph_stats": p = HERE / "gm_graph_stats_vs_gain.csv"; return gt.to_md(pd.read_csv(p).round(4), "{:+.4f}") if p.exists() else "*not run*"
