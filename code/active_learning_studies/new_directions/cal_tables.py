@@ -17,7 +17,7 @@ def load_cells(dirs):
     return [C.load_cell(Path(f)) for d in dirs for f in sorted(glob.glob(str(Path(d) / "seed*.pkl.gz")))]
 
 
-def frame(cells, variant_fn=C.variants, priors="loo") -> tuple[pd.DataFrame, dict]:
+def frame(cells, variant_fn=C.variants, priors="loo", draws=None) -> tuple[pd.DataFrame, dict]:
     """One row per (seed, split, budget, draw, variant) with the test metrics, plus the per-(seed, split, variant) reliability-bin sums.  ``priors`` = 'loo': the development prior of a cell is fitted on the
     OOF logits of all OTHER seeds of the loaded cells (leave-one-seed-out); a dict is used as is; None = none."""
     rows, bins = [], {}
@@ -27,6 +27,7 @@ def frame(cells, variant_fn=C.variants, priors="loo") -> tuple[pd.DataFrame, dic
             others = [r for c in cells if c["seed"] != cell["seed"] for r in c["recs"].values()]
             pri = {"type": C.fit_prior(others), "type_test": C.fit_prior_test(others), "type_test_cf": C.fit_prior_test(others, "cf")} if len({c["seed"] for c in cells}) > 1 else None
         for (budget, draw), rec in cell["recs"].items():
+            if draws is not None and draw not in draws: continue
             rec = dict(rec); rec["budget_key"] = budget
             for name, d in variant_fn(rec, pri).items():
                 sc = C.scores(d, rec["test"]); b = {k: sc.pop(k) for k in ("bin_w", "bin_conf", "bin_acc")}
@@ -64,6 +65,18 @@ def to_md(df, fmt="{:+.4f}"):
     return "\n".join(out)
 
 
+def by_budget(df, cands, ref="raw", metrics=("ll", "acc", "auc", "far_ll")) -> pd.DataFrame:
+    """Paired gain over ``ref`` per split and budget (mean over seeds of the per-seed mean over draws; log-loss: ref - cand)."""
+    rows = []; df = df.assign(far_ll=df.far_llw / df.far_w.replace(0, np.nan))
+    for (split, budget), g in df.groupby(["split", "budget"]):
+        base = g[g.variant == ref].groupby("seed")[list(metrics)].mean()
+        for c in cands:
+            cur = g[g.variant == c].groupby("seed")[list(metrics)].mean(); common = cur.index.intersection(base.index); row = {"split": split, "budget": budget, "candidate": c, "n_seeds": len(common)}
+            for m in metrics: row[m] = float((SIGN.get(m.split("_")[-1] if m.endswith("_ll") else m, 1) * (cur.loc[common, m] - base.loc[common, m])).mean())
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def level_table(ps, variants) -> pd.DataFrame:
     return ps[ps.variant.isin(variants)].groupby(["split", "variant"])[["ll", "ece", "acc", "auc", "far_ll", "near_ll", "htr_ll", "t13_ll", "t1x1_ll", "tc6x2_ll"]].mean().reset_index()
 
@@ -75,13 +88,19 @@ def holm(pvals: dict) -> dict:
 
 
 if __name__ == "__main__":
+    OPTS = dict(a[2:].split("=", 1) for a in sys.argv if a.startswith("--") and "=" in a); sys.argv = [a for a in sys.argv if not (a.startswith("--") and "=" in a)]
     mode = sys.argv[1]
     if mode == "dev":
         cells = load_cells(sys.argv[2:]); df, bins = frame(cells); ps = per_seed(df, bins); ref = "raw"; names = [v for v in df.variant.unique() if v != ref]
-        print(f"cells: {len(cells)}  seeds: {ps.seed.nunique()}\n\n#### levels (mean over seeds; log-loss / ECE lower is better)\n"); print(to_md(level_table(ps, [ref] + names), "{:.4f}"))
-        t = pd.concat([paired(ps, v, ref) for v in names]); print("\n#### gain over the uncalibrated candidate (positive = better; log-loss / ECE: raw - variant)\n")
-        print(to_md(t[[c for c in t.columns if not c.endswith(("_lo", "_hi", "_share+")) and c in ("split", "variant", "n_seeds", "ll", "ll_p", "ece", "ece_p", "acc", "auc", "far_ll", "near_ll", "htr_ll", "t13_ll")]], "{:+.4f}"))
+        only = OPTS.get("only", "all"); keep = [v for v in OPTS.get("variants", "").split(",") if v]; names = [v for v in names if not keep or v in keep]
+        if only in ("all", "levels"): print(f"cells: {len(cells)}  seeds: {ps.seed.nunique()}\n\n#### levels (mean over seeds; log-loss / ECE lower is better)\n"); print(to_md(level_table(ps, [ref] + names), "{:.4f}"))
+        t = pd.concat([paired(ps, v, ref) for v in names])
+        if only in ("all", "gain"): print("\n#### gain over the uncalibrated candidate (positive = better; log-loss / ECE: raw - variant)\n")
+        if only in ("all", "gain"): print(to_md(t[[c for c in t.columns if not c.endswith(("_lo", "_hi", "_share+")) and c in ("split", "variant", "n_seeds", "ll", "ll_p", "ece", "ece_p", "acc", "auc", "far_ll", "near_ll", "htr_ll", "t13_ll")]], "{:+.4f}"))
 
+    if mode == "budget":
+        cells = load_cells(sys.argv[2:]); df, bins = frame(cells); keep = [v for v in OPTS.get("variants", "T_type0_tau2,T_typeprior_tau8,CF,CF_typeprior_tau8").split(",") if v]
+        print("#### paired gain over the uncalibrated candidate by budget (positive = better; log-loss: raw - variant)\n"); print(to_md(by_budget(df, keep), "{:+.4f}"))
     if mode == "oracle":
         # diagnostics only: temperature that minimises the TEST log-loss (global and per type) versus the OOF-fitted one, per budget
         cells = load_cells(sys.argv[2:]); rows = []
@@ -122,4 +141,14 @@ if __name__ == "__main__":
         side_rows = []
         for c in cands:
             for _, r in table[c].iterrows(): side_rows.append({"candidate": c, "split": r.split, **{m: r.get(m, np.nan) for m in ("acc", "auc", "far_ll", "near_ll", "t1x1_ll", "tc6x2_ll", "t13_ll", "htr_ll")}, "far_ll_p(uncorrected)": r.get("far_ll_p", np.nan)})
-        print(to_md(pd.DataFrame(side_rows), "{:+.4f}"))
+        print(to_md(pd.DataFrame(side_rows), "{:+.4f}")); print("\n### paired gain by budget (descriptive; positive = better)\n"); print(to_md(by_budget(df, cands, ref), "{:+.4f}"))
+    if mode == "learners":
+        # calibrated comparison of learners: each learner's logits get the SAME calibrator (fitted on that learner's own OOF logits / development prior), then paired differences cand - ref
+        spec = json.loads(Path(sys.argv[2]).read_text()); frames = []
+        for lname, dirs in spec["learners"].items():
+            pri = spec.get("priors", {}).get(lname, "loo"); pri = {"type": {int(k): v for k, v in pri["type"].items()}} if isinstance(pri, dict) else pri; cells = load_cells(dirs); df, bins = frame(cells, priors=pri, draws=spec.get("draws")); ps = per_seed(df, bins); ps = ps[ps.variant.isin(spec["variants"])].copy(); ps["variant"] = lname + "|" + ps.variant; frames.append(ps)
+        ps = pd.concat(frames, ignore_index=True); cand, ref = spec["candidate"], spec["reference"]
+        print("#### levels (mean over seeds)\n"); print(to_md(level_table(ps, sorted(ps.variant.unique())), "{:.4f}"))
+        print(f"\n#### paired difference `{cand}` minus `{ref}` under the same calibrator (positive = candidate better; log-loss / ECE: ref - cand)\n")
+        t = pd.concat([paired(ps, f"{cand}|{v}", f"{ref}|{v}") for v in spec["variants"]]); t["variant"] = [x.split("|")[1] for x in t.variant]
+        print(to_md(t[[c for c in t.columns if not c.endswith(("_lo", "_hi", "_share+")) and c in ("split", "variant", "n_seeds", "ll", "ll_p", "ece", "acc", "auc", "auc_p", "far_ll", "near_ll", "htr_ll", "t13_ll", "t1x1_ll", "tc6x2_ll")]], "{:+.4f}"))

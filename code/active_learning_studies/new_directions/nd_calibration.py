@@ -61,7 +61,8 @@ def label_smoothing(eps: float):
     finally: G._bt_terms = old
 
 
-LEARNER_SPECS = {"lap3_k10_st4": dict(lap=LAM, steps_scale=STEPS), "lap3_k10": dict(lap=LAM), "aw8_all": dict(lap=0.0), "aw8_all_st2lr0.5": dict(lap=0.0, steps_scale=2.0, lr_scale=0.5)}   # = the registry learners of the same names
+LEARNER_SPECS = {"lap3_k10_st4": dict(lap=LAM, steps_scale=STEPS), "lap3_k10": dict(lap=LAM), "aw8_all": dict(lap=0.0), "aw8_all_st2lr0.5": dict(lap=0.0, steps_scale=2.0, lr_scale=0.5),
+                 "lap3_k10_st4_rt13off": dict(lap=LAM, steps_scale=STEPS, lap_w={3: 0.0})}   # last one: development-only learner-side check (Laplacian penalty switched off for the RT13 score)   # = the registry learners of the same names
 
 
 def fit_head(ctx, gd, labelled, seed: int, lr_steps=None, eps: float = 0.0, learner: str = "lap3_k10_st4"):
@@ -79,6 +80,16 @@ class Items:
 
 def logits(head, ctx, items) -> np.ndarray:
     return core.head_d(head, core.identity_features(ctx), items)
+
+
+@contextlib.contextmanager
+def graph_without(extra_images: list):
+    """While active, ``GraphData`` also excludes the images in ``extra_images`` (by content hash): used for the cross-fitting heads so that the held-out fold's images are not graph nodes -- exactly the
+    situation of the test images (which are never nodes), instead of being smoothed transductively as unlabelled nodes."""
+    old = G.excluded_identities; extra = set(G.content_hashes(sorted({str(p) for p in extra_images})).values())
+    G.excluded_identities = lambda ctx: old(ctx) | extra
+    try: yield
+    finally: G.excluded_identities = old
 
 
 def folds_of(labelled, k: int, seed: int) -> list[list]:
@@ -113,7 +124,7 @@ def test_arrays(test, geom: dict) -> dict:
     return {"k": test.k.copy(), "sign": test.sign.copy(), "weight": test.weight.copy(), **{f"g_{k}": v.astype(np.float32) for k, v in geom.items()}}
 
 
-def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dict, k_folds: int, anchors, learner: str = "lap3_k10_st4") -> dict:
+def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dict, k_folds: int, anchors, learner: str = "lap3_k10_st4", fold_graph: str = "all") -> dict:
     """Everything stage 2 needs for one label set.  ``comps``: ens (extra full-data heads), ls (tuple of label-smoothing epsilons)."""
     rec = {"n_labelled": len(labelled)}
     lr_steps = ctx.params_for(labelled); head = fit_head(ctx, gd, labelled, seed0, learner=learner); rec["d"] = logits(head, ctx, test)
@@ -124,7 +135,11 @@ def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dic
            "k": np.array([ctx.info[j]["type_idx"] for j in lab_sorted]), "fold": np.zeros(len(lab_sorted), dtype=int)}
     geoms = {}; rec["d_fold_test"] = []
     for f, held in enumerate(folds_of(labelled, k_folds, seed0)):
-        train = [j for j in lab_sorted if j not in set(held)]; fh = fit_head(ctx, gd, train, seed0 + 17 * (f + 1), lr_steps, learner=learner); items = Items(ctx, held); d = logits(fh, ctx, items)
+        train = [j for j in lab_sorted if j not in set(held)]; items = Items(ctx, held)
+        if fold_graph == "exclude":
+            with graph_without(items.img1 + items.img2): gdf = G.GraphData(ctx, K_GRAPH)
+        else: gdf = gd
+        fh = fit_head(ctx, gdf, train, seed0 + 17 * (f + 1), lr_steps, learner=learner); d = logits(fh, ctx, items)
         for j, v in zip(held, d): oof["d"][idx[j]] = v; oof["fold"][idx[j]] = f
         g = geometry(sim, gd, cache, anchors, items.img1, items.img2, {x for j in train for x in (ctx.info[j]["img1"], ctx.info[j]["img2"])})
         for key, v in g.items(): geoms.setdefault(key, np.full(len(lab_sorted), np.nan, dtype=np.float32))[[idx[j] for j in held]] = v
