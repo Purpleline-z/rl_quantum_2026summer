@@ -110,12 +110,12 @@ def near_heldout(nd: Nodes, heldout_paths, gd, buffer: int = BUFFER) -> np.ndarr
 
 # ------------------------------------------------------------------------------------------ specification and edge sets
 def make_spec(name: str, **kw) -> dict:
-    spec = dict(name=name, lam=3.0, steps=4.0, knn="full", kind=None, window=0, decay=False, unl=False, strict=False, shuf=False, novel=False, mu=3.0, step=1, tbin_seed=0); spec.update(kw); return spec
+    spec = dict(name=name, lam=3.0, steps=4.0, knn="full", kind=None, window=0, decay=False, unl=False, strict=False, shuf=False, novel=False, xr=1.0, mu=3.0, step=1, tbin_seed=0); spec.update(kw); return spec
 
 
 def edge_sets(ctx, gd, spec: dict) -> dict:
     """Cached per (ctx, spec): the kNN edge array used for the Laplacian term and the temporal edge set (i, j, w) or triples; strict filtering and shuffling already applied."""
-    cache = ctx.__dict__.setdefault("_tg", {}); key = (id(ctx), spec["knn"], spec["kind"], spec["window"], spec["decay"], spec["strict"], spec["shuf"], spec["novel"], spec["step"], spec["tbin_seed"])
+    cache = ctx.__dict__.setdefault("_tg", {}); key = (id(ctx), spec["knn"], spec["kind"], spec["window"], spec["decay"], spec["strict"], spec["shuf"], spec["novel"], spec["xr"], spec["step"], spec["tbin_seed"])
     if key in cache: return cache[key]
     nd = cache.get("nodes") or Nodes(gd); cache["nodes"] = nd; knn = gd.edges.numpy()
     if spec["knn"] == "none": knn = knn[:0]
@@ -127,7 +127,11 @@ def edge_sets(ctx, gd, spec: dict) -> dict:
             rng = np.random.default_rng(ctx.seed * 6151 + 5); tt = np.where(both)[0]; kept_tt = int((keep & both).sum()); chosen = rng.choice(tt, size=kept_tt, replace=False)
             keep = ~both; keep[chosen] = True
         knn = knn[keep]
-    out = {"knn": torch.as_tensor(knn, dtype=torch.long), "temporal": None, "triples": None, "nodes": nd}
+    out = {"knn": torch.as_tensor(knn, dtype=torch.long), "temporal": None, "triples": None, "nodes": nd, "knn_p": None}
+    if spec["xr"] != 1.0:   # re-weight (sampling probability) the kNN edges between trajectory frames of different runs or more than INTER_WINDOW index steps apart; control: the same number of random kNN edges
+        far = nd.is_traj[knn[:, 0]] & nd.is_traj[knn[:, 1]] & ((nd.run[knn[:, 0]] != nd.run[knn[:, 1]]) | (np.abs(nd.idx[knn[:, 0]] - nd.idx[knn[:, 1]]) > INTER_WINDOW))
+        if spec["shuf"]: far_idx = np.random.default_rng(ctx.seed * 4099 + 3).choice(len(knn), size=int(far.sum()), replace=False); far = np.zeros(len(knn), dtype=bool); far[far_idx] = True
+        out["knn_p"] = torch.as_tensor(np.where(far, spec["xr"], 1.0), dtype=torch.float); out["n_far"] = int(far.sum())
     kind = spec["kind"]; heldout = None
     if kind in ("chain", "tbin", "curv"):
         if kind == "chain": i, j, w = chain_edges(nd, spec["window"], spec["decay"])
@@ -168,7 +172,8 @@ def fit_tg(ctx, labelled, seed, gd, spec: dict):
         if len(refs) > 1: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
         if bad is not None and len(bad): loss = loss + ctx.exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
         if lam > 0 and len(knn):
-            e = knn[torch.randint(len(knn), (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, ACTIVE], head(node_x[e[:, 1]])[:, ACTIVE]
+            pick = torch.randint(len(knn), (EDGE_BATCH,), generator=gen) if es["knn_p"] is None else torch.multinomial(es["knn_p"], EDGE_BATCH, replacement=True, generator=gen)
+            e = knn[pick]; si, sj = head(node_x[e[:, 0]])[:, ACTIVE], head(node_x[e[:, 1]])[:, ACTIVE]
             loss = loss + lam * ((si - sj) ** 2).sum(1).mean()
         if temporal is not None and mu > 0 and len(temporal[0]):
             pick = torch.randint(len(temporal[0]), (EDGE_BATCH,), generator=gent); si, sj = head(node_x[temporal[0][pick]])[:, ACTIVE], head(node_x[temporal[1][pick]])[:, ACTIVE]
@@ -218,10 +223,13 @@ for _n in ("tg_dec5", "tg_curv", "tg_u2", "tg_u5", "tg_novel5"):
         if f"{_n}_mu{_mu:g}" not in LEARNERS: register(f"{_n}_mu{_mu:g}", **{**kw, "mu": _mu})
         for _tag, _val in (("shuf", True), ("lshuf", "local"), ("krand", "knnrand")):
             if f"{_n}_mu{_mu:g}_{_tag}" not in LEARNERS and not (_n == "tg_curv" and _tag == "krand"): register(f"{_n}_mu{_mu:g}_{_tag}", **{**kw, "mu": _mu, "shuf": _val})
+# re-weighting of the far-in-time / cross-run kNN edges (development; the learner has no temporal edge term: kind=None)
+for _f in (2.0, 5.0, 10.0):
+    register(f"tg_xr{_f:g}", xr=_f); register(f"tg_xr{_f:g}_krand", xr=_f, shuf="knnrand")
 register("tg_base_check", kind=None)   # = lap3_k10_st4 (identity test)
 
 
 def edge_counts(ctx, name: str) -> dict:
     """Sizes of the edge sets a registered learner uses in this context (descriptive; 0 for the baseline)."""
     gd = G.graph_for(ctx, 10, False); spec = SPEC_OF[name]; es = edge_sets(ctx, gd, spec)
-    return {"n_knn": int(len(es["knn"])), "n_temporal": int(len(es["temporal"][0])) if es["temporal"] is not None else int(len(es["triples"])) if es["triples"] is not None else 0}
+    return {"n_knn": int(len(es["knn"])), "n_far": es.get("n_far", 0), "n_temporal": int(len(es["temporal"][0])) if es["temporal"] is not None else int(len(es["triples"])) if es["triples"] is not None else 0}
