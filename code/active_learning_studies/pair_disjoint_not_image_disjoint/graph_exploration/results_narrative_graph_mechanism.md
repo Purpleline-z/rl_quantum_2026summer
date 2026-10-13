@@ -52,6 +52,13 @@ And the 26 λ=10 graphs with other statistics (descriptive; `gm_edge_stats.py`):
 ### 3.7 Which types (accuracy gain over `aw8_all`)
 {{TABLE:dev_types}}
 
+### 3.8 Per-type look at the graph (descriptive; confirmation-seed node sets, split A, 12 seeds; `gm_type_purity.py`)
+Among edges that join two ideal images, how often both have the same class, by class. The graph is reliable for (1x1) and c(6x2) but RT13 and HTR ideal images are each other's nearest ideal neighbours in 36–41 % of their edges:
+
+{{TABLE:type_purity}}
+
+This does not line up with where the penalty helps (HTR and 1x1 gain, c(6x2) unclear, RT13 hurt): HTR has the lowest purity and still gains, so per-type purity alone does not explain the type pattern. Why RT13 is the one hurt is not established (observation only).
+
 ## 4. Frozen pre-registration
 `PREREGISTRATION_GM1.md` (committed at 0f33c6f65 before any confirmation seed): two claims judged separately — (a) the graph-quality dose-response at λ=10 (4 tests, Holm, ≥3 positive and significant), (b) new candidates better than `lap3_k10` (C1 = `gmc_t_no_rt13`, C2 = `gm_lap10_n0`, each with shuffled-graph, noise-graph and non-graph controls; 8 tests, Holm; ≥3 Holm-significant, all four positive, beats both graph controls in at least one split). Everything else is reported without a verdict.
 
