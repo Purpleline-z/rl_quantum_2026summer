@@ -194,3 +194,9 @@ def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps,
         if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
         optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
     return head.eval()
+
+# --- representation study (claude/representation-*): own seed blocks (development 8600-8619, confirmation 1 = 8650-8684); 8000-8199, 8400-8599 and the rest of 8600-8999 belong to parallel sessions
+RP_DEV_SEEDS = tuple(range(8600, 8620)); RP_CONFIRM1 = tuple(range(8650, 8685)); RP_SEEDS_ALL = set(RP_DEV_SEEDS) | set(RP_CONFIRM1)
+assert len(RP_SEEDS_ALL) == 55 and not RP_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not RP_SEEDS_ALL & set(range(7000, 7336)) and not RP_SEEDS_ALL & set(range(8000, 8600)) and not set(RP_DEV_SEEDS) & set(RP_CONFIRM1)
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RP_SEEDS_ALL   # representation blocks (8600-8619, 8650-8684)
+
