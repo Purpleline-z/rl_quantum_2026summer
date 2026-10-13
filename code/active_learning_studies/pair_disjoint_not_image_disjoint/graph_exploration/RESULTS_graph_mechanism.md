@@ -799,7 +799,22 @@ Among edges that join two ideal images, how often both have the same class, by c
 
 (seeds 8100..8111, split A node sets; chance = class frequency)
 
-This does not line up with where the penalty helps (HTR and 1x1 gain, c(6x2) unclear, RT13 hurt): HTR has the lowest purity and still gains, so per-type purity alone does not explain the type pattern. Why RT13 is the one hurt is not established (observation only).
+This does not line up with where the penalty helps (HTR and 1x1 gain, c(6x2) unclear, RT13 hurt): HTR has the lowest purity and still gains, so per-type purity alone does not explain the type pattern. Why RT13 is the one hurt is probed in 3.8b (observation only: at a strong penalty the RT13 score is blurred across the RT13/HTR boundary).
+
+### 3.8b A mechanistic probe on held-out ideal images (descriptive; development seeds, budget 20; `gm_ideal_probe.py`)
+How the penalty changes what each type's score can separate on the seed's outer-test ideal images (never nodes, never anchors): one-vs-rest AUC of the type-t score, and how well the RT13 score separates RT13 from HTR images.
+
+| learner | (1x1) one-vs-rest AUC | c(6x2) one-vs-rest AUC | RT13 one-vs-rest AUC | HTR one-vs-rest AUC | RT13 score: RT13 vs HTR images AUC | seeds |
+|---|---|---|---|---|---|---|
+| aw8_all | 0.9953 | 0.9887 | 0.9588 | 0.9443 | 0.8957 | 20 |
+| lap3_k10-like (lambda 3) | 0.9950 | 0.9884 | 0.9633 | 0.9648 | 0.9171 | 20 |
+| uniform lambda 10 | 0.9944 | 0.9891 | 0.9449 | 0.9574 | 0.8571 | 20 |
+| RT13 off (C1) | 0.9944 | 0.9894 | 0.9595 | 0.9483 | 0.8929 | 20 |
+| shuffled graph (lambda 10) | 0.9722 | 0.9584 | 0.9122 | 0.8913 | 0.7829 | 20 |
+
+(held-out outer-test ideal images only; budget 20, one random label set per seed; descriptive, development seeds)
+
+At λ = 10 with all types penalised, the RT13 score loses separation (one-vs-rest 0.959 → 0.945; RT13 vs HTR 0.896 → 0.857) while the HTR score gains (0.944 → 0.957); with the penalty off for RT13 the RT13 score is back at the `aw8_all` level (0.9595 / 0.893) and the HTR gain is partly kept (0.948). At λ = 3 the RT13 score is not harmed (0.963 / 0.917). This is consistent with the graph linking RT13 and HTR ideal images (3.8): at a strong penalty the RT13 score is pulled together across that boundary. It is a descriptive probe on 20 development seeds (one label set each), not a test.
 
 ## 4. Frozen pre-registration
 `PREREGISTRATION_GM1.md` (committed at 0f33c6f65 before any confirmation seed): two claims judged separately — (a) the graph-quality dose-response at λ=10 (4 tests, Holm, ≥3 positive and significant), (b) new candidates better than `lap3_k10` (C1 = `gmc_t_no_rt13`, C2 = `gm_lap10_n0`, each with shuffled-graph, noise-graph and non-graph controls; 8 tests, Holm; ≥3 Holm-significant, all four positive, beats both graph controls in at least one split). Everything else is reported without a verdict.
