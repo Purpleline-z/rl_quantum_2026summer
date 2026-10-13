@@ -105,6 +105,17 @@ def shortlist_view(tab: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values("learner").reset_index(drop=True)
 
 
+def mde_table(df: pd.DataFrame, ref: str, learners=None, n_confirm: int = 35, metrics=("auc", "acc", "far_auc", "far_acc", "htr_acc")) -> pd.DataFrame:
+    """Between-seed SD of the paired gain (development seeds) and the minimum detectable gain of n_confirm seeds (two-sided, 80 % power; alpha = 0.05 and Holm-level 0.05/16), normal approximation."""
+    from scipy.stats import norm
+    learners = [l for l in sorted(df.learner.unique()) if l != ref] if learners is None else learners; rows = []
+    for m in metrics:
+        sds = [per_seed_gain(df, l, ref, sp, m).std(ddof=1) for l in learners for sp in ("A", "B")]; sd = float(np.nanmedian(sds))
+        rows.append({"metric": m, "median between-seed SD of the gain": sd, f"MDE at {n_confirm} seeds (alpha 0.05)": (norm.ppf(0.975) + norm.ppf(0.8)) * sd / np.sqrt(n_confirm),
+                     f"MDE at {n_confirm} seeds (alpha 0.05/16)": (norm.ppf(1 - 0.05 / 32) + norm.ppf(0.8)) * sd / np.sqrt(n_confirm)})
+    return pd.DataFrame(rows)
+
+
 def types_table(df: pd.DataFrame, ref: str, learners=None) -> pd.DataFrame:
     learners = [l for l in sorted(df.learner.unique()) if l != ref] if learners is None else learners; rows = []
     for l in learners:

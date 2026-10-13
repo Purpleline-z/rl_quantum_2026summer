@@ -59,6 +59,7 @@ def table(name: str) -> str:
         ext = df.groupby("learner").seed.nunique(); ext = [l for l in ext[ext >= 20].index if l != REF]
         tab = T.dev_table(df[df.learner.isin(ext + [REF])], REF); sv = with_score(T.shortlist_view(tab))
         return T.md(sv[["learner", "n_seeds", "auc_A", "auc_B", "acc_A", "acc_B", "score", "all_positive", "holm<0.05 (of 4)", "ll_A", "ll_B", "far_auc_A", "far_auc_B", "far_acc_A", "far_acc_B", "htr_acc_A", "htr_acc_B"]]) + "\n\nFull rows (with intervals and Holm values):\n\n" + T.md(tab)
+    if name == "dev_mde": return T.md(T.mde_table(n1[~n1.learner.isin(["rc_do0.3", CONTROL])], REF))
     if name == "dev_types": return T.md(T.types_table(n1, REF))
     if name == "dev_strata": return T.md(T.strata_table(T.load([DEV[0]], keep_d=True), REF))
     if name == "dev_budget":

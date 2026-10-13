@@ -1,0 +1,4 @@
+{"reference": "lap3_k10_st4", "control": "aw8_all_st2lr0.5",
+ "candidates": ["rc_cos", "rc_ptlr", "rc_aw16", "rcx_rc_cos+rc_wd1"],
+ "seeds": "9350-9384", "splits": ["A", "B"], "draws": 3, "budgets": [10, 20, 40, 60],
+ "families": {"main": ["auc", "acc"], "htr": ["htr_acc", "htr_ll"], "far": ["far_auc", "far_acc"]}}
