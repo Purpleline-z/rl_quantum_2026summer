@@ -1,0 +1,13 @@
+anchor_set,stratum,share_of_judgments,n_judgments,n_total
+any typed anchor (references + utility + outer-test ideal images),all,1.0,2359,2359
+any typed anchor (references + utility + outer-test ideal images),near<=0.001,0.47096227214921577,1111,2359
+any typed anchor (references + utility + outer-test ideal images),0.001-0.01,0.16744383213225944,395,2359
+any typed anchor (references + utility + outer-test ideal images),0.01-0.03,0.14412886816447648,340,2359
+any typed anchor (references + utility + outer-test ideal images),far>0.03,0.2174650275540483,513,2359
+any typed anchor (references + utility + outer-test ideal images),<=0.003,0.5578635014836796,1316,2359
+reference images only,all,1.0,2359,2359
+reference images only,near<=0.001,0.3916913946587537,924,2359
+reference images only,0.001-0.01,0.19626960576515473,463,2359
+reference images only,0.01-0.03,0.12505298855447222,295,2359
+reference images only,far>0.03,0.2869860110216193,677,2359
+reference images only,<=0.003,0.49258160237388726,1162,2359

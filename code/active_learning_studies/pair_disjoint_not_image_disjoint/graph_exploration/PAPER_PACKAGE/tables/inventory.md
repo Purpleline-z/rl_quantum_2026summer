@@ -1,0 +1,101 @@
+| dir | files | seeds | n_seeds | splits | budgets | n_learners | n_selectors | declared_block | description |
+|---|---|---|---|---|---|---|---|---|---|
+| confirm1 | 70 | 3000-3034 | 35 | A,B | 10,20,40,60 | 3 | 2 | ND: confirmation (ND1: anchor weight / selection) | ND1 confirmation: default head / aw8 / aw8_all x random / vopt_u (PREREGISTRATION_1) |
+| confirm3_cold | 70 | 4000-4034 | 35 | A,B | 10,20,40,60 | 2 | 2 | ND: confirmation (ND3: cold start) | ND3 cold-start confirmation (10 random initial judgments) |
+| confirm4_htr | 70 | 5000-5034 | 35 | A,B | 10,20,40,60 | 3 | 1 | ND: confirmation (ND4: HTR) | ND4 HTR confirmation (baseline / aw8 / aw8_all) |
+| confirm5_gp | 70 | 6000-6034 | 35 | A,B | 10,20,40,60 | 3 | 1 | ND: confirmation (ND5: GP learner) | ND5 confirmation of the GP preference learner |
+| ge/conf1_class | 35 | 8500-8534 | 35 |  | -1,60 | 8 | 0 | GE: confirmation 1 | GE classification endpoint (28 outer-test ideal images) |
+| ge/conf1_dose | 70 | 8500-8534 | 35 | A,B | 10,20,40,60 | 10 | 0 | GE: confirmation 1 | GE dose-response of unlabelled frames |
+| ge/conf1_harsh | 140 | 8500-8534 | 35 |  | 10,20,40,60 | 4 | 0 | GE: confirmation 1 | GE harsh splits (held-out run / temperature tercile; contains .d.npz per-judgment scores) |
+| ge/conf2_class | 35 | 8550-8584 | 35 |  | -1,60 | 8 | 0 | GE: confirmation 2 | GE classification endpoint (28 outer-test ideal images) |
+| ge/conf2_dose | 70 | 8550-8584 | 35 | A,B | 10,20,40,60 | 10 | 0 | GE: confirmation 2 | GE dose-response of unlabelled frames |
+| ge/conf2_harsh | 140 | 8550-8584 | 35 |  | 10,20,40,60 | 4 | 0 | GE: confirmation 2 | GE harsh splits (held-out run / temperature tercile; contains .d.npz per-judgment scores) |
+| ge/dev_class | 20 | 8400-8419 | 20 |  | -1,0,60 | 11 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_class_ideal | 20 | 8400-8419 | 20 |  | -1 | 5 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_class_laplr | 20 | 8400-8419 | 20 |  | -1 | 2 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_cut | 20 | 8400-8419 | 20 | A,B | 20,60 | 4 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_dose | 40 | 8400-8419 | 20 | A,B | 20,60 | 10 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_harsh | 40 | 8400-8419 | 20 |  | 20,60 | 6 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_k | 40 | 8400-8419 | 20 |  | 20,60 | 4 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_lam | 40 | 8400-8419 | 20 | A,B | 20,60 | 6 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_lamclass | 20 | 8400-8419 | 20 |  |  | 0 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_late | 40 | 8400-8419 | 20 |  | 20,60 | 4 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_nodes | 40 | 8400-8419 | 20 | A,B | 20,60 | 6 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_ridge | 60 | 8400-8419 | 20 |  | 20,60 | 5 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_target | 40 | 8400-8419 | 20 |  | 20,60 | 6 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_temp3 | 40 | 8400-8419 | 20 |  | 20,60 | 4 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_traj | 20 | 8400-8419 | 20 | A,B | 20,60 | 4 | 0 | GE: development | graph-endpoint development screens |
+| ge/dev_trans | 40 | 8400-8419 | 20 |  | 20,60 | 3 | 0 | GE: development | graph-endpoint development screens |
+| gl/cold | 70 | 7300-7334 | 35 | A,B | 10,20,40,60 | 12 | 0 | GL: cold-start confirmation | GLC cold-start confirmation |
+| gl/confirm1 | 70 | 7100-7134 | 35 | A,B | 10,20,40,60 | 12 | 0 | GL: confirmation 1 | GL1 confirmation (PREREGISTRATION_G1) |
+| gl/confirm2 | 70 | 7200-7234 | 35 | A,B | 10,20,40,60 | 12 | 0 | GL: confirmation 2 | GL2 independent replication |
+| gl/dev1 | 40 | 7000-7019 | 20 | A,B | 10,20,40,60 | 24 | 0 | GL: development | graph-learner development screens |
+| gl/dev2 | 40 | 7000-7019 | 20 | A,B | 10,20,40,60 | 13 | 0 | GL: development | graph-learner development screens |
+| gl/dev3 | 40 | 7000-7019 | 20 | A,B | 10,20,40,60 | 12 | 0 | GL: development | graph-learner development screens |
+| gl/dev_cold | 40 | 7000-7019 | 20 | A,B | 10,20,40,60 | 6 | 0 | GL: development | graph-learner development screens |
+| gm/confirm1 | 70 | 8100-8134 | 35 | A,B | 10,20,40,60 | 17 | 0 | GM: confirmation 1 | GM1 / GM2 confirmations (noise dose, RT13-off candidate) |
+| gm/confirm2 | 70 | 8150-8184 | 35 | A,B | 10,20,40,60 | 17 | 0 | GM: confirmation 2 | GM1 / GM2 confirmations (noise dose, RT13-off candidate) |
+| gm/dev1 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 12 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev10 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 5 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev11 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 3 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev12 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 3 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev13 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 2 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev14 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 2 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev15 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 8 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev16 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 4 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev17 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 2 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev2 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 11 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev3 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 12 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev4 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 9 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev5 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 4 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev6 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 3 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev7 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 4 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev7_INVALID_cache_key_collision | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 4 | 0 | GM: development | INVALID development round (graph cache key collision); kept for the record, never used |
+| gm/dev8 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 3 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev9 | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 5 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/dev_cold | 40 | 8000-8019 | 20 | A,B | 10,20,40,60 | 3 | 0 | GM: development | graph-mechanism development rounds (about 60 variants) |
+| gm/quality | 180 | 8000-8184 | 90 |  |  | 0 | 0 |  | per-seed graph statistics (same-class share, degree) used by the dose-response tests |
+| rt/a1 | 40 | 8800-8819 | 20 |  |  | 0 | 0 | RT: development (audits) | red team: per-judgment scores of 4 learners (novelty columns) |
+| rt/a1b | 40 | 8800-8819 | 20 |  |  | 0 | 0 | RT: development (audits) | red team: distance of each held-out judgment to the nearest typed anchor |
+| rt/a1c | 40 | 8800-8819 | 20 |  |  | 0 | 0 | RT: development (audits) | red team: per-judgment scores baseline / aw8 / aw8_all (anchor-weight check) |
+| rt/a2 | 20 | 8800-8811 | 12 | A,B | 20,40 | 3 | 0 | RT: development (audits) |  |
+| rt/a3 | 20 | 8800-8819 | 20 | blocked | 10,20,40,60 | 5 | 0 | RT: development (audits) | red team: time-blocked evaluation |
+| rt/a9 | 20 | 8800-8809 | 10 | A,B | 20,40 | 5 | 0 | RT: development (audits) |  |
+| rt/c_a1 | 70 | 8850-8884 | 35 |  |  | 0 | 0 | RT: confirmation (RT1) | red team: pre-registered confirmation (RT1) |
+| rt/c_a1b | 70 | 8850-8884 | 35 |  |  | 0 | 0 | RT: confirmation (RT1) | red team: pre-registered confirmation (RT1) |
+| rt/c_a3 | 12 | 8850-8861 | 12 | blocked | 10,20,40,60 | 3 | 0 | RT: confirmation (RT1) | red team: pre-registered confirmation (RT1) |
+| rt/c_a9 | 24 | 8850-8861 | 12 | A,B | 20,40 | 5 | 0 | RT: confirmation (RT1) | red team: pre-registered confirmation (RT1) |
+| screen1 | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 7 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen10 | 24 | 2000-2011 | 12 | A,B | 10,20,40,60 | 6 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen11_mix | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 5 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen12_ce | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 7 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen13_capacity | 24 | 2000-2011 | 12 | A,B | 10,20,40,60 | 6 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen14_gp | 20 | 2000-2009 | 10 | A,B | 10,20,40,60 | 3 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen2a | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 3 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen2b | 20 | 2000-2009 | 10 | A,B | 10,20,40,60 | 5 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen3_cal | 20 | 2000-2019 | 20 | A | 10,20,40,60 | 4 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen4 | 5 | 2000-2003 | 4 | A,B | 10,20,40,60 | 3 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen5 | 22 | 2000-2010 | 11 | A,B | 10,20,40,60 | 5 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen6 | 31 | 2000-2015 | 16 | A,B | 10,20,40,60 | 3 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen7_anchor | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 9 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen8_all | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 5 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| screen9 | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 8 | 0 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sel1 | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 1 | 6 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sel2 | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 1 | 5 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sel5_cold | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 3 | 2 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sel6 | 40 | 2000-2019 | 20 | A,B | 10,20,40,60 | 2 | 3 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sel7_family | 20 | 2000-2009 | 10 | A,B | 10,20,40,60 | 2 | 31 | ND: development | new-directions development screen (seeds 2000-2019) |
+| sh/c1_learn | 70 | 8300-8334 | 35 | A,B | 10,20,40,60 | 5 | 1 | SH: confirmation 1 | SH1 learner family (aw8_all, aw8_all_st2lr0.5, lap3_k10, lap3_k10_st4, shuffled control), random selection |
+| sh/c1_sel | 70 | 8300-8334 | 35 | A,B | 10,20,40,60 | 1 | 7 | SH: confirmation 1 | SH selection family under lap3_k10 (7 selectors incl. controls) |
+| sh/c1_sel4 | 70 | 8300-8334 | 35 | A,B | 10,20,40,60 | 1 | 7 | SH: confirmation 1 | SH selection family under lap3_k10_st4 |
+| sh/c2_learn | 70 | 8350-8384 | 35 | A,B | 10,20,40,60 | 5 | 1 | SH: confirmation 2 | SH2 learner family, independent replication |
+| sh/c2_sel | 70 | 8350-8384 | 35 | A,B | 10,20,40,60 | 1 | 7 | SH: confirmation 2 | SH selection family under lap3_k10 (7 selectors incl. controls) |
+| sh/cold_learn | 30 | 8385-8399 | 15 | A,B | 10,20,40,60 | 5 | 1 | SH: cold-start confirmation | SHC learner family, cold start (15 seeds) |
+| sh/sdev1 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 2 | 12 | SH: development | selection-htr development screens |
+| sh/sdev10 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 2 | 1 | SH: development | selection-htr development screens |
+| sh/sdev2 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 2 | 16 | SH: development | selection-htr development screens |
+| sh/sdev3 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 5 | 2 | SH: development | selection-htr development screens |
+| sh/sdev4 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 3 | 2 | SH: development | selection-htr development screens |
+| sh/sdev5 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 6 | 2 | SH: development | selection-htr development screens |
+| sh/sdev6 | 24 | 8200-8211 | 12 | A,B | 10,20,40,60 | 9 | 1 | SH: development | selection-htr development screens |
+| sh/sdev9 | 40 | 8200-8219 | 20 | A,B | 10,20,40,60 | 2 | 1 | SH: development | selection-htr development screens |
