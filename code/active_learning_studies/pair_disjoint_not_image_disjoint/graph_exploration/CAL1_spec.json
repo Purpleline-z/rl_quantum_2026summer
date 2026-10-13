@@ -1,0 +1,6 @@
+{"name": "CAL1 (pre-registered confirmation: calibration of lap3_k10_st4)",
+ "reference": "raw",
+ "candidates": ["T_type0_tau2", "CF", "T_typeprior_tau8", "CF_typeprior_tau8"],
+ "labels": {"T_type0_tau2": "A1 within-run per-type temperature", "CF": "A2 cross-fit logit ensemble", "T_typeprior_tau8": "A3 per-type temperature, development prior", "CF_typeprior_tau8": "A4 cross-fit ensemble + per-type temperature, development prior"},
+ "metrics": ["ll", "ece"], "auc_margin": 0.002, "acc_margin": 0.005, "alpha": 0.05, "need_sig": 3,
+ "priors": {"type": {"0": 1.352, "2": 0.682, "3": 0.293, "4": 0.630}, "source": "fit_prior on the out-of-fold logits of the labelled judgments of development runs dev1 + dev2 (seeds 9100-9119, A and B, 320 label sets); no test label"}}

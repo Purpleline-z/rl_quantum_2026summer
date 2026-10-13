@@ -1,0 +1,1 @@
+{"learners": {"lap3_k10_st4": ["results/cal/dev1"], "lap3_k10": ["results/cal/dev_lap3_k10"]}, "variants": ["raw", "T_type0_tau2", "T_typeprior_tau8", "CF"], "candidate": "lap3_k10_st4", "reference": "lap3_k10", "draws": [0]}
