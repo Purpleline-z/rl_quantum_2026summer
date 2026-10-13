@@ -187,3 +187,15 @@ def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps,
         if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
         optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
     return head.eval()
+
+
+# ------------------------------------------------------------------------------------------ graph-endpoint study (branch claude/graph-endpoint-1013): own seed block, separate from every earlier line
+# NOTE: the user assigned dev 8400-8419 although the sibling graph-selection session had already used 8000-8479 (its S3 blocks were 8400-8479, registered only on that branch).  Dev screens may reuse
+# 8400-8419 (different question: classification / dose-response / harsh splits; no dev number is used for confirmation); the CONFIRMATION blocks must be disjoint from everything used anywhere.
+GE_DEV_SEEDS = tuple(range(8400, 8420)); GE_CONFIRM1 = tuple(range(8500, 8535)); GE_CONFIRM2 = tuple(range(8550, 8585))
+GE_SEEDS_ALL = set(GE_DEV_SEEDS) | set(GE_CONFIRM1) | set(GE_CONFIRM2)
+USED_BY_SIBLING_SELECTION_SESSION = set(range(8000, 8480))
+assert not (set(GE_CONFIRM1) | set(GE_CONFIRM2)) & (USED_SEEDS_BY_EARLIER_WORK | USED_BY_SIBLING_SELECTION_SESSION), "confirmation seeds must be unused anywhere"
+assert not set(GE_DEV_SEEDS) & USED_SEEDS_BY_EARLIER_WORK, "dev seeds must be unused on this branch"
+assert not set(GE_CONFIRM1) & set(GE_CONFIRM2) and len(GE_DEV_SEEDS) == 20 and len(GE_CONFIRM1) == len(GE_CONFIRM2) == 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GE_SEEDS_ALL
