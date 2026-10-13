@@ -291,5 +291,6 @@ LEARNERS["lap3_k10_st4_shuf"] = _mlp_learner(lap=3.0, steps_scale=4.0, shuffle=T
 LEARNERS["aw8_all_lr2"] = _mlp_learner(lap=0.0, lr_scale=2.0); LEARNERS["aw8_all_st2lr0.5"] = _mlp_learner(lap=0.0, steps_scale=2.0, lr_scale=0.5)
 # graph-free regulariser at the long schedule (robustness check of the Laplacian-free baseline): dropout-consistency of unlabelled nodes' scores (no graph) with steps x4
 for _lam in (0.3, 1.0): LEARNERS[f"cons{_lam:g}_st4"] = _mlp_learner(cons=_lam, steps_scale=4.0)
+LEARNERS["cons0.1_st4"] = _mlp_learner(cons=0.1, steps_scale=4.0); LEARNERS["lap3_cons0.3_k10_st4"] = _mlp_learner(lap=3.0, cons=0.3, steps_scale=4.0)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
