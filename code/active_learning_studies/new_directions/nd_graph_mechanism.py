@@ -139,7 +139,7 @@ def _record_quality(ctx, name: str, stats: dict) -> None:
     if name not in cur: cur[name] = stats; f.write_text(json.dumps(cur))
 
 
-_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac", "purify", "rewire")
+_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac", "purify", "rewire", "rewire_local")
 
 
 def purify_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, add_same_class: int = 0):
@@ -156,10 +156,13 @@ def purify_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, add_sa
     return edges, w
 
 
-def rewire_edges(edges: torch.Tensor, n: int, frac: float, seed: int) -> torch.Tensor:
+def rewire_edges(edges: torch.Tensor, n: int, frac: float, seed: int, xn: torch.Tensor | None = None, pool: int = 0) -> torch.Tensor:
     """Second dose axis for graph quality: a fraction `frac` of the edges keeps one endpoint and gets a uniformly random second endpoint (all other edges stay exact kNN edges)."""
     g = torch.Generator().manual_seed(seed * 104729 + int(frac * 1000)); e = edges.clone(); k = int(round(frac * len(e))); sel = torch.randperm(len(e), generator=g)[:k]
-    e[sel, 1] = torch.randint(0, n, (k,), generator=g); a, b = torch.minimum(e[:, 0], e[:, 1]), torch.maximum(e[:, 0], e[:, 1]); keep = a != b
+    if pool and xn is not None:   # LOCAL rewiring: the new second endpoint is drawn from the `pool` nearest neighbours of the first endpoint (no long-range shortcuts)
+        s = xn[e[sel, 0]] @ xn.T; s[torch.arange(k), e[sel, 0]] = -2.0; nb = s.topk(pool, dim=1).indices; e[sel, 1] = nb[torch.arange(k), torch.randint(0, pool, (k,), generator=g)]
+    else: e[sel, 1] = torch.randint(0, n, (k,), generator=g)
+    a, b = torch.minimum(e[:, 0], e[:, 1]), torch.maximum(e[:, 0], e[:, 1]); keep = a != b
     return torch.unique(torch.stack([a[keep], b[keep]], 1), dim=0)
 
 
@@ -168,7 +171,7 @@ def gm_graph(ctx, name: str, spec: dict):
     if key not in cache:
         base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all"))
         if spec.get("shuffle"): edges = shuffle_edges(edges, len(base.paths), ctx.seed)
-        if spec.get("rewire"): edges = rewire_edges(edges, len(base.paths), float(spec["rewire"]), ctx.seed); w = torch.ones(len(edges))
+        if spec.get("rewire"): edges = rewire_edges(edges, len(base.paths), float(spec["rewire"]), ctx.seed, base.xn if spec.get("rewire_local") else None, int(spec.get("rewire_local", 0))); w = torch.ones(len(edges))
         if spec.get("purify"): edges, w = purify_edges(base, edges, w, add_same_class=int(spec["purify"]) - 1)
         cache[key] = (base, edges, w)
     base, edges, w = cache[key]; _record_quality(ctx, spec.get("quality_name", name), graph_quality(base, edges, w)); return base, edges, w
@@ -315,3 +318,6 @@ _reg("gm10_huber", lap=10, pen="huber", delta=0.5); _reg("gmc10_rt03", lap=10, t
 
 # ---- round 16 (development only): a second quality axis that does not distort the geometry of the kept edges: random rewiring of a fraction of the edges
 for _f in (0.1, 0.25, 0.5, 0.75): _reg(f"gm10_rw{int(_f * 100)}", lap=10, rewire=_f)
+
+# ---- round 17 (development only): LOCAL rewiring (new endpoint among the 50 nearest neighbours) vs random rewiring: is it the long-range shortcuts that destroy the gain?
+_reg("gm10_rwl25", lap=10, rewire=0.25, rewire_local=50); _reg("gm10_rwl50", lap=10, rewire=0.5, rewire_local=50)

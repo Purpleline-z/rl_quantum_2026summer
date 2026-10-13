@@ -139,6 +139,8 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm10_rw25 | -0.0689 | 20 | -0.0916 | -0.2430 | -0.0017 |
 | A | gm10_rw50 | -0.0987 | 20 | -0.1160 | -0.2610 | -0.0047 |
 | A | gm10_rw75 | -0.1205 | 20 | -0.1327 | -0.2681 | -0.0186 |
+| A | gm10_rwl25 | +0.0061 | 20 | -0.0110 | -0.0853 | +0.0223 |
+| A | gm10_rwl50 | +0.0115 | 20 | -0.0095 | -0.1014 | +0.0285 |
 | A | gm10_snn | +0.0179 | 20 | +0.0044 | -0.0174 | +0.0411 |
 | A | gm10_type_1x1_htr | +0.0217 | 20 | +0.0136 | +0.0320 | +0.0487 |
 | A | gm10_type_htr | +0.0039 | 20 | +0.0081 | +0.0081 | +0.0453 |
@@ -228,6 +230,8 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm10_rw25 | -0.0637 | 20 | -0.0783 | -0.2402 | +0.0021 |
 | B | gm10_rw50 | -0.0923 | 20 | -0.1035 | -0.2575 | -0.0066 |
 | B | gm10_rw75 | -0.1157 | 20 | -0.1205 | -0.2653 | -0.0162 |
+| B | gm10_rwl25 | +0.0131 | 20 | -0.0037 | -0.0777 | +0.0257 |
+| B | gm10_rwl50 | +0.0121 | 20 | -0.0054 | -0.0962 | +0.0279 |
 | B | gm10_snn | +0.0198 | 20 | +0.0121 | -0.0157 | +0.0271 |
 | B | gm10_type_1x1_htr | +0.0204 | 20 | +0.0154 | +0.0231 | +0.0244 |
 | B | gm10_type_htr | +0.0042 | 20 | +0.0073 | +0.0094 | +0.0248 |
@@ -324,6 +328,8 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm10_rw25 | -0.0856 | 20 | -0.1054 | -0.2612 | -0.0445 |
 | A | gm10_rw50 | -0.1154 | 20 | -0.1299 | -0.2791 | -0.0475 |
 | A | gm10_rw75 | -0.1372 | 20 | -0.1465 | -0.2862 | -0.0615 |
+| A | gm10_rwl25 | -0.0106 | 20 | -0.0249 | -0.1034 | -0.0206 |
+| A | gm10_rwl50 | -0.0052 | 20 | -0.0233 | -0.1195 | -0.0144 |
 | A | gm10_snn | +0.0012 | 20 | -0.0094 | -0.0355 | -0.0018 |
 | A | gm10_type_1x1_htr | +0.0049 | 20 | -0.0003 | +0.0139 | +0.0059 |
 | A | gm10_type_htr | -0.0128 | 20 | -0.0057 | -0.0100 | +0.0025 |
@@ -413,6 +419,8 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm10_rw25 | -0.0822 | 20 | -0.0921 | -0.2623 | -0.0203 |
 | B | gm10_rw50 | -0.1108 | 20 | -0.1172 | -0.2797 | -0.0290 |
 | B | gm10_rw75 | -0.1343 | 20 | -0.1343 | -0.2874 | -0.0386 |
+| B | gm10_rwl25 | -0.0055 | 20 | -0.0175 | -0.0998 | +0.0034 |
+| B | gm10_rwl50 | -0.0065 | 20 | -0.0192 | -0.1184 | +0.0055 |
 | B | gm10_snn | +0.0013 | 20 | -0.0017 | -0.0378 | +0.0047 |
 | B | gm10_type_1x1_htr | +0.0019 | 20 | +0.0016 | +0.0009 | +0.0020 |
 | B | gm10_type_htr | -0.0144 | 20 | -0.0065 | -0.0127 | +0.0024 |
@@ -717,22 +725,26 @@ Cut every edge between two ideal images of different classes (quality 1.0 on ide
 | B | gmc_t_no_rt13 | +0.0112 | 20 | +0.0044 | +0.0224 | +0.0041 |
 
 ### 3.4h A second dose axis: random rewiring of a fraction of the edges (round 16, development only)
-A fraction of the kNN edges keeps one endpoint and gets a random second endpoint; all other edges stay exact kNN edges (λ = 10, gain over `aw8_all`):
+A fraction of the kNN edges keeps one endpoint and gets a second endpoint that is either uniformly random ("long-range") or drawn from the 50 nearest neighbours of the first endpoint ("local", round 17); all other edges stay exact kNN edges (λ = 10, gain over `aw8_all`):
 
-| split | graph | rewired_fraction | quality | auc_gain | acc_gain | ll_gain |
-|---|---|---|---|---|---|---|
-| A | gm_lap10_n0 | +0.0000 | +0.7936 | +0.0201 | +0.0121 | -0.0185 |
-| A | gm10_rw10 | +0.1000 | +0.7823 | -0.0388 | -0.0633 | -0.2075 |
-| A | gm10_rw25 | +0.2500 | +0.7582 | -0.0689 | -0.0916 | -0.2430 |
-| A | gm10_rw50 | +0.5000 | +0.7032 | -0.0987 | -0.1160 | -0.2610 |
-| A | gm10_rw75 | +0.7500 | +0.5978 | -0.1205 | -0.1327 | -0.2681 |
-| B | gm_lap10_n0 | +0.0000 | +0.7941 | +0.0205 | +0.0152 | -0.0125 |
-| B | gm10_rw10 | +0.1000 | +0.7841 | -0.0386 | -0.0552 | -0.2054 |
-| B | gm10_rw25 | +0.2500 | +0.7605 | -0.0619 | -0.0773 | -0.2406 |
-| B | gm10_rw50 | +0.5000 | +0.7074 | -0.0918 | -0.1045 | -0.2581 |
-| B | gm10_rw75 | +0.7500 | +0.6056 | -0.1150 | -0.1206 | -0.2658 |
+| split | graph | rewiring | fraction | quality | auc_gain | acc_gain | ll_gain |
+|---|---|---|---|---|---|---|---|
+| A | gm_lap10_n0 | none | +0.0000 | +0.7936 | +0.0201 | +0.0121 | -0.0185 |
+| A | gm10_rw10 | random (long-range) | +0.1000 | +0.7823 | -0.0388 | -0.0633 | -0.2075 |
+| A | gm10_rw25 | random (long-range) | +0.2500 | +0.7582 | -0.0689 | -0.0916 | -0.2430 |
+| A | gm10_rw50 | random (long-range) | +0.5000 | +0.7032 | -0.0987 | -0.1160 | -0.2610 |
+| A | gm10_rw75 | random (long-range) | +0.7500 | +0.5978 | -0.1205 | -0.1327 | -0.2681 |
+| A | gm10_rwl25 | local (50 nearest) | +0.2500 | +0.7102 | +0.0061 | -0.0110 | -0.0853 |
+| A | gm10_rwl50 | local (50 nearest) | +0.5000 | +0.6215 | +0.0115 | -0.0095 | -0.1014 |
+| B | gm_lap10_n0 | none | +0.0000 | +0.7941 | +0.0205 | +0.0152 | -0.0125 |
+| B | gm10_rw10 | random (long-range) | +0.1000 | +0.7841 | -0.0383 | -0.0551 | -0.2050 |
+| B | gm10_rw25 | random (long-range) | +0.2500 | +0.7605 | -0.0637 | -0.0783 | -0.2402 |
+| B | gm10_rw50 | random (long-range) | +0.5000 | +0.7074 | -0.0923 | -0.1035 | -0.2575 |
+| B | gm10_rw75 | random (long-range) | +0.7500 | +0.6056 | -0.1157 | -0.1205 | -0.2653 |
+| B | gm10_rwl25 | local (50 nearest) | +0.2500 | +0.7132 | +0.0131 | -0.0037 | -0.0777 |
+| B | gm10_rwl50 | local (50 nearest) | +0.5000 | +0.6212 | +0.0121 | -0.0054 | -0.0962 |
 
-Per-seed Spearman between quality and gain across the five rewiring doses is +0.82 to +0.87 (A and B, AUC and accuracy), but the scale is very different from the noise axis: rewiring 10 % of the edges lowers the ideal-ideal same-class share only from 0.794 to 0.78 and already turns the AUC gain of +0.02 into −0.04, while feature noise σ = 0.5 changes two thirds of the neighbours (graph quality unchanged at 0.81) and costs nothing. So a **few edges between unrelated images are far more damaging than many edges between merely less-similar images**; the quality proxy (ideal-ideal same-class share) does not capture this.
+Per-seed Spearman between quality and gain across the five rewiring doses is +0.82 to +0.87 (A and B, AUC and accuracy), but the scale is very different from the noise axis: rewiring 10 % of the edges lowers the ideal-ideal same-class share only from 0.794 to 0.78 and already turns the AUC gain of +0.02 into −0.04, while feature noise σ = 0.5 changes two thirds of the neighbours (graph quality unchanged at 0.81) and costs nothing. So a **few edges between unrelated images are far more damaging than many edges between merely less-similar images**; the quality proxy (ideal-ideal same-class share) does not capture this. Local rewiring, which has the same number of wrong edges but no long-range shortcuts, keeps a positive AUC gain even when 50 % of the edges are rewired (+0.012 / +0.012 vs −0.10 / −0.09 for random rewiring): it is the **long-range shortcuts** (a random edge makes the graph an expander and the strong penalty then pulls scores of unrelated images together) that destroy the gain; accuracy is still hurt by local rewiring (−0.004 to −0.011).
 
 ### 3.5 What the development screen showed (observations, optimistic)
 - **Noise dose, λ=10:** the AUC gain falls monotonically with noise (≈ +0.02 at σ ≤ 0.5, ≈ 0 at σ = 1–2, ≈ −0.015 at σ = 3), and log-loss gets worse at every step; at λ=3 the dependence is weak.
