@@ -18,7 +18,7 @@ import nd_learners as L
 
 REGISTRY = {**L.LEARNERS, **G.LEARNERS}
 
-NAME = re.compile(r"/(\d+)_(RR\d+[A-Z]?)_(\d+)C?_(\d+)\.bmp$")
+NAME = re.compile(r"/(\d+)_(RR\d+[A-Z]?)_(\d+)C?_(\d+)(?:-\d+)?\.bmp$")
 AUDIT_SEEDS = tuple(range(8800, 8820)); CONFIRM_SEEDS = tuple(range(8850, 8885))
 
 
