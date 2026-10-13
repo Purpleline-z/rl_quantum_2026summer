@@ -292,3 +292,6 @@ LEARNERS["gm10_hid"] = hidden_graph_learner("gm10_hid", lap=10); LEARNERS["gm10_
 
 # ---- round 12 (causal check in the UPWARD direction): cut cross-class ideal-ideal edges (and optionally add same-class ideal edges) using the anchors' class labels
 _reg("gm10_pur", lap=10, purify=1); _reg("gm10_pur_add", lap=10, purify=6); _reg("gmc10_pur", lap=10, purify=1, type_w={3: 0.0})
+
+# ---- round 13 (nodes): ideal-ideal edges only; every edge that touches at least one ideal image
+_reg("gm10_place_ii", lap=10, place="ii"); _reg("gm10_place_any", lap=10, place="ideal_any")

@@ -15,3 +15,9 @@
 - Round 7 (own idea: skip near-duplicate neighbours): first run INVALID (graph cache key lacked r0/frac, so ring6/drop40 reused ring3/drop20); fixed and rerun; no gain beyond +0.005. The invalid cells are kept in `results/gm/dev7_INVALID_cache_key_collision` and the two wrong quality entries were removed. No other variant shares a cache key with a different graph (checked).
 - 49 variants in total over 7 rounds (plan said 4 rounds of <=12; extended after seeing results; stated in PREREGISTRATION_GM1).
 - 05:14 UTC: `PREREGISTRATION_GM1.md` committed (0f33c6f65) before any confirmation seed; confirmation 1 (8100-8134) then confirmation 2 (8150-8184) run by `scripts_gm/chain_confirm.sh`.
+
+## 2026-10-13 06:20-09:20 UTC: confirmations and post-registration development
+- Confirmation 1 (8100-8134, finished ~07:00): (a) dose-response CONFIRMED (4/4 Holm < 1e-4, mean rho +0.65..+0.76); (b) C1 `gmc_t_no_rt13` CONFIRMED (4 Holm-significant, beats shuffled/noise/non-graph controls); C2 `gm_lap10_n0` not confirmed (1 of 4 Holm-significant).
+- Confirmation 2 (8150-8184, finished 08:15): (a) CONFIRMED again; C1 CONFIRMED again; C2 passes (4 Holm-significant) but with effects of only +0.003..+0.006 -> reported as not robust (flips between confirmations).
+- Development-only rounds after the freeze (do not change the frozen candidates): dev8 (ImageNet-feature topology: worse), dev9 (fairer non-graph arm: mixup consistency still harmful, noise consistency ~0), dev10 (per-type strengths: all within +-0.002 of C1), dev11 (self-consistent hidden-space graph: no gain), dev12 (purification with anchor labels: no gain, adding same-class edges hurts), dev13 (placement: ideal-touching edges carry the accuracy gain). Per-type graph purity table (`gm_type_purity.py`). Full test suite: 314+3 passed.
+- Documents: RESULTS_graph_mechanism.md (generated), SUMMARY_ZH_graph_mechanism.md, HANDOFF_graph_mechanism.md, GPU_TASKS_graph_mechanism.md.

@@ -67,3 +67,28 @@ def test_non_graph_controls_change_the_head_but_train(ctx_a):
     lab = core.random_labelled(ctx_a, 20, 0); test = core.TestSet(ctx_a); base = M.LEARNERS["gm_lap3_n0"](ctx_a, lab, 5)(test)
     for name in ("gm_noise3", "gm_mix3", "gm_wd1e2", "gm_decay3"):
         d = M.LEARNERS[name](ctx_a, lab, 5)(test); assert np.isfinite(d).all() and not np.allclose(d, base)
+
+
+def test_purify_cuts_only_cross_class_ideal_edges_and_adds_same_class_ones(ctx_a):
+    import nd_graph_learner as G
+    import nd_graph_mechanism as M
+    base = G.graph_for(ctx_a, 10); e, w = M.build_edges(base, {}); e2, w2 = M.purify_edges(base, e, w, 0); src = base.source_class
+    assert len(e2) < len(e) and M.graph_quality(base, e2, w2)["quality"] == 1.0
+    cut = {tuple(x) for x in e.tolist()} - {tuple(x) for x in e2.tolist()}; assert cut and all(i in src and j in src and src[i] != src[j] for i, j in cut)
+    e3, w3 = M.purify_edges(base, e, w, 5); assert M.graph_quality(base, e3, w3)["quality"] == 1.0 and M.graph_quality(base, e3, w3)["n_ii_edges"] > M.graph_quality(base, e2, w2)["n_ii_edges"]
+
+
+def test_ring_drop_and_cache_keys_do_not_collide(ctx_a):
+    import nd_graph_learner as G
+    import nd_graph_mechanism as M
+    base = G.graph_for(ctx_a, 10); a, _ = M.build_edges(base, {"construct": "ring", "k": 10, "r0": 3}); b, _ = M.build_edges(base, {"construct": "ring", "k": 10, "r0": 6})
+    c, _ = M.build_edges(base, {"construct": "drop", "k": 10, "frac": 0.2}); d, _ = M.build_edges(base, {"construct": "drop", "k": 10, "frac": 0.4})
+    assert len(a) != len(b) and len(c) > len(d)
+    g1 = M.gm_graph(ctx_a, "t_ring3", {"lap": 10, "construct": "ring", "k": 10, "r0": 3}); g2 = M.gm_graph(ctx_a, "t_ring6", {"lap": 10, "construct": "ring", "k": 10, "r0": 6}); assert len(g1[1]) != len(g2[1])
+
+
+def test_hidden_graph_learner_runs_and_differs(ctx_a):
+    import numpy as np
+    import nd_graph_mechanism as M
+    lab = core.random_labelled(ctx_a, 20, 0); test = core.TestSet(ctx_a); d = M.LEARNERS["gm10_hid"](ctx_a, lab, 5)(test); d0 = M.LEARNERS["gm_lap10_n0"](ctx_a, lab, 5)(test)
+    assert np.isfinite(d).all() and not np.allclose(d, d0)

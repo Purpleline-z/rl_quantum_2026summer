@@ -1,7 +1,7 @@
 # Handoff — graph-mechanism branch `claude/graph-mechanism-20261013`
 
 ## State
-Development (seeds 8000–8019, 49 variants over rounds dev1–dev9), frozen pre-registration (`PREREGISTRATION_GM1.md`, committed at 0f33c6f65 before any confirmation seed), confirmation 1 (8100–8134) and confirmation 2 (8150–8184) are finished; results in `RESULTS_graph_mechanism.md` (generated), `SUMMARY_ZH_graph_mechanism.md`, `GPU_TASKS_graph_mechanism.md`, `PROGRESS_LOG_graph_mechanism.md`. Seeds 8000–8184 are now used; 8200–8599 belong to parallel sessions; use >= 8600 for new tests.
+Development (seeds 8000–8019, 60+ variants over rounds dev1–dev13: dose-response, constructions, placement, per-type, non-graph arm, λ/k sweeps, LDA / ImageNet / hidden-space / purified graphs), frozen pre-registration (`PREREGISTRATION_GM1.md`, committed at 0f33c6f65 before any confirmation seed), confirmation 1 (8100–8134) and confirmation 2 (8150–8184) are finished; results in `RESULTS_graph_mechanism.md` (generated), `SUMMARY_ZH_graph_mechanism.md`, `GPU_TASKS_graph_mechanism.md`, `PROGRESS_LOG_graph_mechanism.md`. Seeds 8000–8184 are now used; 8200–8599 belong to parallel sessions; use >= 8600 for new tests.
 
 ## Results in one line
 (a) graph-quality dose-response at λ=10: CONFIRMED twice; (b) `gmc_t_no_rt13` (kNN k=10, λ=10, penalty off for RT13) better than `lap3_k10`: CONFIRMED twice (+0.009–0.010 AUC, +0.005–0.007 accuracy); `gm_lap10_n0` (uniform λ=10): confirmed in confirmation 2 only (tiny effect) -> not robust; no better graph construction than plain cosine kNN (k=10) found; non-graph smoothing does not reproduce the gain.
