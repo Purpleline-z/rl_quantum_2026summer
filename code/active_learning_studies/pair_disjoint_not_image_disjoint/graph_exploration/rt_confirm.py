@@ -72,6 +72,22 @@ def run(a1, a1b, a3, a2):
     out = pd.DataFrame(rows); out["holm"] = holm(out.p.to_numpy()); return out
 
 
+def run_a9(d):
+    """RT2 family (anchor-strict evaluation): candidate vs reference and the anchor-weight check, splits A/B x AUC/accuracy, Holm over the 8 tests."""
+    j = load_json(d); tests = []
+    for split in "AB":
+        for m in ("auc", "acc"):
+            tests.append({"evaluation": "anchor-strict", "split": split, "metric": m, "candidate": CAND, "reference": REF1, "per": per_seed_json(j, split, m, CAND, REF1)})
+            tests.append({"evaluation": "anchor-strict aw8", "split": split, "metric": m, "candidate": "aw8_all", "reference": BASE, "per": per_seed_json(j, split, m, "aw8_all", BASE)})
+    rows = []
+    for t in tests:
+        per = t.pop("per").dropna(); rng = np.random.default_rng(0); bs = rng.choice(per.to_numpy(), (3000, len(per))).mean(1)
+        try: p = float(wilcoxon(per).pvalue)
+        except ValueError: p = 1.0
+        rows.append({**t, "n_seeds": len(per), "gain": float(per.mean()), "lo": float(np.percentile(bs, 2.5)), "hi": float(np.percentile(bs, 97.5)), "share_pos": float((per > 0).mean()), "p": p})
+    out = pd.DataFrame(rows); out["holm"] = holm(out.p.to_numpy()); return out
+
+
 def verdicts(out):
     rows = []
     for ev, g in out.groupby("evaluation", sort=False):

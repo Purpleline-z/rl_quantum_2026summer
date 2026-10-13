@@ -51,6 +51,10 @@ def table(name):
         buf = io.StringIO(); sys.argv = ["rt_tables.py", "a5", str(RES / "a5")]
         with contextlib.redirect_stdout(buf): exec(compile((HERE / "rt_tables.py").read_text(), "rt_tables", "exec"), {"__name__": "__main__", "__file__": str(HERE / "rt_tables.py")})
         return buf.getvalue()
+    if name in ("a9", "confirm_a9"):
+        d = "a9" if name == "a9" else "c_a9"
+        if not have(d): return f"*{d}: not run*"
+        out = C.run_a9(str(RES / d)); return C.md(out) + "\n\nVerdicts:\n\n" + C.md(C.verdicts(out), "{}")
     if name == "confirm":
         if not all(have(n) for n in ("c_a1", "c_a1b", "c_a3", "c_a2")): return "*confirmation not (fully) run*"
         out = C.run(*(str(RES / n) for n in ("c_a1", "c_a1b", "c_a3", "c_a2"))); return C.md(out) + "\n\nVerdicts by the pre-registered rule:\n\n" + C.md(C.verdicts(out), "{}")
