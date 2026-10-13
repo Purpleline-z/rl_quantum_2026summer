@@ -96,6 +96,19 @@ def confirm_report(spec, dirs):
 if __name__ == "__main__":
     mode = sys.argv[1]; dirs = [a for a in sys.argv[2:] if not a.startswith("--") and not a.endswith(".json")]; opts = dict(a[2:].split("=", 1) for a in sys.argv[2:] if a.startswith("--") and "=" in a)
     if mode == "dev": print(to_md(dev_table(load(dirs), opts.get("learner", "lap3_k10"))))
+    elif mode == "types":
+        t = dev_table(load(dirs), opts.get("learner", "lap3_k10"), metrics=("t1x1_acc", "tc6x2_acc", "t13_acc", "htr_acc", "htr_ll", "t1x1_ll", "tc6x2_ll", "t13_ll"))
+        keep = [x for x in t.columns if not x.endswith("_p") and not x.endswith("_holm")]; print(to_md(t[keep]))
+    elif mode == "learners":   # learner changes against a reference learner under the same selector (identical label sets)
+        f = load(dirs); sel = opts.get("selector", "random"); ref = opts.get("ref", "lap3_k10"); rows = []
+        for split in sorted(f.split.unique()):
+            for l in sorted(set(f[(f.split == split) & (f.selector == sel)].learner) - {ref}):
+                r = {"split": split, "learner": l}
+                for m in ("auc", "acc", "ll", "htr_acc", "htr_ll", "t1x1_acc", "tc6x2_acc", "t13_acc"):
+                    try: o = summarize(gain(f, split, m, (sel, l), (sel, ref))); r[m] = o["gain"]; r[m + "_p"] = o["p"]; r["n"] = o["n"]
+                    except Exception: pass
+                rows.append(r)
+        print(to_md(pd.DataFrame(rows)))
     elif mode == "comp": print(to_md(comp_table(load(dirs), opts.get("learner", "lap3_k10")), "{:.1f}"))
     elif mode == "cross":
         f = load(dirs); rows = []

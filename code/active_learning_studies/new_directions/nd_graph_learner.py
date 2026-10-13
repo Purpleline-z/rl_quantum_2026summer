@@ -280,5 +280,9 @@ for _st in (0.5, 2.0): LEARNERS[f"lap3_k10_st{_st:g}"] = _mlp_learner(lap=3.0, s
 for _lr in (0.5, 2.0): LEARNERS[f"lap3_k10_lr{_lr:g}"] = _mlp_learner(lap=3.0, lr_scale=_lr)
 for _a in (2.0, 4.0): LEARNERS[f"lap3_ha{_a:g}_k10"] = _mlp_learner(lap=3.0, anchor_w={4: _a})   # HTR reference-anchor weight x _a (HTR has 26 of 144 anchors)
 LEARNERS["lap3_ha2h10_k10"] = _mlp_learner(lap=3.0, anchor_w={4: 2.0}, lap_w={4: 10.0 / 3.0})
+# schedule re-tuning of the Laplacian learner and of its Laplacian-free counterpart (fit_mlp_graph with lap = 0 is exactly aw8_all, tested): same schedule knobs for both
+for _st in (3.0, 4.0): LEARNERS[f"lap3_k10_st{_st:g}"] = _mlp_learner(lap=3.0, steps_scale=_st)
+LEARNERS["lap3_k10_st2lr2"] = _mlp_learner(lap=3.0, steps_scale=2.0, lr_scale=2.0)
+for _st in (2.0, 3.0, 4.0): LEARNERS[f"aw8_all_st{_st:g}"] = _mlp_learner(lap=0.0, steps_scale=_st)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
