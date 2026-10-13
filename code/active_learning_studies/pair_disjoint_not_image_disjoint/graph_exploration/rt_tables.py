@@ -76,6 +76,22 @@ def gain_table(df, cand, ref, group_cols=("split",), metrics=("auc", "acc", "ll"
     return pd.DataFrame(rows)
 
 
+def auc_by_stratum(df, b, cand, ref, bins, col="anc_all_min") -> pd.DataFrame:
+    """AUC gain (cand - ref) within strata of a distance column, computed per (seed, split, budget, draw) and averaged; bins = [(label, lo, hi)] meaning lo < value <= hi."""
+    from sklearn.metrics import roc_auc_score
+    j = df[df.learner.isin([cand, ref])].merge(b[["seed", "split", "j", col]], on=["seed", "split", "j"]); rows = []
+    for label, lo, hi in bins:
+        sub = j[(j[col] > lo) & (j[col] <= hi)]
+        for split, g in sub.groupby("split"):
+            per = {}
+            for (seed, budget, draw), gg in g.groupby(["seed", "budget", "draw"]):
+                a, r = gg[gg.learner == cand].sort_values("j"), gg[gg.learner == ref].sort_values("j")
+                if len(a) == len(r) and len(set(a.sign)) == 2: per.setdefault(seed, []).append(roc_auc_score(a.sign > 0, a.d) - roc_auc_score(r.sign > 0, r.d))
+            per = pd.Series({k: np.mean(v) for k, v in per.items()}); rng = np.random.default_rng(0); bs = rng.choice(per.to_numpy(), (2000, len(per))).mean(1)
+            rows.append({"split": split, "stratum": label, "n_judgments": len(g) // 2, "n_seeds": len(per), "auc_gain": per.mean(), "CI": f"[{np.percentile(bs, 2.5):+.4f}, {np.percentile(bs, 97.5):+.4f}]"})
+    return pd.DataFrame(rows)
+
+
 def to_md(df, fmt="{:+.4f}"):
     cols = list(df.columns); out = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     for _, r in df.iterrows(): out.append("| " + " | ".join("" if (isinstance(v, float) and np.isnan(v)) else (fmt.format(v) if isinstance(v, float) else str(v)) for v in r) + " |")
@@ -118,6 +134,9 @@ if __name__ == "__main__":
                     bs = rng.choice(per[m].to_numpy(), (2000, len(per))).mean(1); row[m] = per[m].mean(); row[m + " CI"] = f"[{np.percentile(bs, 2.5):+.4f}, {np.percentile(bs, 97.5):+.4f}]"
                 rows.append(row)
         print(to_md(pd.DataFrame(rows)))
+    if mode == "a1auc":
+        df = load_a1(dirs[0]); b = load_a1b(dirs[1]); cand, ref = opts.get("cand", "lap3_k10_st4"), opts.get("ref", "aw8_all_st2lr0.5")
+        print(to_md(auc_by_stratum(df, b, cand, ref, [("all", -1, 9), ("anchor-near (<=0.001)", -1, 0.001), ("0.001-0.01", 0.001, 0.01), ("0.01-0.03", 0.01, 0.03), ("anchor-far (>0.03)", 0.03, 9), ("far from anchors (>0.01)", 0.01, 9)])))
     if mode == "a1b":   # gain by proximity of the test judgment's images to a typed anchor (ideal image)
         df = load_a1(dirs[0]); j = per_judgment(df, opts.get("cand", "lap3_k10_st4"), opts.get("ref", "aw8_all_st2lr0.5")); b = load_a1b(dirs[1]); j = j.merge(b, on=["seed", "split", "j"], how="inner")
         print(to_md(stratified_custom(anchor_bins(j, opts.get("col", "anc_all_min")))))
