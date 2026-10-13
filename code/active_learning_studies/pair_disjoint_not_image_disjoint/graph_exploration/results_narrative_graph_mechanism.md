@@ -50,11 +50,11 @@ Cut every edge between two ideal images of different classes (quality 1.0 on ide
 {{TABLE:dev_cold}}
 
 ### 3.4h A second dose axis: random rewiring of a fraction of the edges (round 16, development only)
-A fraction of the kNN edges keeps one endpoint and gets a random second endpoint; all other edges stay exact kNN edges (λ = 10, gain over `aw8_all`):
+A fraction of the kNN edges keeps one endpoint and gets a second endpoint that is either uniformly random ("long-range") or drawn from the 50 nearest neighbours of the first endpoint ("local", round 17); all other edges stay exact kNN edges (λ = 10, gain over `aw8_all`):
 
 {{TABLE:rewire}}
 
-Per-seed Spearman between quality and gain across the five rewiring doses is +0.82 to +0.87 (A and B, AUC and accuracy), but the scale is very different from the noise axis: rewiring 10 % of the edges lowers the ideal-ideal same-class share only from 0.794 to 0.78 and already turns the AUC gain of +0.02 into −0.04, while feature noise σ = 0.5 changes two thirds of the neighbours (graph quality unchanged at 0.81) and costs nothing. So a **few edges between unrelated images are far more damaging than many edges between merely less-similar images**; the quality proxy (ideal-ideal same-class share) does not capture this.
+Per-seed Spearman between quality and gain across the five rewiring doses is +0.82 to +0.87 (A and B, AUC and accuracy), but the scale is very different from the noise axis: rewiring 10 % of the edges lowers the ideal-ideal same-class share only from 0.794 to 0.78 and already turns the AUC gain of +0.02 into −0.04, while feature noise σ = 0.5 changes two thirds of the neighbours (graph quality unchanged at 0.81) and costs nothing. So a **few edges between unrelated images are far more damaging than many edges between merely less-similar images**; the quality proxy (ideal-ideal same-class share) does not capture this. Local rewiring, which has the same number of wrong edges but no long-range shortcuts, keeps a positive AUC gain even when 50 % of the edges are rewired (+0.012 / +0.012 vs −0.10 / −0.09 for random rewiring): it is the **long-range shortcuts** (a random edge makes the graph an expander and the strong penalty then pulls scores of unrelated images together) that destroy the gain; accuracy is still hurt by local rewiring (−0.004 to −0.011).
 
 ### 3.5 What the development screen showed (observations, optimistic)
 - **Noise dose, λ=10:** the AUC gain falls monotonically with noise (≈ +0.02 at σ ≤ 0.5, ≈ 0 at σ = 1–2, ≈ −0.015 at σ = 3), and log-loss gets worse at every step; at λ=3 the dependence is weak.
