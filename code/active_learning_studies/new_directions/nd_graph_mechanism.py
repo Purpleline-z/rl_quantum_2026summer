@@ -168,7 +168,7 @@ def gm_graph(ctx, name: str, spec: dict):
     if key not in cache:
         base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all"))
         if spec.get("shuffle"): edges = shuffle_edges(edges, len(base.paths), ctx.seed)
-        if spec.get("rewire"): edges = rewire_edges(edges, len(base.paths), float(spec["rewire"]), ctx.seed)
+        if spec.get("rewire"): edges = rewire_edges(edges, len(base.paths), float(spec["rewire"]), ctx.seed); w = torch.ones(len(edges))
         if spec.get("purify"): edges, w = purify_edges(base, edges, w, add_same_class=int(spec["purify"]) - 1)
         cache[key] = (base, edges, w)
     base, edges, w = cache[key]; _record_quality(ctx, spec.get("quality_name", name), graph_quality(base, edges, w)); return base, edges, w

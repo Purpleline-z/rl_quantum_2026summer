@@ -92,3 +92,13 @@ def test_hidden_graph_learner_runs_and_differs(ctx_a):
     import nd_graph_mechanism as M
     lab = core.random_labelled(ctx_a, 20, 0); test = core.TestSet(ctx_a); d = M.LEARNERS["gm10_hid"](ctx_a, lab, 5)(test); d0 = M.LEARNERS["gm_lap10_n0"](ctx_a, lab, 5)(test)
     assert np.isfinite(d).all() and not np.allclose(d, d0)
+
+
+def test_rewire_keeps_most_edges_lowers_quality_and_is_trainable(ctx_a):
+    import numpy as np
+    import nd_graph_learner as G
+    import nd_graph_mechanism as M
+    base = G.graph_for(ctx_a, 10); e, w = M.build_edges(base, {}); e2 = M.rewire_edges(e, len(base.paths), 0.5, 8000)
+    shared = len({tuple(x) for x in e.tolist()} & {tuple(x) for x in e2.tolist()}) / len(e); assert 0.4 < shared < 0.6 and bool((e2[:, 0] < e2[:, 1]).all())
+    assert M.graph_quality(base, e2, torch.ones(len(e2)))["quality"] < M.graph_quality(base, e, w)["quality"] - 0.05
+    lab = core.random_labelled(ctx_a, 20, 0); d = M.LEARNERS["gm10_rw50"](ctx_a, lab, 5)(core.TestSet(ctx_a)); assert np.isfinite(d).all()
