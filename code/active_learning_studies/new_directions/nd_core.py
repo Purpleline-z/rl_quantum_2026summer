@@ -50,6 +50,11 @@ SH_SEEDS_ALL = set(SH_DEV_SEEDS) | set(SH_CONFIRM1) | set(SH_CONFIRM2) | set(SH_
 assert not SH_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(SH_SEEDS_ALL) == 20 + 2 * 35 + 15
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | SH_SEEDS_ALL
 
+# red-team audit (branch claude/redteam-*): development 8800-8819, confirmation 8850-8884 (the other blocks of 8000-8999 belong to parallel studies)
+RT_DEV_SEEDS = tuple(range(8800, 8820)); RT_CONFIRM = tuple(range(8850, 8885)); RT_SEEDS_ALL = set(RT_DEV_SEEDS) | set(RT_CONFIRM)
+assert not RT_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(RT_SEEDS_ALL) == 20 + 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RT_SEEDS_ALL
+
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
 
