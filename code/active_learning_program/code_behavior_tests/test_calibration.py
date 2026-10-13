@@ -92,3 +92,15 @@ def test_calibrated_variants_never_read_the_test_labels():
     rec = {"oof": oof, "test": test, "d": rng.normal(0, 2, n), "d_fold_test": [rng.normal(0, 2, n) for _ in range(3)]}; pri = {"type": {0: 1.1, 2: .7, 3: .4, 4: .7}}
     a = C.variants(rec, pri); rec2 = dict(rec); rec2["test"] = {**test, "sign": -test["sign"], "weight": test["weight"] * 3}; b = C.variants(rec2, pri)
     assert set(a) == set(b) and all(np.array_equal(a[k], b[k]) for k in a)
+
+
+def test_type_temperatures_match_a_continuous_optimiser_and_follow_the_prior_when_data_are_scarce():
+    from scipy.optimize import minimize_scalar
+    rng = np.random.default_rng(11); n = 3000; k = rng.choice([0, 2, 3, 4], n); true_t = {0: 1.5, 2: 0.7, 3: 0.3, 4: 0.8}; d = rng.normal(0, 3, n)
+    s = np.where(rng.random(n) < 1 / (1 + np.exp(-d / np.array([true_t[x] for x in k]))), 1, -1); oof = {"d": d, "outcome": s, "weight": np.ones(n), "k": k}
+    fit = C.fit_type_t(oof, tau=1e-6)
+    for kk in true_t:
+        m = k == kk; res = minimize_scalar(lambda lt: float(np.logaddexp(0, -s[m] * d[m] / np.exp(lt)).sum()), bounds=(np.log(.2), np.log(5)), method="bounded")
+        assert abs(np.log(fit[kk]) - res.x) < 0.04 and abs(fit[kk] - true_t[kk]) / true_t[kk] < 0.15
+    few = {key: v[:6] for key, v in oof.items()}; prior = {0: 1.35, 2: .68, 3: .29, 4: .63}; out = C.fit_type_t(few, tau=1e6, center=prior)
+    assert all(abs(out[kk] - prior[kk]) / prior[kk] < 0.02 for kk in prior)

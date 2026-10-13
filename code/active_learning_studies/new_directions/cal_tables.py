@@ -4,7 +4,8 @@
   python3 cal_tables.py oracle DIR [DIR...]                     diagnostics: temperatures fitted on the TEST judgments (not a method), OOF vs test temperature
   python3 cal_tables.py confirm SPEC.json DIR [DIR...]          pre-registered confirmation (Holm, success rule)
 """
-import glob, json, sys
+import glob, json, sys, warnings
+warnings.filterwarnings("ignore")
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy.stats import wilcoxon
@@ -122,7 +123,7 @@ if __name__ == "__main__":
         spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); priors = spec.get("priors")
         priors = {"type": {int(k): v for k, v in priors["type"].items()}} if priors else None
         df, bins = frame(cells, priors=priors if priors else ("loo" if spec.get("loo_priors") else None)); ps = per_seed(df, bins); ref = spec["reference"]; cands = spec["candidates"]
-        print(f"## {spec['name']}: {ps.seed.nunique()} seeds, splits {sorted(ps.split.unique())}, reference = {ref}\n"); print("### levels (mean over seeds)\n"); print(to_md(level_table(ps, [ref] + cands), "{:.4f}"))
+        print(f"#### {spec['name']}: {ps.seed.nunique()} seeds, splits {sorted(ps.split.unique())}, reference = {ref}\n"); print("### levels (mean over seeds)\n"); print(to_md(level_table(ps, [ref] + cands), "{:.4f}"))
         tests = {}; table = {}
         for c in cands:
             t = paired(ps, c, ref); table[c] = t
@@ -189,3 +190,21 @@ if __name__ == "__main__":
                 t = paired(ps, v, "raw", ("ll", "ece", "auc", "acc"))
                 for _, r in t.iterrows(): rows.append({"K": K, "split": r.split, "variant": v, "n_seeds": r.n_seeds, "ll": r["ll"], "ece": r["ece"], "auc": r["auc"], "acc": r["acc"]})
         print("#### gain over raw by number of cross-fitting folds (10 development seeds, draw 0; positive = better)\n"); print(to_md(pd.DataFrame(rows).sort_values(["variant", "split", "K"]), "{:+.4f}"))
+    if mode == "novelty":
+        # red-team caveat: test images are near-duplicates of training frames.  Log-loss gain of the candidates (frozen constants) by quartile of the novelty of the test judgment (1 - cos of the nearer of its two
+        # images to the nearest labelled-judgment image of that label set), confirmation cells; per-seed weighted means, paired bootstrap over seeds
+        spec = json.loads(Path(sys.argv[2]).read_text()); pri = {"type": {int(k): v for k, v in spec["priors"]["type"].items()}}; cells = load_cells(sys.argv[3:]); names = ["T_type0_tau2", "T_typeprior_tau8", "CF_typeprior_tau8"]; rows = []
+        for cell in cells:
+            for (b, dr), rec in cell["recs"].items():
+                v = C.variants(dict(rec), pri); t = rec["test"]; w = t["weight"]; z = t["sign"]; base = np.logaddexp(0, -z * np.asarray(v["raw"], float))
+                for i in range(len(w)):
+                    r = {"seed": cell["seed"], "split": cell["split"], "nov": float(t["g_lab_min"][i]), "w": float(w[i])}
+                    for n in names: r[n] = float(base[i] - np.logaddexp(0, -z[i] * float(v[n][i])))
+                    rows.append(r)
+        d = pd.DataFrame(rows); edges = np.quantile(d.nov, [0, .25, .5, .75, 1]); d["quartile"] = pd.cut(d.nov, np.unique(edges), include_lowest=True, labels=False); out = []
+        for (split, q), g in d.groupby(["split", "quartile"]):
+            row = {"split": split, "novelty quartile (1-cos to nearest training image)": f"Q{int(q) + 1}: {g.nov.min():.4f}-{g.nov.max():.4f}", "n judgments": len(g)}
+            for n in names:
+                per = g.groupby("seed").apply(lambda x: (x.w * x[n]).sum() / x.w.sum()); bs = np.random.default_rng(0).choice(per.to_numpy(), (2000, len(per))).mean(1); row[n] = per.mean(); row[n + " CI"] = f"[{np.percentile(bs, 2.5):+.4f}, {np.percentile(bs, 97.5):+.4f}]"
+            out.append(row)
+        print("#### log-loss gain over raw by novelty quartile of the test judgment (positive = better; frozen constants)\n"); print(to_md(pd.DataFrame(out), "{:+.4f}"))

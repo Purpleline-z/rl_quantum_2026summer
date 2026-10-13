@@ -6,7 +6,7 @@ Development screens `dev1`, `dev2` (seeds 9100–9119) and development side runs
 ## Code map (`new_directions/` unless stated)
 - `nd_calibration.py`: stage 1 (`label_set_record`: final head + K cross-fitting heads by pair group with the full set's lr/steps → out-of-fold logits, test logits, geometry features; optional extra heads / label smoothing), `LEARNER_SPECS` (registry-equal specs for `lap3_k10_st4`, `lap3_k10`, `aw8_all`, `aw8_all_st2lr0.5`, plus the dev-only `lap3_k10_st4_rt13off`), stage 2 calibrators (`fit_global_t`, `fit_type_t`, `fit_prior`, `fit_conf_t`, `fit_shrink_far`, `fit_davidson`, `variants`) and `scores` (log-loss, accuracy, AUC, per-type, anchor-far/near, reliability-bin sums, ECE).
 - `cal_run.py`: runner (resumable, one gzip-pickle per (seed, split)); `cal_tables.py`: `dev`, `oracle`, `budget`, `transfer`, `learners`, `confirm` (Holm, success rule) modes; `cal_figures.py`: reliability diagrams; `graph_exploration/cal_report.py` + `results_narrative_calibration.md` → `RESULTS_calibration.md` (edit the narrative, never the generated file); `graph_exploration/scripts_cal/{run_conf.sh,autocommit.sh}`.
-- Tests: `code_behavior_tests/test_calibration.py` (9: seed blocks, fold construction, calibrators on synthetic data, equality of the stage-1 head with the registry learners, invariance of every variant to test labels).
+- Tests: `code_behavior_tests/test_calibration.py` (10: seed blocks, fold construction, calibrators on synthetic data, equality of the stage-1 head with the registry learners, invariance of every variant to test labels).
 - Seeds: `nd_core.py` `CAL_*` lines (dev 9100–9119, confirmation 9150–9184; 9120–9149 and 9185–9199 unused).
 
 ## Pitfalls
@@ -16,6 +16,10 @@ Development screens `dev1`, `dev2` (seeds 9100–9119) and development side runs
 - `fit_prior_test` uses TEST labels (development diagnostic only, `T_typetest_fixed`, `CF_typetest_fixed`): never use it in a confirmation.
 - ECE is pooled per seed over label sets; the number depends on that choice.
 - Old tests rewrite `results/active_learning_v1.8_seed42/manifests` (`git checkout --` before committing; this study's tests do not).
+
+## Practical notes
+- Cross-fitting with K = 3 gives the same calibration gains as K = 5 or 10 (development, §8.4 of the results): 4 head fits per label set are enough.
+- The confirmation took ≈ 70 min on 4 cores (70 cells x 8 label sets x 6 head fits); `scripts_cal/run_conf.sh` is idempotent.
 
 ## What I would do next
 1. The per-type constants need an independent calibration set (new growth runs; GPU_TASKS item 3) and a check with a better encoder (item 1).
