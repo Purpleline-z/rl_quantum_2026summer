@@ -66,11 +66,15 @@ def _upper(rows: torch.Tensor, cols: torch.Tensor, w: torch.Tensor | None):
 def build_edges(base: G.GraphData, spec: dict):
     """Returns (edges (E,2) long, weights (E,)) of the requested construction (union-symmetrised unless stated)."""
     xs = topology_features(base, spec.get("feat", "final"), spec.get("whiten", 0), spec.get("noise", 0.0), spec.get("lda", 0.0)); n = len(xs); kind = spec.get("construct", "knn"); k = spec.get("k", 10)
-    sim = xs @ xs.T; sim.fill_diagonal_(-2.0); nn_idx = sim.topk(max(k, 1) if kind != "bmatch" else 3 * spec.get("b", 10), dim=1).indices
+    sim = xs @ xs.T; sim.fill_diagonal_(-2.0); nn_idx = sim.topk(max(k, 1) if kind not in ("bmatch", "ring") else (3 * spec.get("b", 10) if kind == "bmatch" else spec.get("r0", 3) + k), dim=1).indices
     ar = torch.arange(n)[:, None]
     if kind == "knn":
         if spec.get("feat", "final") == "final" and not spec.get("whiten", 0) and not spec.get("noise", 0.0) and not spec.get("lda", 0.0) and k == base.k: return base.edges.clone(), torch.ones(len(base.edges))   # identical to GraphData (RNG-identical to lap<L>_k10)
         ia, ib, w = _upper(ar.expand_as(nn_idx).reshape(-1), nn_idx.reshape(-1), None)
+    elif kind == "ring":   # neighbours of rank r0 .. r0+k-1 only: the closest r0 neighbours (near-duplicate frames) are skipped
+        r0 = spec.get("r0", 3); top = sim.topk(r0 + k, dim=1).indices[:, r0:]; ia, ib, w = _upper(ar.expand_as(top).reshape(-1), top.reshape(-1), None)
+    elif kind == "drop":   # kNN graph minus its `frac` most similar edges
+        ia, ib, _ = _upper(ar.expand_as(nn_idx).reshape(-1), nn_idx.reshape(-1), None); s = sim[ia, ib]; keep = s <= torch.quantile(s, 1.0 - spec.get("frac", 0.2)); ia, ib, w = ia[keep], ib[keep], torch.ones(int(keep.sum()))
     elif kind == "mutual":
         a = torch.zeros(n, n, dtype=torch.bool); a[ar.expand_as(nn_idx), nn_idx] = True; m = a & a.T; r, c = torch.nonzero(m, as_tuple=True); keep = r < c; ia, ib, w = r[keep], c[keep], torch.ones(int(keep.sum()))
     elif kind == "eps":   # global similarity threshold giving the requested mean degree (no hubs by construction: hubness does not occur in epsilon graphs)
@@ -122,7 +126,7 @@ def _record_quality(ctx, name: str, stats: dict) -> None:
     if name not in cur: cur[name] = stats; f.write_text(json.dumps(cur))
 
 
-_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda")
+_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac")
 
 
 def gm_graph(ctx, name: str, spec: dict):
@@ -224,3 +228,6 @@ _reg("gm10_lda1", lap=10, lda=1.0); _reg("gm10_lda3", lap=10, lda=3.0); _reg("gm
 # ---- confirmation candidates (frozen in PREREGISTRATION_GM1.md) and their controls: type_w {3: 0} = Laplacian off for the RT13 scores; lambda 10
 _reg("gmc_t_no_rt13", lap=10, type_w={3: 0.0}); _reg("gmc_t_no_rt13_shuf", lap=10, type_w={3: 0.0}, shuffle=True); _reg("gmc_t_no_rt13_n3", lap=10, type_w={3: 0.0}, noise=3.0)
 _reg("gm_lap10_n0_shuf", lap=10, shuffle=True)    # shuffled-graph control of the uniform lambda-10 candidate (same construction as nd_graph_learner's lap10_k10_shuf, own RNG stream)
+
+# ---- round 7 (own idea, from the edge statistics): the closest neighbours are near-duplicate frames and carry no constraint; skip them
+_reg("gm10_ring3", lap=10, construct="ring", k=10, r0=3); _reg("gm10_ring6", lap=10, construct="ring", k=10, r0=6); _reg("gm10_drop20", lap=10, construct="drop", k=10, frac=0.2); _reg("gm10_drop40", lap=10, construct="drop", k=10, frac=0.4)
