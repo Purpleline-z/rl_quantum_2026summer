@@ -57,12 +57,13 @@ gm/quality,180,8000-8184,90,,,0,0,,"per-seed graph statistics (same-class share,
 rt/a1,40,8800-8819,20,,,0,0,RT: development (audits),red team: per-judgment scores of 4 learners (novelty columns)
 rt/a1b,40,8800-8819,20,,,0,0,RT: development (audits),red team: distance of each held-out judgment to the nearest typed anchor
 rt/a1c,40,8800-8819,20,,,0,0,RT: development (audits),red team: per-judgment scores baseline / aw8 / aw8_all (anchor-weight check)
-rt/a2,4,8800-8803,4,A,"20,40",3,0,RT: development (audits),
+rt/a2,20,8800-8811,12,"A,B","20,40",3,0,RT: development (audits),
 rt/a3,20,8800-8819,20,blocked,"10,20,40,60",5,0,RT: development (audits),red team: time-blocked evaluation
-rt/a9,8,8800-8803,4,"A,B","20,40",5,0,RT: development (audits),
+rt/a9,20,8800-8809,10,"A,B","20,40",5,0,RT: development (audits),
 rt/c_a1,70,8850-8884,35,,,0,0,RT: confirmation (RT1),red team: pre-registered confirmation (RT1)
 rt/c_a1b,70,8850-8884,35,,,0,0,RT: confirmation (RT1),red team: pre-registered confirmation (RT1)
-rt/c_a3,4,8850-8853,4,blocked,"10,20,40,60",3,0,RT: confirmation (RT1),red team: pre-registered confirmation (RT1)
+rt/c_a3,12,8850-8861,12,blocked,"10,20,40,60",3,0,RT: confirmation (RT1),red team: pre-registered confirmation (RT1)
+rt/c_a9,24,8850-8861,12,"A,B","20,40",5,0,RT: confirmation (RT1),red team: pre-registered confirmation (RT1)
 screen1,40,2000-2019,20,"A,B","10,20,40,60",7,0,ND: development,new-directions development screen (seeds 2000-2019)
 screen10,24,2000-2011,12,"A,B","10,20,40,60",6,0,ND: development,new-directions development screen (seeds 2000-2019)
 screen11_mix,40,2000-2019,20,"A,B","10,20,40,60",5,0,ND: development,new-directions development screen (seeds 2000-2019)

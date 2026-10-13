@@ -26,7 +26,7 @@ STUDIES = {
                docs=["graph_exploration/RESULTS_graph_endpoint.md", "graph_exploration/SUMMARY_ZH_graph_endpoint.md"],
                prereg=[("PREREGISTRATION_GE1.md", "1667da4e1", "graph_exploration/PREREGISTRATION_GE1.md", ["ge/conf1_class", "ge/conf1_dose", "ge/conf1_harsh", "ge/conf2_class", "ge/conf2_dose", "ge/conf2_harsh"])],
                dev=("8400-8419", ["ge/dev_class", "ge/dev_dose", "ge/dev_harsh", "ge/dev_k", "ge/dev_lam", "ge/dev_late", "ge/dev_nodes", "ge/dev_ridge", "ge/dev_target", "ge/dev_temp3", "ge/dev_trans"])),
-    "RT": dict(name="red team (anchor proximity, novelty, de-duplication, time blocks, re-implementation)", branch="claude/redteam-20261013", tip="94623deb3",
+    "RT": dict(name="red team (anchor proximity, novelty, de-duplication, time blocks, re-implementation)", branch="claude/redteam-20261013", tip="d0c106892",
                docs=["graph_exploration/PREREGISTRATION_RT1.md", "graph_exploration/results_narrative_redteam.md"],
                prereg=[("PREREGISTRATION_RT1.md", "1ec724ee8", "graph_exploration/PREREGISTRATION_RT1.md", ["rt/c_a1", "rt/c_a1b", "rt/c_a2", "rt/c_a3"])],
                dev=("8800-8819", ["rt/a1", "rt/a1b", "rt/a1c", "rt/a3"])),
