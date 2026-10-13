@@ -126,3 +126,6 @@ Secondary (λ = 3):
 - Only one frozen encoder (SimCLR, plus its layers 2/3 and cached ImageNet features for the topology); a better encoder, end-to-end training, learned graphs and prospective data are in `GPU_TASKS_graph_mechanism.md`.
 - Non-graph controls: noise consistency, mixup consistency and weight decay were implemented once with one strength each (two for noise/mixup); "no non-graph smoothing helps" means these implementations, not impossibility.
 - λ = 10 hurts log-loss (see `ll` columns, exploratory).
+
+## 9. Integrity checks of the confirmation runs
+{{TABLE:integrity}}

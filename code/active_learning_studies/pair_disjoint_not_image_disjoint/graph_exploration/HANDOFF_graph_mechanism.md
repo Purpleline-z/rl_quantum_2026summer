@@ -12,6 +12,9 @@ Development (seeds 8000–8019, 60+ variants over rounds dev1–dev13: dose-resp
 - `graph_exploration/`: `gm_tables.py` (dev / dose / dosetest / confirm / qgain / diff / curve / types / budget), `gm_report.py` + `results_narrative_graph_mechanism.md` -> `RESULTS_graph_mechanism.md` (edit the narrative, never the generated file), `gm_edge_stats.py` (+ csv), `scripts_gm/{run_gm,chain_confirm,autocommit}.sh`, `GM1_spec.json`, `GM1_dose_{primary,secondary}.json`.
 - Results: `new_directions/results/gm/{dev1..dev9,confirm1,confirm2,quality}`; `dev7_INVALID_cache_key_collision` is a first run of round 7 with a bug (cache key lacked r0/frac), kept for transparency, not used.
 
+## Development-only rounds after the freeze (do not change the verdicts)
+dev8 ImageNet topology (worse), dev9 fairer non-graph arm (mixup consistency still harmful, noise consistency ~0), dev10 per-type strengths (plateau), dev11 hidden-space graph (no gain), dev12 label-based purification (no gain; adding same-class ideal edges hurts), dev13 placement (accuracy gain comes from edges touching ideal images), dev14 λ of the candidate (5/10/20 equal), dev_cold (candidate still +0.006/+0.011 AUC over `lap3_k10`), dev15 L1/Huber penalties (L1 catastrophic on degraded graphs) and partial RT13 weights (0.1/0.3 as good as off). `gm_integrity.py` checks the confirmation runs (all pass).
+
 ## Re-running
 `bash graph_exploration/scripts_gm/run_gm.sh OUT LEARNERS SEEDS A,B 4` (idempotent; 1 torch thread per process; 4 shards; ≈ 70 min per 35 seeds for 17 learners). Caches (not in git): `python3 pair_disjoint_not_image_disjoint/build_feature_cache.py`, `python3 new_directions/nd_temporal.py build`, `python3 new_directions/nd_gm_layers.py build` (PYTHONPATH=code/active_learning_program). Never rerun confirmation seeds with changed candidates.
 
