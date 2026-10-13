@@ -8,7 +8,7 @@ import gl_tables as gt
 
 HERE = Path(__file__).resolve().parent; RES = HERE.parents[1] / "new_directions" / "results" / "gm"
 spec = json.loads((HERE / "GM1_spec.json").read_text()); cands = list(spec["candidates"]); ctls = [v for c in cands for v in spec["candidates"][c].values()]
-DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7", "dev8", "dev9", "dev10") if (RES / d).is_dir()]
+DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7", "dev8", "dev9", "dev10", "dev11") if (RES / d).is_dir()]
 
 
 def have(name): return (RES / name).is_dir() and any((RES / name).glob("seed*.json"))

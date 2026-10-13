@@ -253,3 +253,24 @@ _reg("gm_mix0.1", mix_cons=0.1); _reg("gm_mix0.3", mix_cons=0.3); _reg("gm_mix1"
 
 # ---- round 10 (development only, no confirmation seeds left): per-type strength around the confirmed candidate (RT13 off, lambda 10 = weight 1): which type wants more / less
 _reg("gmc10_h30", lap=10, type_w={3: 0.0, 4: 3.0}); _reg("gmc10_h3", lap=10, type_w={3: 0.0, 4: 0.3}); _reg("gmc10_t1_30", lap=10, type_w={3: 0.0, 0: 3.0}); _reg("gmc10_c6_off", lap=10, type_w={3: 0.0, 2: 0.0}); _reg("gmc10_c6_x3", lap=10, type_w={3: 0.0, 2: 0.3})
+
+
+# ---- round 11 (own idea from the mechanism hypothesis "edges should respect the head's own geometry"): a self-consistent graph = kNN in the hidden layer of a first-stage aw8_all head trained on the same labelled set
+def hidden_knn_edges(head, base: G.GraphData, k: int = 10) -> tuple[torch.Tensor, torch.Tensor]:
+    with torch.no_grad(): h = torch.relu(head[0](base.x))
+    xs = h - h.mean(0); xs = xs / xs.norm(dim=1, keepdim=True).clamp_min(1e-9); sim = xs @ xs.T; sim.fill_diagonal_(-2.0); nn_idx = sim.topk(k, dim=1).indices; ar = torch.arange(len(xs))[:, None]
+    ia, ib, w = _upper(ar.expand_as(nn_idx).reshape(-1), nn_idx.reshape(-1), None); return torch.stack([ia, ib], 1), w
+
+
+def hidden_graph_learner(name: str, union: bool = False, **spec):
+    def learner(ctx, labelled, seed):
+        base = G.graph_for(ctx, 10); featfn = core.identity_features(ctx)
+        stage1 = fit_gm(ctx, labelled, seed, base, base.edges, torch.ones(len(base.edges)), {"lap": 0.0}); edges, w = hidden_knn_edges(stage1, base)
+        if union:
+            n = len(base.paths); both = torch.unique(torch.cat([edges[:, 0] * n + edges[:, 1], base.edges[:, 0] * n + base.edges[:, 1]])); edges = torch.stack([both // n, both % n], 1); w = torch.ones(len(edges))
+        head = fit_gm(ctx, labelled, seed, base, edges, w, spec)
+        return lambda test: core.head_d(head, featfn, test)
+    return learner
+
+
+LEARNERS["gm10_hid"] = hidden_graph_learner("gm10_hid", lap=10); LEARNERS["gm10_hid_union"] = hidden_graph_learner("gm10_hid_union", union=True, lap=10); LEARNERS["gmc10_hid"] = hidden_graph_learner("gmc10_hid", lap=10, type_w={3: 0.0})
