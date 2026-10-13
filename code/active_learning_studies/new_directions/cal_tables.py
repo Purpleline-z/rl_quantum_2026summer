@@ -13,8 +13,9 @@ import nd_calibration as C
 SIGN = {"ll": -1, "ece": -1, "acc": 1, "auc": 1}
 
 
-def load_cells(dirs):
-    return [C.load_cell(Path(f)) for d in dirs for f in sorted(glob.glob(str(Path(d) / "seed*.pkl.gz")))]
+def load_cells(dirs, seeds=None):
+    cells = [C.load_cell(Path(f)) for d in dirs for f in sorted(glob.glob(str(Path(d) / "seed*.pkl.gz")))]
+    return cells if seeds is None else [c for c in cells if c["seed"] in seeds]
 
 
 def frame(cells, variant_fn=C.variants, priors="loo", draws=None) -> tuple[pd.DataFrame, dict]:
@@ -43,7 +44,7 @@ def per_seed(df, bins) -> pd.DataFrame:
     out["ece"] = [C.ece_from_bins(*bins[k]) for k in out.index]; return out.reset_index()
 
 
-def paired(ps, cand, ref, metrics=("ll", "ece", "acc", "auc", "far_ll", "near_ll", "htr_ll", "t13_ll", "t1x1_ll", "tc6x2_ll")) -> pd.DataFrame:
+def paired(ps, cand, ref, metrics=("ll", "ece", "acc", "auc", "far_ll", "near_ll", "far_acc", "near_acc", "htr_ll", "t13_ll", "t1x1_ll", "tc6x2_ll")) -> pd.DataFrame:
     rows = []
     for split, g in ps.groupby("split"):
         a = g[g.variant == cand].set_index("seed"); b = g[g.variant == ref].set_index("seed"); common = a.index.intersection(b.index); row = {"split": split, "variant": cand, "n_seeds": len(common)}
@@ -140,7 +141,7 @@ if __name__ == "__main__":
         print("\n### side metrics (descriptive; same paired gains, positive = better; NOT in the success rule)\n")
         side_rows = []
         for c in cands:
-            for _, r in table[c].iterrows(): side_rows.append({"candidate": c, "split": r.split, **{m: r.get(m, np.nan) for m in ("acc", "auc", "far_ll", "near_ll", "t1x1_ll", "tc6x2_ll", "t13_ll", "htr_ll")}, "far_ll_p(uncorrected)": r.get("far_ll_p", np.nan)})
+            for _, r in table[c].iterrows(): side_rows.append({"candidate": c, "split": r.split, **{m: r.get(m, np.nan) for m in ("acc", "auc", "far_ll", "near_ll", "far_acc", "near_acc", "t1x1_ll", "tc6x2_ll", "t13_ll", "htr_ll")}, "far_ll_p(uncorrected)": r.get("far_ll_p", np.nan)})
         print(to_md(pd.DataFrame(side_rows), "{:+.4f}")); print("\n### paired gain by budget (descriptive; positive = better)\n"); print(to_md(by_budget(df, cands, ref), "{:+.4f}"))
     if mode == "learners":
         # calibrated comparison of learners: each learner's logits get the SAME calibrator (fitted on that learner's own OOF logits / development prior), then paired differences cand - ref
@@ -152,3 +153,39 @@ if __name__ == "__main__":
         print(f"\n#### paired difference `{cand}` minus `{ref}` under the same calibrator (positive = candidate better; log-loss / ECE: ref - cand)\n")
         t = pd.concat([paired(ps, f"{cand}|{v}", f"{ref}|{v}") for v in spec["variants"]]); t["variant"] = [x.split("|")[1] for x in t.variant]
         print(to_md(t[[c for c in t.columns if not c.endswith(("_lo", "_hi", "_share+")) and c in ("split", "variant", "n_seeds", "ll", "ll_p", "ece", "acc", "auc", "auc_p", "far_ll", "near_ll", "htr_ll", "t13_ll", "t1x1_ll", "tc6x2_ll")]], "{:+.4f}"))
+    if mode == "transfer":
+        # robustness of the development constants: fitted on one split's out-of-fold logits, applied to the other split (and fitted on budgets 10/20, applied to 40/60 and vice versa)
+        cells = load_cells(sys.argv[2:]); rows = []
+        def run(tag, fit_cells, eval_cells, eval_filter=None):
+            pri = {"type": C.fit_prior([r for c in fit_cells for k, r in c["recs"].items() if (eval_filter is None or True)])}
+            df, bins = frame(eval_cells, priors=pri); ps = per_seed(df, bins)
+            for v in ("T_typeprior_tau8", "T_typeprior_fixed", "CF_typeprior_tau8"):
+                t = paired(ps, v, "raw", ("ll", "ece", "acc", "auc"))
+                for _, r in t.iterrows(): rows.append({"fit on": tag[0], "applied to": tag[1], "split": r.split, "variant": v, "n_seeds": r.n_seeds, "ll": r["ll"], "ll_p": r["ll_p"], "ece": r["ece"], "auc": r["auc"], "acc": r["acc"]})
+        for a, b in (("A", "B"), ("B", "A")): run((f"split {a}", f"split {b}"), [c for c in cells if c["split"] == a], [c for c in cells if c["split"] == b])
+        def half(cells, budgets): return [dict(c, recs={k: r for k, r in c["recs"].items() if k[0] in budgets}) for c in cells]
+        run(("budgets 10,20", "budgets 40,60"), half(cells, (10, 20)), half(cells, (40, 60))); run(("budgets 40,60", "budgets 10,20"), half(cells, (40, 60)), half(cells, (10, 20)))
+        print("#### transfer of the per-type temperature constants (positive = better than raw; log-loss / ECE: raw - variant)\n"); print(to_md(pd.DataFrame(rows), "{:+.4f}"))
+    if mode == "sensitivity":
+        # exploratory (computed after the confirmation was seen): how much of the A3 gain depends on the exact development constants?  Constants scaled in log space, permuted among types (negative control),
+        # and the TEST-oracle constants of the confirmation data themselves (in-sample upper bound, a diagnostic and not a method)
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); base = {int(k): v for k, v in spec["priors"]["type"].items()}
+        recs = [r for c in cells for r in c["recs"].values()]; oracle = C.fit_prior_test(recs); types = list(base)
+        sets = {"dev constants x1.0 (frozen A3)": base, "log-constants x0.5": {k: float(np.exp(0.5 * np.log(v))) for k, v in base.items()}, "log-constants x1.5": {k: float(np.exp(1.5 * np.log(v))) for k, v in base.items()},
+                "all T = 1 (ridge to 1, tau 8)": {k: 1.0 for k in types}, "constants permuted (1x1<->HTR, c6x2<->RT13)": {0: base[4], 4: base[0], 2: base[3], 3: base[2]}, "TEST-oracle constants of these seeds (in-sample bound)": oracle}
+        def vf(rec, pri):
+            d, test, oof = rec["d"], rec["test"], rec["oof"]; out = {"raw": d}
+            for name, c in sets.items(): out[name] = C.apply_type_t(C.fit_type_t(oof, 8.0, c), test, d); out[name + " (fixed, no within-run fit)"] = C.apply_type_t(c, test, d)
+            return out
+        df, bins = frame(cells, variant_fn=vf, priors=None); ps = per_seed(df, bins); names = [v for v in df.variant.unique() if v != "raw"]; t = pd.concat([paired(ps, v, "raw", ("ll", "ece", "auc")) for v in names])
+        print("oracle constants:", {C.TYPE_NAME[k]: round(v, 3) for k, v in oracle.items()}, "\n"); print(to_md(t[["split", "variant", "n_seeds", "ll", "ll_p", "ece", "auc"]], "{:+.4f}"))
+
+    if mode == "kfold":
+        # development: number of cross-fitting folds K = 3 / 5 / 10 on the same 10 seeds (draw 0), frozen constants of CAL1_spec.json, gain over raw
+        spec = json.loads(Path(sys.argv[2]).read_text()); pri = {"type": {int(k): v for k, v in spec["priors"]["type"].items()}}; seeds = set(range(9100, 9110)); rows = []
+        for K, dirs in ((3, sys.argv[3]), (5, sys.argv[4]), (10, sys.argv[5])):
+            cells = load_cells([dirs], seeds); df, bins = frame(cells, priors=pri, draws=[0]); ps = per_seed(df, bins)
+            for v in ("T_type0_tau2", "CF", "T_typeprior_tau8", "CF_typeprior_tau8"):
+                t = paired(ps, v, "raw", ("ll", "ece", "auc", "acc"))
+                for _, r in t.iterrows(): rows.append({"K": K, "split": r.split, "variant": v, "n_seeds": r.n_seeds, "ll": r["ll"], "ece": r["ece"], "auc": r["auc"], "acc": r["acc"]})
+        print("#### gain over raw by number of cross-fitting folds (10 development seeds, draw 0; positive = better)\n"); print(to_md(pd.DataFrame(rows).sort_values(["variant", "split", "K"]), "{:+.4f}"))
