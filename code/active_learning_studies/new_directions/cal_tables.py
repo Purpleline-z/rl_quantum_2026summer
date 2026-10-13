@@ -208,3 +208,24 @@ if __name__ == "__main__":
                 per = g.groupby("seed").apply(lambda x: (x.w * x[n]).sum() / x.w.sum()); bs = np.random.default_rng(0).choice(per.to_numpy(), (2000, len(per))).mean(1); row[n] = per.mean(); row[n + " CI"] = f"[{np.percentile(bs, 2.5):+.4f}, {np.percentile(bs, 97.5):+.4f}]"
             out.append(row)
         print("#### log-loss gain over raw by novelty quartile of the test judgment (positive = better; frozen constants)\n"); print(to_md(pd.DataFrame(out), "{:+.4f}"))
+    if mode == "ece_alt":
+        # robustness of the ECE conclusion to the binning (exploratory, after the confirmation): per seed and split, judgments pooled over the label sets; equal-mass 10 bins, equal-width 5 bins, equal-width 20 bins
+        spec = json.loads(Path(sys.argv[2]).read_text()); pri = {"type": {int(k): v for k, v in spec["priors"]["type"].items()}}; cells = load_cells(sys.argv[3:]); names = ["raw"] + spec["candidates"]; pool = {}
+        for cell in cells:
+            for rec in cell["recs"].values():
+                v = C.variants(dict(rec), pri); t = rec["test"]
+                for n in names:
+                    p = 1 / (1 + np.exp(-np.asarray(v[n], float))); conf = np.maximum(p, 1 - p); ok = ((p > .5) == (t["sign"] > 0)).astype(float); pool.setdefault((cell["seed"], cell["split"], n), []).append(np.stack([conf, ok, t["weight"]]))
+        def ece(a, kind):
+            conf, ok, w = a; 
+            if kind == "mass10": edges = np.quantile(conf, np.linspace(0, 1, 11)); b = np.clip(np.searchsorted(edges, conf, side="right") - 1, 0, 9); nb = 10
+            else: nb = int(kind[5:]); b = np.clip(((conf - .5) / .5 * nb).astype(int), 0, nb - 1)
+            bw = np.bincount(b, w, nb); return float(np.abs(np.bincount(b, w * ok, nb) - np.bincount(b, w * conf, nb)).sum() / w.sum())
+        rows = []
+        for kind in ("mass10", "width5", "width20"):
+            ps = pd.DataFrame([{"seed": s, "split": sp, "variant": n, "ece": ece(np.concatenate(a, axis=1), kind)} for (s, sp, n), a in pool.items()])
+            for c in spec["candidates"]:
+                for sp, g in ps.groupby("split"):
+                    a = g[g.variant == "raw"].set_index("seed").ece; b = g[g.variant == c].set_index("seed").ece; diff = (a - b).dropna(); bs = np.random.default_rng(0).choice(diff.to_numpy(), (2000, len(diff))).mean(1)
+                    rows.append({"ECE binning": kind, "candidate": c, "split": sp, "raw ECE": a.mean(), "candidate ECE": b.mean(), "gain (raw - cand)": diff.mean(), "CI": f"[{np.percentile(bs, 2.5):+.4f}, {np.percentile(bs, 97.5):+.4f}]", "share of seeds better": float((diff > 0).mean()), "Wilcoxon p (uncorrected)": float(wilcoxon(diff).pvalue)})
+        print("#### ECE under other binnings (exploratory; positive gain = lower ECE than raw)\n"); print(to_md(pd.DataFrame(rows), "{:+.4f}"))

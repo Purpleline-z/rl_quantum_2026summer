@@ -80,6 +80,13 @@ Reading: the frozen constants (fitted on the development labelled out-of-fold lo
 
 (`T_glob`: one temperature; `T_type_tau8`: per-type temperatures shrunk to the global one; `T_conf_anc_min`: temperature depending on the distance to the nearest anchor; `shrink_far`; `Davidson`: post-hoc ties model; `CF_T`: ensemble followed by one global temperature.) A single global temperature, per-type temperatures shrunk to the global one, distance-dependent temperatures, far-from-anchor shrinkage, the tie model and a global temperature after the ensemble all make the **log-loss worse than raw in both splits (−0.009 … −0.044)** on the confirmation cells, although they lower ECE a little (+0.012 … +0.017): a single scale correction fits the anchor-far / RT13 judgments at the expense of the anchor-near majority. Only type-specific temperatures with a prior or a ridge to 1 improve both (`T_type0_tau0.5`, `T_typeprior_tau2`, `T_typeprior_fixed`, `CF_typeprior_fixed` are all positive, +0.012 … +0.053). Label smoothing and the 5-head ensemble were not run on the confirmation seeds.
 
+### 6.3 Does the ECE conclusion depend on the binning? (exploratory, computed after the confirmation)
+ECE of the confirmation cells with equal-mass 10 bins, 5 equal-width bins and 20 equal-width bins (judgments pooled over a seed's label sets, as in the pre-registered ECE; uncorrected tests):
+
+{{TABLE:ece_alt}}
+
+Reading: the direction and size of the ECE gains of A1, A3 and A4 and the *loss* of A2 in split B do not depend on the binning (A2 is worse under all three binnings in both splits, significantly so in B). Even the best calibrated variants keep a binned ECE of ≈ 0.055–0.065 because a binned ECE of ≈ 700 pooled judgments per seed has a large finite-sample floor; differences between variants, not the absolute ECE, are what the data speak to.
+
 ## 7. Calibrated comparison with the tuned graph-free learner (pre-registered secondary (c); draw 0 only, same 5-fold cross-fitting, each learner with its own development constants)
 `lap3_k10_st4` minus `aw8_all_st2lr0.5` on the confirmation seeds under the same calibrator (positive = `lap3_k10_st4` better):
 

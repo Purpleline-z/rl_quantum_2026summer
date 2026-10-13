@@ -327,6 +327,40 @@ Reading: the frozen constants (fitted on the development labelled out-of-fold lo
 
 (`T_glob`: one temperature; `T_type_tau8`: per-type temperatures shrunk to the global one; `T_conf_anc_min`: temperature depending on the distance to the nearest anchor; `shrink_far`; `Davidson`: post-hoc ties model; `CF_T`: ensemble followed by one global temperature.) A single global temperature, per-type temperatures shrunk to the global one, distance-dependent temperatures, far-from-anchor shrinkage, the tie model and a global temperature after the ensemble all make the **log-loss worse than raw in both splits (−0.009 … −0.044)** on the confirmation cells, although they lower ECE a little (+0.012 … +0.017): a single scale correction fits the anchor-far / RT13 judgments at the expense of the anchor-near majority. Only type-specific temperatures with a prior or a ridge to 1 improve both (`T_type0_tau0.5`, `T_typeprior_tau2`, `T_typeprior_fixed`, `CF_typeprior_fixed` are all positive, +0.012 … +0.053). Label smoothing and the 5-head ensemble were not run on the confirmation seeds.
 
+### 6.3 Does the ECE conclusion depend on the binning? (exploratory, computed after the confirmation)
+ECE of the confirmation cells with equal-mass 10 bins, 5 equal-width bins and 20 equal-width bins (judgments pooled over a seed's label sets, as in the pre-registered ECE; uncorrected tests):
+
+#### ECE under other binnings (exploratory; positive gain = lower ECE than raw)
+
+| ECE binning | candidate | split | raw ECE | candidate ECE | gain (raw - cand) | CI | share of seeds better | Wilcoxon p (uncorrected) |
+|---|---|---|---|---|---|---|---|---|
+| mass10 | T_type0_tau2 | A | +0.0805 | +0.0642 | +0.0162 | [+0.0136, +0.0188] | +0.9714 | +0.0000 |
+| mass10 | T_type0_tau2 | B | +0.0839 | +0.0718 | +0.0121 | [+0.0093, +0.0148] | +0.9143 | +0.0000 |
+| mass10 | CF | A | +0.0805 | +0.0861 | -0.0057 | [-0.0097, -0.0018] | +0.3714 | +0.0151 |
+| mass10 | CF | B | +0.0839 | +0.0883 | -0.0044 | [-0.0083, -0.0004] | +0.3714 | +0.0371 |
+| mass10 | T_typeprior_tau8 | A | +0.0805 | +0.0545 | +0.0260 | [+0.0197, +0.0324] | +0.9143 | +0.0000 |
+| mass10 | T_typeprior_tau8 | B | +0.0839 | +0.0606 | +0.0233 | [+0.0173, +0.0291] | +0.8857 | +0.0000 |
+| mass10 | CF_typeprior_tau8 | A | +0.0805 | +0.0609 | +0.0195 | [+0.0134, +0.0258] | +0.7714 | +0.0000 |
+| mass10 | CF_typeprior_tau8 | B | +0.0839 | +0.0625 | +0.0214 | [+0.0151, +0.0278] | +0.8571 | +0.0000 |
+| width5 | T_type0_tau2 | A | +0.0764 | +0.0617 | +0.0148 | [+0.0102, +0.0188] | +0.8571 | +0.0000 |
+| width5 | T_type0_tau2 | B | +0.0784 | +0.0639 | +0.0145 | [+0.0106, +0.0183] | +0.9429 | +0.0000 |
+| width5 | CF | A | +0.0764 | +0.0794 | -0.0029 | [-0.0064, +0.0009] | +0.4000 | +0.0753 |
+| width5 | CF | B | +0.0784 | +0.0837 | -0.0053 | [-0.0087, -0.0021] | +0.2857 | +0.0024 |
+| width5 | T_typeprior_tau8 | A | +0.0764 | +0.0529 | +0.0235 | [+0.0169, +0.0301] | +0.8286 | +0.0000 |
+| width5 | T_typeprior_tau8 | B | +0.0784 | +0.0572 | +0.0212 | [+0.0138, +0.0282] | +0.8000 | +0.0000 |
+| width5 | CF_typeprior_tau8 | A | +0.0764 | +0.0556 | +0.0208 | [+0.0142, +0.0277] | +0.8571 | +0.0000 |
+| width5 | CF_typeprior_tau8 | B | +0.0784 | +0.0598 | +0.0186 | [+0.0108, +0.0263] | +0.8286 | +0.0001 |
+| width20 | T_type0_tau2 | A | +0.0912 | +0.0757 | +0.0155 | [+0.0117, +0.0191] | +0.8857 | +0.0000 |
+| width20 | T_type0_tau2 | B | +0.0921 | +0.0832 | +0.0089 | [+0.0048, +0.0128] | +0.8286 | +0.0002 |
+| width20 | CF | A | +0.0912 | +0.0945 | -0.0033 | [-0.0077, +0.0012] | +0.3714 | +0.1037 |
+| width20 | CF | B | +0.0921 | +0.1023 | -0.0102 | [-0.0141, -0.0065] | +0.2000 | +0.0000 |
+| width20 | T_typeprior_tau8 | A | +0.0912 | +0.0700 | +0.0212 | [+0.0153, +0.0275] | +0.8857 | +0.0000 |
+| width20 | T_typeprior_tau8 | B | +0.0921 | +0.0723 | +0.0198 | [+0.0138, +0.0254] | +0.9143 | +0.0000 |
+| width20 | CF_typeprior_tau8 | A | +0.0912 | +0.0746 | +0.0166 | [+0.0105, +0.0229] | +0.8571 | +0.0000 |
+| width20 | CF_typeprior_tau8 | B | +0.0921 | +0.0789 | +0.0132 | [+0.0070, +0.0194] | +0.7714 | +0.0001 |
+
+Reading: the direction and size of the ECE gains of A1, A3 and A4 and the *loss* of A2 in split B do not depend on the binning (A2 is worse under all three binnings in both splits, significantly so in B). Even the best calibrated variants keep a binned ECE of ≈ 0.055–0.065 because a binned ECE of ≈ 700 pooled judgments per seed has a large finite-sample floor; differences between variants, not the absolute ECE, are what the data speak to.
+
 ## 7. Calibrated comparison with the tuned graph-free learner (pre-registered secondary (c); draw 0 only, same 5-fold cross-fitting, each learner with its own development constants)
 `lap3_k10_st4` minus `aw8_all_st2lr0.5` on the confirmation seeds under the same calibrator (positive = `lap3_k10_st4` better):
 
