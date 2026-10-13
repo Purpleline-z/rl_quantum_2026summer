@@ -16,6 +16,9 @@ warnings.filterwarnings("ignore")
 HERE = Path(__file__).resolve().parent
 R = HERE / "results" / "ae"
 UTIL = {"auc": 1.0, "acc": 1.0, "ll": -1.0, "htr_acc": 1.0, "htr_ll": -1.0, "ext_acc": 1.0, "t1x1_acc": 1.0, "tc6x2_acc": 1.0, "t13_acc": 1.0, "htr_auc": 1.0, "ext_acc_3": 1.0}
+def sgn(m): return UTIL.get(m, -1.0 if m.endswith("ll") else 1.0)
+
+
 N0 = 30.0   # judgments of the 10 initial groups (approximate; only shifts the log axis)
 
 
@@ -54,7 +57,7 @@ def rand_reference(frame: pd.DataFrame) -> pd.DataFrame:
 def seed_gains(frame: pd.DataFrame, arm: str, ref: str | pd.DataFrame, metrics) -> pd.DataFrame:
     """Per (split, seed) gain of ``arm`` over ``ref`` (an arm name or the rand_reference frame), mean over budgets."""
     a = frame[frame.arm == arm].set_index(["split", "seed", "budget"]); b = (ref.set_index(["split", "seed", "budget"]) if isinstance(ref, pd.DataFrame) else frame[frame.arm == ref].set_index(["split", "seed", "budget"])); common = a.index.intersection(b.index)
-    d = pd.DataFrame({m: UTIL[m] * (a.loc[common, m] - b.loc[common, m]) for m in metrics}); return d.groupby(level=[0, 1]).mean().reset_index()
+    d = pd.DataFrame({m: sgn(m) * (a.loc[common, m] - b.loc[common, m]) for m in metrics}); return d.groupby(level=[0, 1]).mean().reset_index()
 
 
 def active_table(frame: pd.DataFrame, rules, metrics=("auc", "acc"), holm_metrics=("auc", "acc")) -> pd.DataFrame:
@@ -82,7 +85,7 @@ def surfaces(frame: pd.DataFrame, metric: str, split: str | None = None):
     g = f.groupby(["seed", "split", "n_anchors", "budget"], as_index=False)[metric].mean(); g = g.groupby(["seed", "n_anchors", "budget"], as_index=False)[metric].mean()
     ns = sorted(g.n_anchors.unique()); bs = sorted(g.budget.unique()); seeds = sorted(g.seed.unique()); M = np.full((len(seeds), len(ns), len(bs)), np.nan)
     for r in g.itertuples(): M[seeds.index(r.seed), ns.index(r.n_anchors), bs.index(r.budget)] = getattr(r, metric)
-    return M * UTIL[metric], ns, bs
+    return M * sgn(metric), ns, bs
 
 
 def dose_table(frame: pd.DataFrame, metric: str, split: str | None = None) -> pd.DataFrame:
@@ -112,5 +115,5 @@ def exchange_table(frame: pd.DataFrame, metric: str, transitions, b0s, split: st
             for _ in range(reps): pick = rng.integers(0, len(M), len(M)); boots.append(exchange_once(M[pick].mean(axis=0), ns, bs, a0, a1, b0)["extra_judgments"])
             boots = np.array(boots, float); lo, hi = np.nanpercentile(boots, [2.5, 97.5]) if np.isfinite(boots).any() else (np.nan, np.nan); share_pos = float(np.nanmean(boots > 0))
             per_label = (est["extra_judgments"] / (a1 - a0)) if est["extra_judgments"] > 0 else float("nan")
-            rows.append({"anchors": f"{a0}->{a1}", "from_budget": b0, "metric_gain": est["gain"], "extra_judgments_equiv": est["extra_judgments"], "ci_lo": float(lo), "ci_hi": float(hi), "judgments_per_typed_label": per_label, "beyond_range_60": est["beyond"], "share_resamples_positive": share_pos})
+            rows.append({"anchors": f"{a0}->{a1}", "from_budget": b0, "metric_gain": est["gain"], "extra_judgments_equiv": est["extra_judgments"], "ci_lo": float(lo), "ci_hi": (float(hi) if hi < 1000 else float("inf")), "judgments_per_typed_label": per_label, "beyond_range_60": est["beyond"], "share_resamples_positive": share_pos})
     return pd.DataFrame(rows)
