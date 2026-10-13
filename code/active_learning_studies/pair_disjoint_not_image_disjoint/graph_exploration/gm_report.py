@@ -23,7 +23,7 @@ def table(name: str) -> str:
     if name == "dev_vs_aw8": return run(["dev"] + dev + ["--refs=aw8_all"])
     if name == "dev_vs_lap3": return run(["dev"] + dev + ["--refs=lap3_k10"])
     if name == "dev_dose": return run(["dose", str(RES / "dev1")])
-    if name == "dev_qgain": return run(["qgain", str(RES / "dev1"), str(RES / "dev2"), "--names=gm_lap10_n0," + ",".join(l for l in open("/tmp/gm_r2").read().strip().split(","))]) if Path("/tmp/gm_r2").exists() else "*not run*"
+    if name == "dev_qgain": return run(["qgain", str(RES / "dev1"), str(RES / "dev2"), "--names=gm_lap10_n0,gm10_mutual_k15,gm10_eps_d10,gm10_snn,gm10_gauss_k10,gm10_lscale_k10,gm10_bmatch_b10,gm10_pcaw32_k10,gm10_l3_k10,gm10_l2_k10,gm10_l3l4_k10,gm10_norm_k10"])
     if name == "graph_stats": p = HERE / "gm_graph_stats_vs_gain.csv"; return gt.to_md(pd.read_csv(p).round(4), "{:+.4f}") if p.exists() else "*not run*"
     if name == "dev_budget": return run(["budget"] + dev + ["--learners=lap3_k10,gm_lap10_n0,gm10_type_no_rt13,gm10_place_unl,gm10_place_it"])
     if name == "dev_types": return run(["types"] + dev + ["--learners=lap3_k10,gm_lap10_n0,gm10_type_htr,gm10_type_no_htr,gm10_type_no_rt13,gm10_type_no_c6x2,gm10_type_1x1_htr,gm10_place_unl,gm10_place_it,gm_noise10"])

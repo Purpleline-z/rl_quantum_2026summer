@@ -101,6 +101,15 @@ if __name__ == "__main__":
                 cc = out[(out.family == f"control:{k}") & (out.cand == cand)]; ctl_ok[k] = bool(((cc.gain > 0) & (cc.p < 0.05)).any())
             rows.append({"candidate": cand, "all_four_positive": allpos, "n_holm_sig": nsig, **{f"beats_{k}": v for k, v in ctl_ok.items()}, "CONFIRMED": bool(allpos and nsig >= 3 and all(ctl_ok.values()))})
         print(); print(gt.to_md(pd.DataFrame(rows), "{}"))
+    elif mode == "diff":   # exploratory paired differences between named learners (uncorrected p): --pairs=a:b,c:d
+        frame = gt.load(dirs()); rows = []
+        for pr in arg("--pairs").split(","):
+            a, b = pr.split(":")
+            for split in sorted(frame.split.unique()):
+                for m in ("auc", "acc", "ll", "htr_acc", "t1x1_acc", "tc6x2_acc", "t13_acc"):
+                    try: s = gt.summarize(gt.gain(frame, split, m, a, b)); rows.append({"pair": f"{a} - {b}", "split": split, "metric": m, "gain": s["gain"], "lo": s["lo"], "hi": s["hi"], "share_better": s["share"], "p_uncorrected": s["p"], "n": s["n"]})
+                    except Exception: pass
+        print(gt.to_md(pd.DataFrame(rows)))
     elif mode == "qgain":   # across-learner dose-response: per-seed Spearman(gain over aw8_all, graph quality) across the named learners (different graph constructions)
         frame = gt.load(dirs()); names = arg("--names").split(","); ref = arg("--ref", "aw8_all"); rows = []
         for split in sorted(frame.split.unique()):
