@@ -1,0 +1,9 @@
+{
+ "reference": "lap3_k10_st4",
+ "tuned": "aw8_all_st2lr0.5",
+ "freecands": ["rgcons0.3_st4", "rgcn_c0.3_n1_st4", "rgcons0.3_st6"],
+ "graphcands": ["rglap3_cons0.3_k10_st4"],
+ "controls": {"lap3_k10_st4": "lap3_k10_st4_shuf", "rglap3_cons0.3_k10_st4": "rglap3_cons0.3_k10_shuf_st4"},
+ "margins": {"auc": 0.003, "acc": 0.01},
+ "splits": ["A", "B"]
+}

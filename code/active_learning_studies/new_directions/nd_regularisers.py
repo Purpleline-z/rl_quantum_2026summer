@@ -145,3 +145,10 @@ for _st in (1.0, 2.0, 4.0, 6.0):
     for _w in (0.3, 1.0):   # combinations with the Laplacian
         LEARNERS[f"rglap3_cons{_w:g}_k10_st{_st:g}"] = _learner(steps_scale=_st, lap=3.0, cons=_w)
         LEARNERS[f"rglap3_noise{_w:g}_k10_st{_st:g}"] = _learner(steps_scale=_st, lap=3.0, noise=_w)
+
+# graph-free combinations (R2 of the development screens)
+for _st in (2.0, 4.0, 6.0):
+    LEARNERS[f"rgcn_c0.3_n1_st{_st:g}"] = _learner(steps_scale=_st, cons=0.3, noise=1.0)
+    LEARNERS[f"rgcn_c0.3_n1_rd1_st{_st:g}"] = _learner(steps_scale=_st, cons=0.3, noise=1.0, rdrop=1.0, hdrop=0.2)
+for _st in (2.0, 4.0, 6.0):
+    LEARNERS[f"rglap3_cons0.3_k10_shuf_st{_st:g}"] = _learner(steps_scale=_st, shuffle=True, lap=3.0, cons=0.3)
