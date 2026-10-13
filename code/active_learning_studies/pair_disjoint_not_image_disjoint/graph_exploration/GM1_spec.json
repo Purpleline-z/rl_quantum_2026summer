@@ -1,0 +1,19 @@
+{
+ "reference": "lap3_k10",
+ "aw8": "aw8_all",
+ "nongraph": "gm_noise10",
+ "splits": [
+  "A",
+  "B"
+ ],
+ "candidates": {
+  "gmc_t_no_rt13": {
+   "shuf": "gmc_t_no_rt13_shuf",
+   "noise3": "gmc_t_no_rt13_n3"
+  },
+  "gm_lap10_n0": {
+   "shuf": "gm_lap10_n0_shuf",
+   "noise3": "gm_lap10_n3"
+  }
+ }
+}

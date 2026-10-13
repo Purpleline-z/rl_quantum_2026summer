@@ -42,6 +42,10 @@ GL_DEV_SEEDS = tuple(range(7000, 7020)); GL_CONFIRM1 = tuple(range(7100, 7135));
 GL_SEEDS_ALL = set(GL_DEV_SEEDS) | set(GL_CONFIRM1) | set(GL_CONFIRM2) | set(GL_COLD)
 assert not GL_SEEDS_ALL & USED_BEFORE_GRAPH_LEARNER and len(GL_SEEDS_ALL) == 20 + 3 * 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GL_SEEDS_ALL   # later studies must not reuse the graph-learner blocks
+# --- graph-mechanism study (claude/graph-mechanism-*): own seed blocks; other parallel sessions use 8200-8599
+GM_DEV_SEEDS = tuple(range(8000, 8020)); GM_CONFIRM1 = tuple(range(8100, 8135)); GM_CONFIRM2 = tuple(range(8150, 8185)); GM_SEEDS_ALL = set(GM_DEV_SEEDS) | set(GM_CONFIRM1) | set(GM_CONFIRM2)
+assert not GM_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not GM_SEEDS_ALL & set(range(7000, 7336)) and len(GM_SEEDS_ALL) == 20 + 2 * 35 and not GM_SEEDS_ALL & set(range(8200, 8600))
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GM_SEEDS_ALL   # graph-mechanism blocks (8000-8019, 8100-8134, 8150-8184)
 
 # selection x graph-learner x HTR study (branch claude/selection-htr-*): dev 8200-8219, confirmation 1 = 8300-8334, confirmation 2 = 8350-8384.  The parallel studies of the same round own 8000-8199 and 8400-8599.
 SH_DEV_SEEDS = tuple(range(8200, 8220)); SH_CONFIRM1 = tuple(range(8300, 8335)); SH_CONFIRM2 = tuple(range(8350, 8385))
