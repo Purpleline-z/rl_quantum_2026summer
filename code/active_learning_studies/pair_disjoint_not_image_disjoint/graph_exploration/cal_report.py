@@ -8,7 +8,7 @@ NOISE = re.compile(r"warn|Validated|Loaded SimCLR|self\.ahat|xa, xb|Excluding", 
 DEV_V = "T_glob,T_type_tau8,T_type0_tau2,T_typeprior_tau8,T_typeprior_fixed,CF,CF_typeprior_tau8,T_conf_anc_min,shrink_far,Davidson,ENS,ENS_T,ls0.1,ls0.1_T,ls0.25,ls0.25_T"
 TABLES = {
     "dev1_gain": ["dev", "results/cal/dev1", "--only=gain", f"--variants={DEV_V}"], "dev2_gain": ["dev", "results/cal/dev2", "--only=gain", "--variants=T_glob,T_type0_tau2,T_typeprior_tau8,CF,CF_typeprior_tau8"],
-    "dev1_levels": ["dev", "results/cal/dev1", "--only=levels", "--variants=T_type0_tau2,T_typeprior_tau8,CF,CF_typeprior_tau8"], "oracle": ["oracle", "results/cal/dev1"],
+    "dev1_levels": ["dev", "results/cal/dev1", "--only=levels", "--variants=T_type0_tau2,T_typeprior_tau8,CF,CF_typeprior_tau8"], "oracle": ["oracle", "results/cal/dev1"], "budget_dev": ["budget", "results/cal/dev2", "--variants=T_type0_tau2,T_typeprior_tau8,CF_typeprior_tau8"],
     "learners_dev": ["learners", str(HERE / "CAL_dev_learners_spec.json")], "learners_dev_lap3k10": ["learners", str(HERE / "CAL_dev_learners_vs_lap3k10_spec.json")], "rt13off_dev": ["learners", str(HERE / "CAL_dev_rt13off_spec.json")], "kfold_dev": ["dev", "results/cal/dev_k3", "results/cal/dev_k10", "--only=gain", "--variants=CF,CF_typeprior_tau8,T_typeprior_tau8"],
     "confirm": ["confirm", SPEC, "results/cal/conf1"], "learners_conf": ["learners", str(HERE / "CAL1_learners_spec.json")],
 }
