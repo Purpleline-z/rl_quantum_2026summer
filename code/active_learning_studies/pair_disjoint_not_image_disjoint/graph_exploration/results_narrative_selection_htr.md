@@ -44,6 +44,10 @@ Reference `lap3_k10_st4` (the frozen learner candidate):
 ### 5.1 Learner family
 {{TABLE:c1_learn}}
 
+Descriptive (not a pre-registered test): every learner against `aw8_all` with the repository's schedule, random selection; log-loss gain = reference − learner (positive = better):
+
+{{TABLE:c1_learn_vs_aw8}}
+
 ### 5.2 Selection family (final learner `lap3_k10`)
 {{TABLE:c1_sel}}
 
@@ -53,6 +57,10 @@ Reference `lap3_k10_st4` (the frozen learner candidate):
 ## 6. Confirmation 2 (seeds 8350–8384)
 ### 6.1 Learner family
 {{TABLE:c2_learn}}
+
+Descriptive vs `aw8_all`:
+
+{{TABLE:c2_learn_vs_aw8}}
 
 ### 6.2 Selection family
 {{TABLE:c2_sel}}

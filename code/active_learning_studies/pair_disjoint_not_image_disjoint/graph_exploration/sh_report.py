@@ -26,7 +26,21 @@ def learners_table(ref, selector="random"):
     return T.to_md(pd.DataFrame(rows))
 
 
+def confirm_learners_vs(exp, ref="aw8_all"):
+    if not have(exp): return f"*{exp}: not run*"
+    f = T.load(dirs(exp)); rows = []
+    for split in sorted(f.split.unique()):
+        for l in sorted(set(f[f.split == split].learner) - {ref}):
+            r = {"split": split, "learner": l}
+            for m in ("auc", "acc", "ll", "htr_acc", "htr_ll", "t1x1_acc", "tc6x2_acc", "t13_acc"):
+                o = T.summarize(T.gain(f, split, m, ("random", l), ("random", ref))); r[m] = o["gain"]; r["n_seeds"] = o["n"]
+            rows.append(r)
+    return T.to_md(pd.DataFrame(rows))
+
+
 def table(name: str) -> str:
+    m0 = re.match(r"(c1|c2)_learn_vs_aw8$", name)
+    if m0: return confirm_learners_vs(m0.group(1) + "_learn")
     if name == "dev_sel_lap3":
         t = T.dev_table(T.load(dirs("sdev1", "sdev2")), "lap3_k10"); return T.to_md(t[[c for c in t.columns if not c.endswith("_holm")]])
     if name == "dev_sel_aw8": t = T.dev_table(T.load(dirs("sdev1")), "aw8_all"); return T.to_md(t[[c for c in t.columns if not c.endswith("_holm")]])
