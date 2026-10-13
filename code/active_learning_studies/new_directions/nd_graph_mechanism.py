@@ -187,3 +187,9 @@ _reg("gm_pcaw32_k10", lap=3, whiten=32); _reg("gm_l3_k10", lap=3, feat="l3"); _r
 _reg("gm_place_unl", lap=3, place="unl"); _reg("gm_place_it", lap=3, place="it"); _reg("gm_htr10", lap=3, type_w={4: 3.0})   # HTR weight 3x => lambda 9 on HTR, 3 elsewhere
 _reg("gm_noise3", noise_cons=3); _reg("gm_noise10", noise_cons=10); _reg("gm_mix3", mix_cons=3); _reg("gm_mix10", mix_cons=10)
 _reg("gm_wd1e3", wd=1e-3); _reg("gm_wd1e2", wd=1e-2); _reg("gm_decay3", lap=3, anneal="decay"); _reg("gm_ramp3", lap=3, anneal="ramp")
+
+# ---- the same constructions at lambda = 10 (round 2b: the dose-response of round 1 shows graph quality matters most at larger lambda)
+for _name, _spec in (("mutual_k15", dict(construct="mutual", k=15)), ("eps_d10", dict(construct="eps", deg=10)), ("snn", dict(construct="snn", k=10, snn_k=20)), ("gauss_k10", dict(construct="gauss", k=10)),
+                     ("lscale_k10", dict(construct="lscale", k=10)), ("bmatch_b10", dict(construct="bmatch", b=10)), ("pcaw32_k10", dict(whiten=32)), ("l3_k10", dict(feat="l3")), ("l2_k10", dict(feat="l2")),
+                     ("l3l4_k10", dict(feat="l3l4")), ("norm_k10", dict(lap_type="norm"))):
+    _reg(f"gm10_{_name}", lap=10, **_spec)
