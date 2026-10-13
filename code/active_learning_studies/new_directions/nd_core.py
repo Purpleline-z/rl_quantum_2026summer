@@ -64,6 +64,11 @@ G2_DEV_SEEDS = tuple(range(9000, 9020)); G2_CONFIRM = tuple(range(9050, 9085)); 
 assert not G2_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(G2_SEEDS_ALL) == 20 + 35
 assert not G2_SEEDS_ALL & (set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000)))
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | G2_SEEDS_ALL
+# recipe search (branch claude/recipe-*): development 9300-9319, confirmation 9350-9384 (nothing else in 9000-9999 is claimed by this study; 8000-8199, 8400-8799 and 8885-8999 stay reserved for parallel studies)
+RC_DEV_SEEDS = tuple(range(9300, 9320)); RC_CONFIRM = tuple(range(9350, 9385)); RC_SEEDS_ALL = set(RC_DEV_SEEDS) | set(RC_CONFIRM)
+assert not RC_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(RC_SEEDS_ALL) == 20 + 35
+assert not RC_SEEDS_ALL & (set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000)))
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RC_SEEDS_ALL
 
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
