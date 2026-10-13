@@ -17,7 +17,14 @@ import nd_confirm as c  # noqa: E402
 METRICS = ("auc", "acc", "ll", "htr_acc", "htr_ll", "t1x1_acc", "tc6x2_acc", "t13_acc")
 
 
-def load(dirs): return c.load(dirs)
+def load(dirs):
+    """All records of the directories; files that are still being written (fewer records than the fullest file of their directory) are skipped, so a table never mixes half-finished cells."""
+    rows = []
+    for d in dirs:
+        files = {f: json.loads(f.read_text()) for f in sorted(Path(d).glob("seed*_*.json"))}
+        if not files: continue
+        full = max(len(v) for v in files.values()); rows += [r for v in files.values() if len(v) == full for r in v]
+    return pd.DataFrame(rows)
 
 
 def summarize(per):
