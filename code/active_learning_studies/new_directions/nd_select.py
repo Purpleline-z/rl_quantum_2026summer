@@ -204,6 +204,16 @@ FAMILY = [n for n in ju.STRATEGY_FAMILY if n not in ("random",) and n not in ju.
 SELECTORS.update({f"fam_{n}": _family_selector(n) for n in FAMILY})
 
 
+# ------------------------------------------------------------------------------------------ graph selectors of the earlier graph studies, run under the learners of this harness
+import graph_typed as _gt
+import graph_vopt as _gv
+for _n in ("typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_coverage_typeonly", "typed_decisive_coverage_shuffled", "typed_decisive_coverage_unc_typeonly", "typed_decisive_coverage_unc_shuffled", "typed_decisive_bald"):
+    SELECTORS[_n] = _family_selector(_n)
+SELECTORS.update(_gv.NEW)
+import nd_select_graph as _sg
+SELECTORS.update(_sg.SELECTORS)
+
+
 def parse_seeds(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
@@ -222,8 +232,8 @@ def main() -> None:
     parser.add_argument("--draws", type=int, default=3); parser.add_argument("--out", type=Path, required=True); parser.add_argument("--shard", default="0/1")
     args = parser.parse_args(); torch.set_num_threads(1)
     reg = L.LEARNERS.copy()
-    import nd_bayes, nd_gp, nd_temporal
-    reg.update(nd_bayes.LEARNERS); reg.update(nd_gp.LEARNERS); reg.update(nd_temporal.LEARNERS)
+    import nd_bayes, nd_gp, nd_temporal, nd_graph_learner
+    reg.update(nd_bayes.LEARNERS); reg.update(nd_gp.LEARNERS); reg.update(nd_temporal.LEARNERS); reg.update(nd_graph_learner.LEARNERS)
     sel_names = args.selectors.split(","); learner_names = args.learners.split(","); shard, nshards = (int(x) for x in args.shard.split("/")); args.out.mkdir(parents=True, exist_ok=True); cache = core.feature_cache()
     with tempfile.TemporaryDirectory() as scratch:
         for seed in [s for i, s in enumerate(parse_seeds(args.seeds)) if i % nshards == shard]:
@@ -240,11 +250,13 @@ def main() -> None:
                             picks = SELECTORS[sel](cands, labeled_items, model, ccache, budget, seed); ids = {f"{j[0]}#{j[1]}": j for j in ctx.pool}
                             label_sets = {0: list(ctx.initial) + [ids[x["pair_id"]] for x in picks]}
                         for draw, labelled in label_sets.items():
+                            kind = {c["pair_id"]: int(c["type_idx"]) for c in cands}; extra = [kind[f"{j[0]}#{j[1]}"] for j in labelled if f"{j[0]}#{j[1]}" in kind and j not in set(ctx.initial)]
+                            comp = {f"n_type{t}": extra.count(t) for t in (0, 2, 3, 4)}
                             for name in learner_names:
                                 if (budget, sel, draw, name) in have: continue
                                 d = reg[name](ctx, labelled, seed * 7 + draw)(test)
                                 done.append({"seed": seed, "split": split, "budget": budget, "selector": sel, "draw": draw, "learner": name, **core.metrics_from_d(d, test), **amb_metrics(ctx, test, d),
-                                             "n_pairs": len({p for p, _ in labelled if (p, _) not in set(ctx.initial)})})
+                                             "n_pairs": len({p for p, _ in labelled if (p, _) not in set(ctx.initial)}), **comp})
                     target.write_text(json.dumps(done))
                 print(f"seed {seed} split {split}: {time.monotonic() - started:.0f}s", flush=True)
 

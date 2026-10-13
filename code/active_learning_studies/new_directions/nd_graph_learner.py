@@ -135,10 +135,11 @@ def _anchor_loss(scores: dict[str, torch.Tensor], cols: dict[str, int]) -> torch
 
 
 def fit_mlp_graph(ctx, labelled, seed, gd: GraphData | None, featfn, node_x: torch.Tensor | None, dim: int, lap: float = 0.0, rankq: float = 0.0, cons: float = 0.0, ridge: float = 0.0,
-                  aw: float = 8.0, cons_dropout: float = 0.3, q: torch.Tensor | None = None):
+                  lap_w: dict | None = None, lr_scale: float = 1.0, steps_scale: float = 1.0, aw: float = 8.0, cons_dropout: float = 0.3, q: torch.Tensor | None = None):
     """MLP head (the repository's head on whatever ``featfn`` returns) with optional graph terms evaluated on ``node_x`` (the features the head consumes for every node).
     With lap = rankq = cons = 0 this is exactly ``nd_learners.aw8_all``."""
-    lr, steps = ctx.params_for(labelled); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, True)
+    lr, steps = ctx.params_for(labelled); lr, steps = lr * lr_scale, int(round(steps * steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, True)
+    tw = torch.ones(len(ACTIVE)) if not lap_w else torch.tensor([float(lap_w.get(t, 1.0)) for t in ACTIVE])   # per-type multiplier of the Laplacian weight
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
         weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
@@ -151,7 +152,7 @@ def fit_mlp_graph(ctx, labelled, seed, gd: GraphData | None, featfn, node_x: tor
         if bad is not None and len(bad): loss = loss + ctx.exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
         if lap > 0 and gd is not None:
             e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]
-            loss = loss + lap * ((si - sj) ** 2).sum(1).mean()
+            loss = loss + lap * (((si - sj) ** 2) * tw).sum(1).mean()
         if rankq > 0 and q is not None:
             i, j = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen), torch.randint(len(node_x), (EDGE_BATCH,), generator=gen)
             si, sj = head(node_x[i])[:, active], head(node_x[j])[:, active]; dq = q[i] - q[j]; w = dq.abs(); w = w / (w.mean() + 1e-9)
@@ -225,7 +226,7 @@ def d_from_scores(score_fn, test) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------ learner registry
-def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuffle=False, q_kind="graph", noise=0.0):
+def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuffle=False, q_kind="graph", noise=0.0, lap_w=None, lr_scale=1.0, steps_scale=1.0):
     def learner(ctx, labelled, seed):
         gd = graph_for(ctx, k, shuffle, noise); cache = ctx.features.cache
         if sgc: featfn = lambda paths: gd.propagate_features([str(p) for p in paths], cache, shuffle_ext=shuffle); node_x = gd.propagated_nodes(); dim = gd.x.shape[1]
@@ -235,7 +236,7 @@ def _mlp_learner(k=10, lap=0.0, rankq=0.0, cons=0.0, ridge=0.0, sgc=False, shuff
             if q_kind == "graph": q = gd.q()
             else:   # no-graph control: class posterior from the cosine similarity to the class means of the labelled ideal images
                 cls = torch.stack([gd.xn[[i for i, c in gd.source_class.items() if c == t]].mean(0) for t in ACTIVE]); sim = gd.xn @ F.normalize(cls, dim=1).T; q = torch.softmax(sim * 20.0, 1)
-        head = fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, dim, lap=lap, rankq=rankq, cons=cons, ridge=ridge, q=q)
+        head = fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, dim, lap=lap, rankq=rankq, cons=cons, ridge=ridge, lap_w=lap_w, lr_scale=lr_scale, steps_scale=steps_scale, q=q)
         return lambda test: core.head_d(head, featfn, test)
     return learner
 
@@ -273,5 +274,9 @@ for _lam in (1.0, 3.0, 10.0):
     for _sg in (1.0, 3.0): LEARNERS[f"lap{_lam:g}_k10_n{_sg:g}"] = _mlp_learner(lap=_lam, noise=_sg)
 for _l, _r in ((3.0, 1.0), (3.0, 3.0), (10.0, 1.0)):
     LEARNERS[f"lap{_l:g}_rq{_r:g}_k10"] = _mlp_learner(lap=_l, rankq=_r); LEARNERS[f"lap{_l:g}_rq{_r:g}_k10_shuf"] = _mlp_learner(lap=_l, rankq=_r, shuffle=True)
+# selection-x-HTR study: per-type Laplacian weight (HTR = type index 4) and schedule variations of the incumbent lap3_k10
+for _w in (3.0, 10.0): LEARNERS[f"lap3h{_w:g}_k10"] = _mlp_learner(lap=3.0, lap_w={4: _w / 3.0}); LEARNERS[f"lap3h{_w:g}_k10_shuf"] = _mlp_learner(lap=3.0, lap_w={4: _w / 3.0}, shuffle=True)
+for _st in (0.5, 2.0): LEARNERS[f"lap3_k10_st{_st:g}"] = _mlp_learner(lap=3.0, steps_scale=_st)
+for _lr in (0.5, 2.0): LEARNERS[f"lap3_k10_lr{_lr:g}"] = _mlp_learner(lap=3.0, lr_scale=_lr)
 LEARNERS["sgc_k10_noprop"] = None  # placeholder removed below
 del LEARNERS["sgc_k10_noprop"]
