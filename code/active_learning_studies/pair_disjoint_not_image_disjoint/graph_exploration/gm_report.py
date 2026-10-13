@@ -8,7 +8,7 @@ import gl_tables as gt
 
 HERE = Path(__file__).resolve().parent; RES = HERE.parents[1] / "new_directions" / "results" / "gm"
 spec = json.loads((HERE / "GM1_spec.json").read_text()); cands = list(spec["candidates"]); ctls = [v for c in cands for v in spec["candidates"][c].values()]
-DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7") if (RES / d).is_dir()]
+DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7", "dev8") if (RES / d).is_dir()]
 
 
 def have(name): return (RES / name).is_dir() and any((RES / name).glob("seed*.json"))
@@ -23,11 +23,12 @@ def table(name: str) -> str:
     if name == "dev_vs_aw8": return run(["dev"] + dev + ["--refs=aw8_all"])
     if name == "dev_vs_lap3": return run(["dev"] + dev + ["--refs=lap3_k10"])
     if name == "dev_dose": return run(["dose", str(RES / "dev1")])
+    if name == "dev_curve": return run(["curve", str(RES / "dev1"), "--learners=aw8_all,lap3_k10,gm_lap10_n0"])
     if name == "dev_qgain": return run(["qgain", str(RES / "dev1"), str(RES / "dev2"), "--names=gm_lap10_n0,gm10_mutual_k15,gm10_eps_d10,gm10_snn,gm10_gauss_k10,gm10_lscale_k10,gm10_bmatch_b10,gm10_pcaw32_k10,gm10_l3_k10,gm10_l2_k10,gm10_l3l4_k10,gm10_norm_k10"])
     if name == "graph_stats": p = HERE / "gm_graph_stats_vs_gain.csv"; return gt.to_md(pd.read_csv(p).round(4), "{:+.4f}") if p.exists() else "*not run*"
     if name == "dev_budget": return run(["budget"] + dev + ["--learners=lap3_k10,gm_lap10_n0,gm10_type_no_rt13,gm10_place_unl,gm10_place_it"])
     if name == "dev_types": return run(["types"] + dev + ["--learners=lap3_k10,gm_lap10_n0,gm10_type_htr,gm10_type_no_htr,gm10_type_no_rt13,gm10_type_no_c6x2,gm10_type_1x1_htr,gm10_place_unl,gm10_place_it,gm_noise10"])
-    m = re.match(r"(confirm1|confirm2)_(main|dose|dose_secondary|budget|types)$", name)
+    m = re.match(r"(confirm1|confirm2)_(main|dose|dose_secondary|budget|types|curve|diff)$", name)
     if m:
         exp, kind = m.groups()
         if not have(exp): return f"*{exp}: not run*"
@@ -35,6 +36,8 @@ def table(name: str) -> str:
         if kind == "main": return run(["confirm", str(HERE / "GM1_spec.json"), d])
         if kind in ("dose", "dose_secondary"):
             s = json.loads((HERE / ("GM1_dose_primary.json" if kind == "dose" else "GM1_dose_secondary.json")).read_text()); s["seeds"] = f"{lo}-{hi}"; tmp = HERE / f".tmp_{exp}_{kind}.json"; tmp.write_text(json.dumps(s)); out = run(["dosetest", str(tmp), d]); tmp.unlink(); return out
+        if kind == "curve": return run(["curve", d, "--learners=aw8_all,lap3_k10," + ",".join(cands)])
+        if kind == "diff": return run(["diff", d, "--pairs=gmc_t_no_rt13:gm_lap10_n0,gm_lap10_n0:aw8_all,gmc_t_no_rt13:aw8_all"])
         learners = ["lap3_k10"] + cands + ctls
         return run(["budget" if kind == "budget" else "types", d, "--learners=" + ",".join(learners), "--ref=aw8_all"])
     raise KeyError(name)

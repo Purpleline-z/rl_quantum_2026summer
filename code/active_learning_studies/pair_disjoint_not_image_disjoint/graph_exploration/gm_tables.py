@@ -110,6 +110,14 @@ if __name__ == "__main__":
                     try: s = gt.summarize(gt.gain(frame, split, m, a, b)); rows.append({"pair": f"{a} - {b}", "split": split, "metric": m, "gain": s["gain"], "lo": s["lo"], "hi": s["hi"], "share_better": s["share"], "p_uncorrected": s["p"], "n": s["n"]})
                     except Exception: pass
         print(gt.to_md(pd.DataFrame(rows)))
+    elif mode == "curve":   # mean held-out AUC / accuracy by budget (levels, not gains): how many extra random labels would aw8_all need to reach the regularised learner?
+        frame = gt.load(dirs()); names = arg("--learners").split(","); rows = []
+        for split in sorted(frame.split.unique()):
+            g = frame[frame.split == split]
+            for l in names:
+                for m in ("auc", "acc"):
+                    v = g[g.learner == l].groupby(["seed", "budget"])[m].mean().groupby("budget").mean(); rows.append({"split": split, "learner": l, "metric": m, **{f"b{b}": float(x) for b, x in v.items()}})
+        print(gt.to_md(pd.DataFrame(rows), "{:.4f}"))
     elif mode == "qgain":   # across-learner dose-response: per-seed Spearman(gain over aw8_all, graph quality) across the named learners (different graph constructions)
         frame = gt.load(dirs()); names = arg("--names").split(","); ref = arg("--ref", "aw8_all"); rows = []
         for split in sorted(frame.split.unique()):

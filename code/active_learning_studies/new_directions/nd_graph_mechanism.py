@@ -247,3 +247,6 @@ _reg("gm10_ring3", lap=10, construct="ring", k=10, r0=3); _reg("gm10_ring6", lap
 
 # ---- round 8 (own idea, CPU stand-in for a second encoder): topology built from ImageNet-ResNet-18 features (cached by the old representation analysis) or from ImageNet + SimCLR; the head still reads SimCLR
 _reg("gm10_imnet", lap=10, feat="imnet"); _reg("gm10_imnet_simclr", lap=10, feat="imnet_simclr"); _reg("gm3_imnet", lap=3, feat="imnet")
+
+# ---- round 9: a fairer non-graph arm (the first mixup/noise strengths were possibly badly tuned): weaker mixup consistency, weaker and stronger noise consistency
+_reg("gm_mix0.1", mix_cons=0.1); _reg("gm_mix0.3", mix_cons=0.3); _reg("gm_mix1", mix_cons=1.0); _reg("gm_noise1", noise_cons=1.0); _reg("gm_noise30", noise_cons=30.0)
