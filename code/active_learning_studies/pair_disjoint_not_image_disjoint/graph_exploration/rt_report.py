@@ -37,7 +37,7 @@ def table(name):
             t = T.gain_table(df, c, r, cols)
             if len(t): parts.append(f"**{c} - {r}**\n\n" + T.to_md(t[[x for x in t.columns if not x.endswith(("_lo", "_hi"))]]))
         extra = ""
-        if name == "a2": extra = "\n\nGraph nodes kept (mean) by delta:\n\n" + T.to_md(df.groupby(["split", "delta"]).n_nodes.mean().reset_index(), "{:.0f}")
+        if name == "a2": extra = "\n\nGraph nodes kept (mean) by delta:\n\n" + T.to_md(df.groupby(["split", "delta"]).n_nodes.mean().reset_index().assign(delta=lambda x: x.delta.astype(str)), "{:.0f}")
         if name == "a3":
             ex = df[df.learner == "lap3_k10_st4"].groupby("seed")[["n_test", "n_test_groups", "n_pool_groups", "n_zone_images", "nov_train_max_median"]].mean(); extra = "\n\nBlocked-split sizes (mean over seeds): " + ", ".join(f"{k} = {v:.3g}" for k, v in ex.mean().items())
         return "\n\n".join(parts) + extra
