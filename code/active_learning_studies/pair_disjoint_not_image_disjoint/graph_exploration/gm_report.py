@@ -8,7 +8,7 @@ import gl_tables as gt
 
 HERE = Path(__file__).resolve().parent; RES = HERE.parents[1] / "new_directions" / "results" / "gm"
 spec = json.loads((HERE / "GM1_spec.json").read_text()); cands = list(spec["candidates"]); ctls = [v for c in cands for v in spec["candidates"][c].values()]
-DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7", "dev8", "dev9") if (RES / d).is_dir()]
+DEV = [d for d in ("dev1", "dev2", "dev3", "dev4", "dev5", "dev6", "dev7", "dev8", "dev9", "dev10") if (RES / d).is_dir()]
 
 
 def have(name): return (RES / name).is_dir() and any((RES / name).glob("seed*.json"))
@@ -24,6 +24,7 @@ def table(name: str) -> str:
     if name == "dev_vs_lap3": return run(["dev"] + dev + ["--refs=lap3_k10"])
     if name == "dev_dose": return run(["dose", str(RES / "dev1")])
     if name == "dev_nongraph": return run(["dev"] + dev + ["--refs=aw8_all", "--only=gm_noise1,gm_noise3,gm_noise10,gm_noise30,gm_mix0.1,gm_mix0.3,gm_mix1,gm_mix3,gm_mix10,gm_wd1e3,gm_wd1e2,gm_lap10_n0,lap3_k10"])
+    if name == "dev_pertype": return run(["dev"] + dev + ["--refs=lap3_k10", "--only=gm10_type_no_rt13,gmc10_h30,gmc10_h3,gmc10_t1_30,gmc10_c6_off,gmc10_c6_x3,gm10_type_1x1_htr,gm10_type_htr,gm10_type_no_htr"])
     if name == "dev_curve": return run(["curve", str(RES / "dev1"), "--learners=aw8_all,lap3_k10,gm_lap10_n0"])
     if name == "dev_qgain": return run(["qgain", str(RES / "dev1"), str(RES / "dev2"), "--names=gm_lap10_n0,gm10_mutual_k15,gm10_eps_d10,gm10_snn,gm10_gauss_k10,gm10_lscale_k10,gm10_bmatch_b10,gm10_pcaw32_k10,gm10_l3_k10,gm10_l2_k10,gm10_l3l4_k10,gm10_norm_k10"])
     if name == "graph_stats": p = HERE / "gm_graph_stats_vs_gain.csv"; return gt.to_md(pd.read_csv(p).round(4), "{:+.4f}") if p.exists() else "*not run*"

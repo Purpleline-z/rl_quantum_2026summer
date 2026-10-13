@@ -32,6 +32,9 @@ And the 26 λ=10 graphs with other statistics (descriptive; `gm_edge_stats.py`):
 ### 3.4b The non-graph smoothing arm (two rounds, nine settings; graph reference rows included)
 {{TABLE:dev_nongraph}}
 
+### 3.4c Per-type strengths around the RT13-off learner (round 10, development only; the reference is `lap3_k10`; weights are relative to λ = 10)
+{{TABLE:dev_pertype}}
+
 ### 3.5 What the development screen showed (observations, optimistic)
 - **Noise dose, λ=10:** the AUC gain falls monotonically with noise (≈ +0.02 at σ ≤ 0.5, ≈ 0 at σ = 1–2, ≈ −0.015 at σ = 3), and log-loss gets worse at every step; at λ=3 the dependence is weak.
 - **No better graph was found.** Mutual kNN, ε graph, shared nearest neighbours, Gaussian and locally scaled weights, b-matching, PCA whitening, layer-2/3/3+4 features, normalised Laplacian, skipping near-duplicate neighbours, λ ∈ {5, 10, 20, 40}, k ∈ {5, 10, 20, 30}: none is better than `lap3_k10` by more than ≈ +0.003 AUC; PCA whitening (−0.025), the ε graph (−0.018) and Gaussian weights (−0.01) are worse. The plain kNN graph with k=10 sits on a plateau.

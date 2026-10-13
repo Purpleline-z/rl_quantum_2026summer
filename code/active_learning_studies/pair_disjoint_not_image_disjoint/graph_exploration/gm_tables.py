@@ -31,6 +31,12 @@ def dirs():
     return [a for a in sys.argv[2:] if not a.startswith("--")]
 
 
+def stat_of(seed, split, name, key):
+    f = QUALITY / f"seed{seed}_{split}.json"
+    if not f.exists(): return np.nan
+    return json.loads(f.read_text()).get(name, {}).get(key, np.nan)
+
+
 def quality_of(seed, split, name):
     f = QUALITY / f"seed{seed}_{split}.json"
     if not f.exists(): return np.nan
@@ -56,7 +62,7 @@ def dose_table(frame, seeds=None, ref="aw8_all"):
                     if np.isnan(q).any() or np.ptp(q) == 0 or np.ptp(g) == 0: continue
                     rhos.append(spearmanr(q, g)[0]); slopes.append(np.polyfit(q, g, 1)[0])
                 for n, sg in doses:
-                    rows_dose.append({"split": split, "lambda": lam, "metric": metric, "sigma": sg, "learner": n, "quality": np.nanmean([quality_of(s, split, n) for s in seeds_]), "gain": float(np.mean([gains[n][s] for s in seeds_]))})
+                    rows_dose.append({"split": split, "lambda": lam, "metric": metric, "sigma": sg, "learner": n, "quality": np.nanmean([quality_of(s, split, n) for s in seeds_]), "mean_degree": np.nanmean([stat_of(s, split, n, "mean_degree") for s in seeds_]), "gain": float(np.mean([gains[n][s] for s in seeds_]))})
                 if rhos:
                     try: p = float(wilcoxon(rhos).pvalue) if np.any(np.array(rhos) != 0) else 1.0
                     except ValueError: p = 1.0

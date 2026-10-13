@@ -250,3 +250,6 @@ _reg("gm10_imnet", lap=10, feat="imnet"); _reg("gm10_imnet_simclr", lap=10, feat
 
 # ---- round 9: a fairer non-graph arm (the first mixup/noise strengths were possibly badly tuned): weaker mixup consistency, weaker and stronger noise consistency
 _reg("gm_mix0.1", mix_cons=0.1); _reg("gm_mix0.3", mix_cons=0.3); _reg("gm_mix1", mix_cons=1.0); _reg("gm_noise1", noise_cons=1.0); _reg("gm_noise30", noise_cons=30.0)
+
+# ---- round 10 (development only, no confirmation seeds left): per-type strength around the confirmed candidate (RT13 off, lambda 10 = weight 1): which type wants more / less
+_reg("gmc10_h30", lap=10, type_w={3: 0.0, 4: 3.0}); _reg("gmc10_h3", lap=10, type_w={3: 0.0, 4: 0.3}); _reg("gmc10_t1_30", lap=10, type_w={3: 0.0, 0: 3.0}); _reg("gmc10_c6_off", lap=10, type_w={3: 0.0, 2: 0.0}); _reg("gmc10_c6_x3", lap=10, type_w={3: 0.0, 2: 0.3})
