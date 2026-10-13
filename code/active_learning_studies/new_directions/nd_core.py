@@ -69,6 +69,12 @@ RC_DEV_SEEDS = tuple(range(9300, 9320)); RC_CONFIRM = tuple(range(9350, 9385)); 
 assert not RC_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(RC_SEEDS_ALL) == 20 + 35
 assert not RC_SEEDS_ALL & (set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000)))
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RC_SEEDS_ALL
+# temporal-graph study (branch claude/temporal-graph-*): development 9200-9219, confirmation 9250-9284 (block 9200-9299 is this study's; spare seeds 9220-9249 / 9285-9299 are for its own follow-ups only).
+# Blocks of the parallel conversations of the same round (reserved, never used here): 8000-8199, 8400-8799, 8885-8999.  Already used by earlier studies: 7000-7335, 8200-8399, 8800-8884 (and everything above).
+TG_DEV_SEEDS = tuple(range(9200, 9220)); TG_CONFIRM = tuple(range(9250, 9285)); TG_SEEDS_ALL = set(TG_DEV_SEEDS) | set(TG_CONFIRM)
+TG_RESERVED_PARALLEL = set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000))
+assert not TG_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not TG_SEEDS_ALL & TG_RESERVED_PARALLEL and len(TG_SEEDS_ALL) == 20 + 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | TG_SEEDS_ALL
 
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
