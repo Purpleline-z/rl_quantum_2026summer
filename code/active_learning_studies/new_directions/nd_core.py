@@ -231,3 +231,8 @@ RP_DEV_SEEDS = tuple(range(8600, 8620)); RP_CONFIRM1 = tuple(range(8650, 8685));
 assert len(RP_SEEDS_ALL) == 55 and not RP_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not RP_SEEDS_ALL & set(range(7000, 7336)) and not RP_SEEDS_ALL & set(range(8000, 8600)) and not set(RP_DEV_SEEDS) & set(RP_CONFIRM1)
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RP_SEEDS_ALL   # representation blocks (8600-8619, 8650-8684)
 
+# ------------------------------------------------------------------------------------------ anchor-exchange study (branch claude/anchor-exchange-*): own seed block, separate lines
+AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785)); AE_SEEDS_ALL = set(AE_DEV_SEEDS) | set(AE_CONFIRM1)
+RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
+assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
