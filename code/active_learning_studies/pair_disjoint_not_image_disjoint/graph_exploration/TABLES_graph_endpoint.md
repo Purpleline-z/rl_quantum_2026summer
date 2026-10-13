@@ -491,6 +491,35 @@ Test-group bootstrap of the lap3 − aw8_all gain (all three bands pooled): auc:
 
 Test-group bootstrap of the lap3 − aw8_all gain: auc: +0.013 [-0.024, +0.063]; acc: -0.001 [-0.011, +0.009] (17 test groups, 36 judgments)
 
+### Generic score shrinkage without a graph (ridge1/ridge3 = shrink random nodes' scores towards 0) vs lap3 vs shuffled graph on the three harsh split kinds, minus aw8_all (dev seeds)
+
+| kind | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| late | lap3 | auc | 20 | +0.013 | 0.850 | 7.78e-04 |
+| late | lap3 | acc | 20 | -0.001 | 0.500 | 0.663 |
+| late | lap3_shuf | auc | 20 | +0.052 | 1.000 | 8.83e-05 |
+| late | lap3_shuf | acc | 20 | -0.042 | 0.150 | 1.34e-04 |
+| late | ridge1 | auc | 20 | +0.004 | 0.600 | 0.390 |
+| late | ridge1 | acc | 20 | -0.030 | 0.150 | 2.89e-04 |
+| late | ridge3 | auc | 20 | -0.023 | 0.150 | 0.002 |
+| late | ridge3 | acc | 20 | -0.052 | 0.050 | 1.20e-04 |
+| run | lap3 | auc | 20 | +0.018 | 0.800 | 0.001 |
+| run | lap3 | acc | 20 | +0.013 | 0.500 | 0.206 |
+| run | lap3_shuf | auc | 20 | -0.086 | 0.000 | 1.91e-06 |
+| run | lap3_shuf | acc | 20 | -0.081 | 0.000 | 8.82e-05 |
+| run | ridge1 | auc | 20 | -0.077 | 0.000 | 8.84e-05 |
+| run | ridge1 | acc | 20 | -0.065 | 0.100 | 2.34e-04 |
+| run | ridge3 | auc | 20 | -0.115 | 0.000 | 8.84e-05 |
+| run | ridge3 | acc | 20 | -0.110 | 0.000 | 8.77e-05 |
+| temp | lap3 | auc | 20 | +0.020 | 0.950 | 1.32e-04 |
+| temp | lap3 | acc | 20 | +0.025 | 0.900 | 5.28e-04 |
+| temp | lap3_shuf | auc | 20 | +0.003 | 0.750 | 0.239 |
+| temp | lap3_shuf | acc | 20 | -0.009 | 0.400 | 0.153 |
+| temp | ridge1 | auc | 20 | -0.043 | 0.000 | 8.84e-05 |
+| temp | ridge1 | acc | 20 | -0.072 | 0.000 | 8.78e-05 |
+| temp | ridge3 | auc | 20 | -0.098 | 0.000 | 1.91e-06 |
+| temp | ridge3 | acc | 20 | -0.117 | 0.000 | 8.84e-05 |
+
 ### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all
 
 | kind | arm | metric | n_seeds | gain | share_better | p |

@@ -13,7 +13,7 @@ import nd_graph_learner as gl
 from nd_graph_learner import _bt_terms, _anchor_loss, ACTIVE, EDGE_BATCH
 
 
-def fit_head(ctx, labelled, seed, gd, featfn, node_x, dim, lap: float = 0.0, aw: float = 8.0, all_ideal: bool = True):
+def fit_head(ctx, labelled, seed, gd, featfn, node_x, dim, lap: float = 0.0, aw: float = 8.0, all_ideal: bool = True, ridge: float = 0.0):
     lr, steps = ctx.params_for(labelled); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, all_ideal)
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
@@ -28,6 +28,8 @@ def fit_head(ctx, labelled, seed, gd, featfn, node_x, dim, lap: float = 0.0, aw:
         if lap > 0 and gd is not None:
             e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]
             loss = loss + lap * ((si - sj) ** 2).sum(1).mean()
+        if ridge > 0 and node_x is not None:   # no-graph control (as nd_graph_learner 'ridge'): shrink the scores of random nodes towards 0
+            u = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen); loss = loss + ridge * (head(node_x[u])[:, active] ** 2).sum(1).mean()
         opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); opt.step()
     return head.eval()
 

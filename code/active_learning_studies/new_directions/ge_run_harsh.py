@@ -14,7 +14,7 @@ import nd_core as core
 import ge_heads as gh
 import ge_harsh as hh
 
-ARMS = {"lap3_k5": (3.0, False, 0.0), "lap3_k20": (3.0, False, 0.0), "lapF25": (3.0, False, 0.0), "lapF50": (3.0, False, 0.0), "lapF100": (3.0, False, 0.0), "lap3_T": (3.0, False, 0.0), "base": None, "lap1": (1.0, False, 0.0), "lap3": (3.0, False, 0.0), "lap10": (10.0, False, 0.0), "lap3_shuf": (3.0, True, 0.0), "lap3_n3": (3.0, False, 3.0)}
+ARMS = {"ridge1": (0.0, False, 0.0), "ridge3": (0.0, False, 0.0), "lap3_k5": (3.0, False, 0.0), "lap3_k20": (3.0, False, 0.0), "lapF25": (3.0, False, 0.0), "lapF50": (3.0, False, 0.0), "lapF100": (3.0, False, 0.0), "lap3_T": (3.0, False, 0.0), "base": None, "lap1": (1.0, False, 0.0), "lap3": (3.0, False, 0.0), "lap10": (10.0, False, 0.0), "lap3_shuf": (3.0, True, 0.0), "lap3_n3": (3.0, False, 3.0)}
 
 
 def parse_seeds(text):
@@ -47,8 +47,8 @@ def run_seed(seed, kind, cache, scratch, budgets, draws, arms, save_d=None):
             for f in per_fold:
                 ctx = f["ctx"]; lab = list(ctx.initial) + [ctx.pool[i] for i in np.random.default_rng(seed * 100003 + budget * 101 + draw).choice(len(ctx.pool), size=min(budget, len(ctx.pool)), replace=False)]; s = seed * 7 + draw
                 for name in arms:
-                    gd = f["graphs"].get(name); lam = 0.0 if gd is None else ARMS[name][0]
-                    head = gh.fit_head(ctx, lab, s, gd, fn, None if gd is None else gd.x, 512, lap=lam, all_ideal=True); ds[name].append(core.head_d(head, fn, f["test"]))
+                    gd = f["graphs"].get(name); lam = 0.0 if gd is None else ARMS[name][0]; rid = {"ridge1": 1.0, "ridge3": 3.0}.get(name, 0.0)
+                    head = gh.fit_head(ctx, lab, s, gd, fn, None if gd is None else gd.x, 512, lap=lam, all_ideal=True, ridge=rid); ds[name].append(core.head_d(head, fn, f["test"]))
             for name in arms: dump[f"d_{budget}_{draw}_{name}"] = np.concatenate(ds[name]).astype(np.float32)
             for name in arms: rows.append({"seed": seed, "kind": kind, "budget": budget, "draw": draw, "arm": name, "n_folds": len(per_fold), **core.metrics_from_d(np.concatenate(ds[name]), pooled)})
     if save_d is not None: np.savez_compressed(save_d, **dump)

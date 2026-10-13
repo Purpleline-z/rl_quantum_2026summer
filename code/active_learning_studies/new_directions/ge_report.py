@@ -177,6 +177,8 @@ def exploratory_tables(bootstrap: bool = True) -> str:
         if bootstrap:
             b = bootstrap_gain(R / "dev_late", "late", "lap3", "base")
             if b: out += "Test-group bootstrap of the lap3 − aw8_all gain: " + "; ".join(f"{m}: {b[m][0]:+.3f} [{b[m][1]:+.3f}, {b[m][2]:+.3f}]" for m in ("auc", "acc")) + f" ({b['n_groups']} test groups, {b['n_judgments']} judgments)\n\n"
+    if (R / "dev_ridge").exists() and list((R / "dev_ridge").glob("seed*_*.json")):
+        f = ga.load(R / "dev_ridge", "seed*_*.json"); out += "### Generic score shrinkage without a graph (ridge1/ridge3 = shrink random nodes' scores towards 0) vs lap3 vs shuffled graph on the three harsh split kinds, minus aw8_all (dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
     if (R / "dev_k").exists() and list((R / "dev_k").glob("seed*_*.json")):
         f = ga.load(R / "dev_k", "seed*_*.json"); out += "### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
     import ge_htr
