@@ -1,0 +1,3 @@
+{"learner": "lap3_k10_st4", "splits": ["A", "B"],
+ "candidates": ["vopt_u", "gvopt_node3", "typed_decisive_bald", "vopt_htr4"],
+ "controls": {"gvopt_node3": {"shuf": "gvopt_node3_shuf"}, "typed_decisive_bald": {"shuf": "typed_decisive_bald_shuffled"}}}

@@ -75,6 +75,34 @@ def build_tests(spec):
     return {"tests": T}
 
 
+def build_tests_learner(spec):
+    """Learner family (random selection, identical label sets): candidate learner vs each reference learner on splits x (auc, acc) (family main:<ref>, Holm within), vs its shuffled-graph control
+    (uncorrected), HTR family (htr_acc, htr_ll vs each reference; Holm within family), secondary (ll and the other types' accuracy)."""
+    cand, T = spec["candidate"], []; cell = lambda l: ["random", l]
+    for ref in spec["references"]:
+        for split in spec["splits"]:
+            for m in ("auc", "acc"): T.append({"family": "main:" + ref, "kind": "vs_ref", "cand": cand, "ref": ref, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+            for m in ("htr_acc", "htr_ll"): T.append({"family": "htr:" + ref, "kind": "vs_ref", "cand": cand, "ref": ref, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+            for m in ("ll", "t1x1_acc", "tc6x2_acc", "t13_acc"): T.append({"family": "secondary:" + m + ":" + ref, "kind": "vs_ref", "cand": cand, "ref": ref, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+    for name, ctl in spec["controls"].items():
+        for split in spec["splits"]:
+            for m in ("auc", "acc", "ll"): T.append({"family": "control:" + name, "kind": "vs_ctl:" + name, "cand": cand, "ref": name, "split": split, "metric": m, "a": cell(cand), "b": cell(ctl)})
+    return {"tests": T}
+
+
+def verdicts_learner(out, spec):
+    rows = []
+    ctl = out[(out.kind == "vs_ctl:shuf")]
+    beats = bool(((ctl.gain > 0) & (ctl.p < 0.05) & ctl.metric.isin(["auc", "acc"])).any())
+    for ref in spec["references"]:
+        main = out[out.family == "main:" + ref]; htr = out[out.family == "htr:" + ref]; rest = out[out.family.str.startswith("secondary:t") & out.family.str.endswith(":" + ref)]
+        allpos = bool(len(main) == 4 and (main.gain > 0).all()); nsig = int((main.holm < 0.05).sum())
+        rows.append({"candidate": spec["candidate"], "reference": ref, "all_four_positive": allpos, "n_holm_sig": nsig, "beats_shuffled": beats, "CONFIRMED": bool(allpos and nsig >= 3 and beats),
+                     "htr_acc_holm_sig_splits": int(((htr.metric == "htr_acc") & (htr.holm < 0.05) & (htr.gain > 0)).sum()), "htr_ll_holm_sig_splits": int(((htr.metric == "htr_ll") & (htr.holm < 0.05) & (htr.gain > 0)).sum()),
+                     "other_type_acc_worst_gain": float(rest.gain.min()) if len(rest) else float("nan")})
+    return pd.DataFrame(rows)
+
+
 def verdicts(out, spec):
     rows = []
     for cand in spec["candidates"]:
@@ -88,7 +116,7 @@ def verdicts(out, spec):
 
 
 def confirm_report(spec, dirs):
-    out = c.run(build_tests(spec), load(dirs)); out["cells"] = [f"{a[0]} - {b[0]}" for a, b in zip(out.a, out.b)]
+    out = c.run(build_tests_learner(spec) if "references" in spec else build_tests(spec), load(dirs)); out["cells"] = [(f"{a[0]} - {b[0]}" if a[1] == b[1] else f"{a[1]} - {b[1]}") for a, b in zip(out.a, out.b)]
     cols = ["family", "split", "metric", "cells", "n_seeds", "gain", "lo", "hi", "share_better", "p", "holm"]
     return out, to_md(out[cols].assign(**{k: out[k].astype(float) for k in ("gain", "lo", "hi", "share_better", "p", "holm")}))
 
@@ -119,4 +147,4 @@ if __name__ == "__main__":
                 rows.append(r)
         print(to_md(pd.DataFrame(rows)))
     elif mode == "confirm":
-        spec = json.loads(Path([a for a in sys.argv[2:] if a.endswith(".json")][0]).read_text()); out, md = confirm_report(spec, dirs); print(md); print(); print(to_md(verdicts(out, spec), "{}"))
+        spec = json.loads(Path([a for a in sys.argv[2:] if a.endswith(".json")][0]).read_text()); out, md = confirm_report(spec, dirs); print(md); print(); print(to_md((verdicts_learner if "references" in spec else verdicts)(out, spec), "{}"))
