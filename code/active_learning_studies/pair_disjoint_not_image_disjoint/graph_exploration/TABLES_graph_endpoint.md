@@ -433,6 +433,36 @@ Test-group bootstrap of the lap3 − aw8_all gain (all three bands pooled): auc:
 | temp | lap3_T - lap3 | auc | 20 | -0.001 | 0.629 |
 | temp | lap3_T - lap3 | acc | 20 | +0.012 | 0.004 |
 
+### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all
+
+| kind | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| run | lap3 | auc | 20 | +0.018 | 0.800 | 0.001 |
+| run | lap3 | acc | 20 | +0.013 | 0.500 | 0.206 |
+| run | lap3_k20 | auc | 20 | +0.011 | 0.800 | 0.052 |
+| run | lap3_k20 | acc | 20 | -0.004 | 0.500 | 0.888 |
+| run | lap3_k5 | auc | 20 | +0.004 | 0.650 | 0.108 |
+| run | lap3_k5 | acc | 20 | +0.006 | 0.500 | 0.459 |
+| temp | lap3 | auc | 20 | +0.020 | 0.950 | 1.32e-04 |
+| temp | lap3 | acc | 20 | +0.025 | 0.900 | 5.28e-04 |
+| temp | lap3_k20 | auc | 20 | -0.002 | 0.450 | 0.469 |
+| temp | lap3_k20 | acc | 20 | -0.000 | 0.400 | 0.906 |
+| temp | lap3_k5 | auc | 20 | +0.012 | 0.800 | 8.30e-04 |
+| temp | lap3_k5 | acc | 20 | +0.010 | 0.750 | 0.026 |
+
+### Per-type view of the harsh-split accuracy gain in the confirmation blocks (lap3_k10 − aw8_all; HTR vs the other types; test-group bootstrap; descriptive — only 7 HTR test judgments)
+
+| block | kind | types | test_judgments | acc_gain | ci_lo | ci_hi |
+|---|---|---|---|---|---|---|
+| conf1 | run | HTR | 7 | 0.148 | 0.056 | 0.219 |
+| conf1 | run | other types | 43 | -0.006 | -0.028 | 0.017 |
+| conf1 | temp | HTR | 7 | -0.006 | -0.035 | 0.024 |
+| conf1 | temp | other types | 19 | 0.037 | -0.006 | 0.140 |
+| conf2 | run | HTR | 7 | 0.147 | 0.046 | 0.233 |
+| conf2 | run | other types | 43 | -0.004 | -0.026 | 0.018 |
+| conf2 | temp | HTR | 7 | -0.004 | -0.023 | 0.015 |
+| conf2 | temp | other types | 19 | 0.040 | -0.005 | 0.140 |
+
 
 ## Development screens (not evidence)
 

@@ -14,7 +14,7 @@ import nd_core as core
 import ge_heads as gh
 import ge_harsh as hh
 
-ARMS = {"lapF25": (3.0, False, 0.0), "lapF50": (3.0, False, 0.0), "lapF100": (3.0, False, 0.0), "lap3_T": (3.0, False, 0.0), "base": None, "lap1": (1.0, False, 0.0), "lap3": (3.0, False, 0.0), "lap10": (10.0, False, 0.0), "lap3_shuf": (3.0, True, 0.0), "lap3_n3": (3.0, False, 3.0)}
+ARMS = {"lap3_k5": (3.0, False, 0.0), "lap3_k20": (3.0, False, 0.0), "lapF25": (3.0, False, 0.0), "lapF50": (3.0, False, 0.0), "lapF100": (3.0, False, 0.0), "lap3_T": (3.0, False, 0.0), "base": None, "lap1": (1.0, False, 0.0), "lap3": (3.0, False, 0.0), "lap10": (10.0, False, 0.0), "lap3_shuf": (3.0, True, 0.0), "lap3_n3": (3.0, False, 3.0)}
 
 
 def parse_seeds(text):
@@ -33,7 +33,7 @@ def run_seed(seed, kind, cache, scratch, budgets, draws, arms, save_d=None):
             if name.startswith("lapF"):   # exploratory: a fraction of the held-out condition's UNLABELLED frames (not the test images) is allowed into the graph
                 order = sorted(frames); rng = np.random.default_rng(seed * 17 + fold_index); order = [order[i] for i in rng.permutation(len(order))]; return set(order[int(round(int(name[4:]) / 100 * len(order))):])
             return frames
-        graphs = {name: gh.make_graph(ctx, 10, shuffle=spec[1], noise=spec[2], drop_paths=dropped(name), keep_heldout_pair_images=(name == "lap3_T")) for name, spec in ARMS.items() if spec is not None and name in arms}
+        graphs = {name: gh.make_graph(ctx, {"lap3_k5": 5, "lap3_k20": 20}.get(name, 10), shuffle=spec[1], noise=spec[2], drop_paths=dropped(name), keep_heldout_pair_images=(name == "lap3_T")) for name, spec in ARMS.items() if spec is not None and name in arms}
         per_fold.append({"ctx": ctx, "test": test, "graphs": graphs, "fold": fold})
     pooled = hh.Pooled([f["test"] for f in per_fold])
     if save_d is not None:

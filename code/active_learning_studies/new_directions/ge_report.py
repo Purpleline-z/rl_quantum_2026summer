@@ -156,6 +156,13 @@ def exploratory_tables(bootstrap: bool = True) -> str:
     if (R / "dev_target").exists() and list((R / "dev_target").glob("seed*_*.json")):
         f = ga.load(R / "dev_target", "seed*_*.json"); out += "### Dose-response of the held-out condition's UNLABELLED frames (lapF25/50/100 = that fraction of the held-out run/band frames, test images excluded, enters the graph; lap3_T = all frames plus the test images; dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
         out += ga.md(pd.concat([ga.arm_vs(f, ["kind"], "arm", a, "lap3") for a in ("lapF25", "lapF50", "lapF100", "lap3_T")])) + "\n"
+    if (R / "dev_k").exists() and list((R / "dev_k").glob("seed*_*.json")):
+        f = ga.load(R / "dev_k", "seed*_*.json"); out += "### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
+    import ge_htr
+    try:
+        t = ge_htr.table()
+        if len(t): out += "### Per-type view of the harsh-split accuracy gain in the confirmation blocks (lap3_k10 − aw8_all; HTR vs the other types; test-group bootstrap; descriptive — only 7 HTR test judgments)\n\n" + ga.md(t) + "\n"
+    except Exception as e: out += f"(per-type table unavailable: {e})\n"
     return out or "(no exploratory runs yet)\n"
 
 
