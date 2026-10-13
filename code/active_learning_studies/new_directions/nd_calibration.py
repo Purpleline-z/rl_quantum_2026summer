@@ -61,11 +61,14 @@ def label_smoothing(eps: float):
     finally: G._bt_terms = old
 
 
-def fit_head(ctx, gd, labelled, seed: int, lr_steps=None, eps: float = 0.0):
-    """The ``lap3_k10_st4`` head (with ``eps`` = 0 exactly the registry learner)."""
+LEARNER_SPECS = {"lap3_k10_st4": dict(lap=LAM, steps_scale=STEPS), "lap3_k10": dict(lap=LAM), "aw8_all": dict(lap=0.0), "aw8_all_st2lr0.5": dict(lap=0.0, steps_scale=2.0, lr_scale=0.5)}   # = the registry learners of the same names
+
+
+def fit_head(ctx, gd, labelled, seed: int, lr_steps=None, eps: float = 0.0, learner: str = "lap3_k10_st4"):
+    """The ``learner`` head (default ``lap3_k10_st4``; with ``eps`` = 0 exactly the registry learner of that name)."""
     view = ctx if lr_steps is None else FixedSchedule(ctx, lr_steps)
     with label_smoothing(eps):
-        return G.fit_mlp_graph(view, labelled, seed, gd, core.identity_features(ctx), gd.x, gd.x.shape[1], lap=LAM, steps_scale=STEPS)
+        return G.fit_mlp_graph(view, labelled, seed, gd, core.identity_features(ctx), gd.x, gd.x.shape[1], **LEARNER_SPECS[learner])
 
 
 class Items:
@@ -110,10 +113,10 @@ def test_arrays(test, geom: dict) -> dict:
     return {"k": test.k.copy(), "sign": test.sign.copy(), "weight": test.weight.copy(), **{f"g_{k}": v.astype(np.float32) for k, v in geom.items()}}
 
 
-def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dict, k_folds: int, anchors) -> dict:
+def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dict, k_folds: int, anchors, learner: str = "lap3_k10_st4") -> dict:
     """Everything stage 2 needs for one label set.  ``comps``: ens (extra full-data heads), ls (tuple of label-smoothing epsilons)."""
     rec = {"n_labelled": len(labelled)}
-    lr_steps = ctx.params_for(labelled); head = fit_head(ctx, gd, labelled, seed0); rec["d"] = logits(head, ctx, test)
+    lr_steps = ctx.params_for(labelled); head = fit_head(ctx, gd, labelled, seed0, learner=learner); rec["d"] = logits(head, ctx, test)
     base_geom = geometry(sim, gd, cache, anchors, test.img1, test.img2, {x for j in labelled for x in (ctx.info[j]["img1"], ctx.info[j]["img2"])}); rec["test"] = test_arrays(test, base_geom)
     # out-of-fold logits of the labelled judgments
     rows = ju_study.rows_of(ctx.exp, labelled); lab_sorted = sorted(set(labelled)); idx = {j: i for i, j in enumerate(lab_sorted)}
@@ -121,14 +124,14 @@ def label_set_record(ctx, gd, sim, cache, test, labelled, seed0: int, comps: dic
            "k": np.array([ctx.info[j]["type_idx"] for j in lab_sorted]), "fold": np.zeros(len(lab_sorted), dtype=int)}
     geoms = {}; rec["d_fold_test"] = []
     for f, held in enumerate(folds_of(labelled, k_folds, seed0)):
-        train = [j for j in lab_sorted if j not in set(held)]; fh = fit_head(ctx, gd, train, seed0 + 17 * (f + 1), lr_steps); items = Items(ctx, held); d = logits(fh, ctx, items)
+        train = [j for j in lab_sorted if j not in set(held)]; fh = fit_head(ctx, gd, train, seed0 + 17 * (f + 1), lr_steps, learner=learner); items = Items(ctx, held); d = logits(fh, ctx, items)
         for j, v in zip(held, d): oof["d"][idx[j]] = v; oof["fold"][idx[j]] = f
         g = geometry(sim, gd, cache, anchors, items.img1, items.img2, {x for j in train for x in (ctx.info[j]["img1"], ctx.info[j]["img2"])})
         for key, v in g.items(): geoms.setdefault(key, np.full(len(lab_sorted), np.nan, dtype=np.float32))[[idx[j] for j in held]] = v
         rec["d_fold_test"].append(logits(fh, ctx, test))
     oof.update({f"g_{k}": v for k, v in geoms.items()}); rec["oof"] = oof
-    if comps.get("ens"): rec["d_ens"] = [logits(fit_head(ctx, gd, labelled, seed0 + 1000 * (e + 1)), ctx, test) for e in range(comps["ens"])]
-    for eps in comps.get("ls", ()): rec[f"d_ls{eps:g}"] = logits(fit_head(ctx, gd, labelled, seed0, eps=eps), ctx, test)
+    if comps.get("ens"): rec["d_ens"] = [logits(fit_head(ctx, gd, labelled, seed0 + 1000 * (e + 1), learner=learner), ctx, test) for e in range(comps["ens"])]
+    for eps in comps.get("ls", ()): rec[f"d_ls{eps:g}"] = logits(fit_head(ctx, gd, labelled, seed0, eps=eps, learner=learner), ctx, test)
     return rec
 
 
@@ -183,6 +186,16 @@ def fit_prior(recs) -> dict:
     out = {}
     for kk, (d, s, w) in pooled.items():
         d, s, w = np.concatenate(d), np.concatenate(s), np.concatenate(w); vals = [_wll(d, s, w, np.exp(lt)) for lt in LOG_T_GRID]; out[kk] = float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
+    return out
+
+
+def fit_prior_test(recs, key: str = "d") -> dict:
+    """Per-type temperature minimising the pooled TEST log-loss of the logits ``rec[key]`` of the given (development) label sets.  Uses labels of held-out judgments: only legitimate as a constant fitted on
+    development seeds (like lambda or the schedule), never at run time; reported separately from the labelled-budget-only calibrators."""
+    out = {}
+    for kk in core.TYPE_NAMES:
+        d = np.concatenate([r[key][r["test"]["k"] == kk] if key == "d" else np.mean([r["d"]] + list(r["d_fold_test"]), axis=0)[r["test"]["k"] == kk] for r in recs]); s = np.concatenate([r["test"]["sign"][r["test"]["k"] == kk] for r in recs]); w = np.concatenate([r["test"]["weight"][r["test"]["k"] == kk] for r in recs])
+        vals = [_wll(d, s, w, np.exp(lt)) for lt in LOG_T_GRID]; out[kk] = float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
     return out
 
 
@@ -282,6 +295,10 @@ def variants(rec: dict, priors: dict | None = None) -> dict:
     if priors and "type" in priors:
         for tau in (2.0, 8.0): out[f"T_typeprior_tau{tau:g}"] = apply_type_t(fit_type_t(oof, tau, priors["type"]), test, d)
         out["T_typeprior_fixed"] = apply_type_t(priors["type"], test, d)
+        if "d_fold_test" in rec: cf = np.mean([d] + list(rec["d_fold_test"]), axis=0); out["CF_typeprior_tau8"] = apply_type_t(fit_type_t(oof, 8.0, priors["type"]), test, cf); out["CF_typeprior_fixed"] = apply_type_t(priors["type"], test, cf)
+    if priors and "type_test" in priors:
+        out["T_typetest_fixed"] = apply_type_t(priors["type_test"], test, d)
+        if "d_fold_test" in rec and "type_test_cf" in priors: out["CF_typetest_fixed"] = apply_type_t(priors["type_test_cf"], test, np.mean([d] + list(rec["d_fold_test"]), axis=0))
     for key in ("lab_min", "anc_min", "dens_max"): out[f"T_conf_{key}"] = apply_conf_t(fit_conf_t(oof, key), test, d, key)
     out["shrink_far"] = apply_shrink_far(fit_shrink_far(oof), test, d)
     out["Davidson"] = apply_davidson(fit_davidson(oof), test, d)

@@ -16,7 +16,7 @@ def seeds_of(text):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--seeds", required=True); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1")
     ap.add_argument("--draws", type=int, default=1); ap.add_argument("--draw0", type=int, default=0); ap.add_argument("--budgets", default="10,20,40,60"); ap.add_argument("--folds", type=int, default=5); ap.add_argument("--ens", type=int, default=0)
-    ap.add_argument("--ls", default=""); args = ap.parse_args(); torch.set_num_threads(1)
+    ap.add_argument("--ls", default=""); ap.add_argument("--learner", default="lap3_k10_st4"); args = ap.parse_args(); torch.set_num_threads(1)
     comps = {"ens": args.ens, "ls": tuple(float(x) for x in args.ls.split(",") if x)}; budgets = [int(b) for b in args.budgets.split(",")]; shard, n = (int(x) for x in args.shard.split("/")); args.out.mkdir(parents=True, exist_ok=True)
     cache = core.feature_cache(); sim = rt.Sim(cache)
     with tempfile.TemporaryDirectory() as scratch:
@@ -27,8 +27,8 @@ def main():
                 t0 = time.monotonic(); ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); gd = G.graph_for(ctx, C.K_GRAPH, False); anchors = C.anchor_paths(ctx); recs = {}
                 for budget in budgets:
                     for draw in range(args.draw0, args.draw0 + args.draws):
-                        labelled = core.random_labelled(ctx, budget, draw); recs[(budget, draw)] = C.label_set_record(ctx, gd, sim, cache, test, labelled, seed * 7 + draw, comps, args.folds, anchors)
-                C.save_cell(target, {"seed": seed, "split": split, "comps": comps, "folds": args.folds, "recs": recs}); print(f"seed {seed} split {split}: {time.monotonic() - t0:.0f}s", flush=True)
+                        labelled = core.random_labelled(ctx, budget, draw); recs[(budget, draw)] = C.label_set_record(ctx, gd, sim, cache, test, labelled, seed * 7 + draw, comps, args.folds, anchors, args.learner)
+                C.save_cell(target, {"learner": args.learner, "seed": seed, "split": split, "comps": comps, "folds": args.folds, "recs": recs}); print(f"seed {seed} split {split}: {time.monotonic() - t0:.0f}s", flush=True)
 
 
 if __name__ == "__main__": main()

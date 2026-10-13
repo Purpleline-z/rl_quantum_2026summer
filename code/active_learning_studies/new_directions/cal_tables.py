@@ -23,7 +23,9 @@ def frame(cells, variant_fn=C.variants, priors="loo") -> tuple[pd.DataFrame, dic
     rows, bins = [], {}
     for cell in cells:
         pri = priors
-        if priors == "loo": pri = {"type": C.fit_prior([r for c in cells if c["seed"] != cell["seed"] for r in c["recs"].values()])} if len({c["seed"] for c in cells}) > 1 else None
+        if priors == "loo":
+            others = [r for c in cells if c["seed"] != cell["seed"] for r in c["recs"].values()]
+            pri = {"type": C.fit_prior(others), "type_test": C.fit_prior_test(others), "type_test_cf": C.fit_prior_test(others, "cf")} if len({c["seed"] for c in cells}) > 1 else None
         for (budget, draw), rec in cell["recs"].items():
             rec = dict(rec); rec["budget_key"] = budget
             for name, d in variant_fn(rec, pri).items():

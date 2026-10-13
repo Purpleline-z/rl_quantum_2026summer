@@ -76,3 +76,19 @@ def test_stage1_head_equals_the_registry_learner_and_uses_no_test_label(ctx_a):
     d = C.logits(C.fit_head(ctx_a, gd, lab, 5), ctx_a, test); ref = G.LEARNERS["lap3_k10_st4"](ctx_a, lab, 5)(test); assert np.allclose(d, ref, atol=1e-6)
     held = {x for g in list(ctx_a.validation) + list(ctx_a.test) for r in ctx_a.exp.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}
     assert not held & {x for j in lab for x in (ctx_a.info[j]["img1"], ctx_a.info[j]["img2"])}
+
+
+@pytestmark_cache
+def test_baseline_learner_specs_equal_the_registry_learners(ctx_a):
+    import nd_graph_learner as G
+    test = core.TestSet(ctx_a); lab = core.random_labelled(ctx_a, 10, 0); gd = G.graph_for(ctx_a, 10, False)
+    for name in ("aw8_all_st2lr0.5", "lap3_k10"):
+        d = C.logits(C.fit_head(ctx_a, gd, lab, 5, learner=name), ctx_a, test); assert np.allclose(d, G.LEARNERS[name](ctx_a, lab, 5)(test), atol=1e-6), name
+
+
+def test_calibrated_variants_never_read_the_test_labels():
+    rng = np.random.default_rng(5); n = 40; oof = synthetic_oof(n=150, seed=2); oof["g_lab_min"] = rng.random(150) * .05
+    test = {"k": rng.choice([0, 2, 3, 4], n), "sign": np.where(rng.random(n) < .5, 1.0, -1.0), "weight": np.ones(n), "g_anc_min": rng.random(n) * .05, "g_lab_min": rng.random(n) * .05, "g_dens_max": rng.random(n) * .05}
+    rec = {"oof": oof, "test": test, "d": rng.normal(0, 2, n), "d_fold_test": [rng.normal(0, 2, n) for _ in range(3)]}; pri = {"type": {0: 1.1, 2: .7, 3: .4, 4: .7}}
+    a = C.variants(rec, pri); rec2 = dict(rec); rec2["test"] = {**test, "sign": -test["sign"], "weight": test["weight"] * 3}; b = C.variants(rec2, pri)
+    assert set(a) == set(b) and all(np.array_equal(a[k], b[k]) for k in a)
