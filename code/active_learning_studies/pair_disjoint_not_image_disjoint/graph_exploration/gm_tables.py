@@ -85,7 +85,7 @@ if __name__ == "__main__":
     elif mode == "dosetest":   # pre-registered dose-response tests: SPEC json {"lambdas": [10], "metrics": ["auc","acc"], "splits": ["A","B"], "seeds": "8100-8134"}; Holm over the family
         spec = json.loads(Path(sys.argv[2]).read_text()); frame = gt.load([a for a in sys.argv[3:] if not a.startswith("--")]); lo, hi = spec["seeds"].split("-"); seeds = set(range(int(lo), int(hi) + 1))
         d, r = dose_table(frame, seeds); r = r[r["lambda"].isin(spec["lambdas"]) & r.metric.isin(spec["metrics"]) & r.split.isin(spec["splits"])].copy()
-        r["holm"] = c.holm(r.p_wilcoxon.values); r["positive_and_sig"] = (r.mean_spearman > 0) & (r.holm < 0.05); print(gt.to_md(r)); print(); print(f"dose-response claim (>= {spec['min_sig']} of {len(r)} tests positive and Holm < .05): {'CONFIRMED' if int(r.positive_and_sig.sum()) >= spec['min_sig'] else 'NOT confirmed'}")
+        r["holm"] = c.holm(r.p_wilcoxon.values); r["positive_and_sig"] = (r.mean_spearman > 0) & (r.holm < 0.05); print(gt.to_md(r)); print(); print("exploratory family, no verdict" if spec["min_sig"] >= 99 else f"dose-response claim (>= {spec['min_sig']} of {len(r)} tests positive and Holm < .05): {'CONFIRMED' if int(r.positive_and_sig.sum()) >= spec['min_sig'] else 'NOT confirmed'}")
         print(); print(gt.to_md(d[d.metric.isin(spec["metrics"]) & d["lambda"].isin(spec["lambdas"])]))
     elif mode == "confirm":   # pre-registered tests of PREREGISTRATION_GM1 (spec: reference, candidates {name: {shuf, noise}}, nongraph, aw8)
         spec = json.loads(Path(sys.argv[2]).read_text()); frame = gt.load([a for a in sys.argv[3:] if not a.startswith("--")]); ref, aw8, ng = spec["reference"], spec["aw8"], spec["nongraph"]; T = []
