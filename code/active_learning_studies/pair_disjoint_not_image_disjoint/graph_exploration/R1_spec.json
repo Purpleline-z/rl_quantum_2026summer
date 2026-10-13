@@ -1,0 +1,26 @@
+{
+ "reference": "lap3_k10_st4",
+ "graphfree": "aw8_all_st2lr0.5",
+ "splits": [
+  "A",
+  "B"
+ ],
+ "candidates": {
+  "rp_gs4_his": {
+   "shuf": "rp_gs4_his_shuf",
+   "cap": "rp_cap"
+  },
+  "rp_i4": {
+   "shuf": "rp_i4_shuf",
+   "cap": "rp_cap"
+  },
+  "rp_s3": {
+   "shuf": "rp_s3_shuf",
+   "cap": "rp_cap"
+  },
+  "rp_mc": {
+   "shuf": "rp_mc_shuf",
+   "cap": "rp_cap"
+  }
+ }
+}
