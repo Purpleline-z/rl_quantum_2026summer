@@ -128,7 +128,7 @@ def strata_gain(dfd: pd.DataFrame, cand: str, ref: str, split: str, lo: float, h
     return pd.Series({k: float(np.mean(v)) for k, v in out.items()})
 
 
-def strata_table(dfd: pd.DataFrame, ref: str, learners=None, bins=((-1, 0.001, "near (<=0.001)"), (0.001, FAR, "0.001-0.03"), (FAR, 9, "far (>0.03)"))) -> pd.DataFrame:
+def strata_table(dfd: pd.DataFrame, ref: str, learners=None, bins=((-1, 0.001, "near (<=0.001)"), (0.001, FAR, "0.001-0.03"), (FAR, 9, "far (>0.03)"), (0.01, 9, "far (>0.01, RT1 threshold)"))) -> pd.DataFrame:
     learners = [l for l in sorted(dfd.learner.unique()) if l != ref] if learners is None else learners; rows = []
     for l in learners:
         for split in ("A", "B"):
