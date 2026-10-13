@@ -24,8 +24,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import nd_core as core   # first: puts the study directories on sys.path
 import judgment_unit_study as ju_study
-import nd_core as core
 import nd_graph_learner as G
 
 ACTIVE = G.ACTIVE
@@ -147,3 +147,22 @@ VARIANTS: dict[str, Spec] = {
     "rc_base": BASE,
 }
 LEARNERS = {name: recipe_learner(spec) for name, spec in VARIANTS.items()}
+
+
+def combine(*names: str) -> Spec:
+    """Spec that applies every switch of the named single variants (``rc_x``) at once; two variants that change the same field are a conflict."""
+    from dataclasses import fields
+    out = {}
+    for n in names:
+        for f in fields(Spec):
+            v, b = getattr(VARIANTS[n], f.name), getattr(BASE, f.name)
+            if v != b:
+                assert f.name not in out, f"conflicting switches for {f.name}: {names}"; out[f.name] = v
+    return replace(BASE, **out)
+
+
+def resolve(name: str):
+    """Registry lookup; ``rcx_<a>+<b>`` (e.g. ``rcx_rc_d2+rc_rk``) is the combination of two or more single variants."""
+    if name in LEARNERS: return LEARNERS[name]
+    if name.startswith("rcx_"): return recipe_learner(combine(*name[4:].split("+")))
+    raise KeyError(name)

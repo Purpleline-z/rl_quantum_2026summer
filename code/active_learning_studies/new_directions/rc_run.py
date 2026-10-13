@@ -27,8 +27,13 @@ import rt_core as rt
 FAR = 0.03
 
 
+class _Registry(dict):
+    """Plain learners plus on-the-fly combinations ``rcx_<a>+<b>``."""
+    def __missing__(self, name): return R.resolve(name)
+
+
 def registry() -> dict:
-    out = dict(G.LEARNERS); out.update(R.LEARNERS); out["lap3_k10_st4"] = G.LEARNERS["lap3_k10_st4"]; return out
+    out = _Registry(G.LEARNERS); out.update(R.LEARNERS); return out
 
 
 def parse_seeds(text: str):
