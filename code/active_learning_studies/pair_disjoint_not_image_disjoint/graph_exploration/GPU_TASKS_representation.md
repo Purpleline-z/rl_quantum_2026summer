@@ -1,0 +1,9 @@
+# GPU / user tasks left by the representation study
+
+Everything here used the frozen SimCLR ResNet-18 encoder, the cached ImageNet-ResNet-18 feature table and the MLP head on CPU. Not done, and needing a GPU, network access or the user:
+
+1. **Other frozen encoders.** HuggingFace, torch hub and download.pytorch.org answered HTTP 403 in this environment, so no DINOv2 / CLIP / MAE / larger ResNet could be tried. With network access, extract features of the 1278 images with 2–3 such encoders (and a multi-layer concatenation) and rerun the identical protocol (`nd_representation.py` accepts any `path -> tensor` table; add it in `_blocks`/`raw_rep`, keep the norm-matching rule). The development screen suggests the SimCLR final feature is hard to beat by the encoders available here, but a stronger encoder is a different question.
+2. **Fine-tuning the encoder on unlabelled growth images** (SimCLR continued on all 1278 images with the same augmentations, or a different augmentation set tuned to RHEED streaks). The only representation variable not allowed here (no fine-tuning). Evaluate by the unchanged endpoint (pair-group AUC/accuracy, splits A and B, identical label sets).
+3. **Re-tune the head schedule per representation** (learning rate, steps, weight decay, Laplacian weight) on the development seeds, then freeze and confirm. Here the schedule of `lap3_k10_st4` was kept; a development check of lr x0.5 / x2 on 4 seeds per split showed ≤ ±0.005 AUC.
+4. **Augmentation at training time** (feature-level views were averaged; training the head with view-sampled features, i.e. one random view per step, was not tried).
+5. **User decision**: nothing in this study changes the recommended learner (`lap3_k10_st4` on the SimCLR final feature) unless the confirmation table in `RESULTS_representation.md` says otherwise; `code/ACADEMIC_REPORT_DRAFT.md` was not touched.

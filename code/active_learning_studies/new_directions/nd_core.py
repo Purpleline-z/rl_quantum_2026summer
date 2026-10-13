@@ -215,3 +215,8 @@ assert not (set(GE_CONFIRM1) | set(GE_CONFIRM2)) & (USED_SEEDS_BY_EARLIER_WORK |
 assert not set(GE_DEV_SEEDS) & USED_SEEDS_BY_EARLIER_WORK, "dev seeds must be unused on this branch"
 assert not set(GE_CONFIRM1) & set(GE_CONFIRM2) and len(GE_DEV_SEEDS) == 20 and len(GE_CONFIRM1) == len(GE_CONFIRM2) == 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GE_SEEDS_ALL
+# --- representation study (claude/representation-*): own seed blocks (development 8600-8619, confirmation 1 = 8650-8684); 8000-8199, 8400-8599 and the rest of 8600-8999 belong to parallel sessions
+RP_DEV_SEEDS = tuple(range(8600, 8620)); RP_CONFIRM1 = tuple(range(8650, 8685)); RP_SEEDS_ALL = set(RP_DEV_SEEDS) | set(RP_CONFIRM1)
+assert len(RP_SEEDS_ALL) == 55 and not RP_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not RP_SEEDS_ALL & set(range(7000, 7336)) and not RP_SEEDS_ALL & set(range(8000, 8600)) and not set(RP_DEV_SEEDS) & set(RP_CONFIRM1)
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RP_SEEDS_ALL   # representation blocks (8600-8619, 8650-8684)
+
