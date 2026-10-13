@@ -20,6 +20,7 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 
 import nd_core as core
 import nd_graph_learner as gl
+import ge_heads as gh
 
 CLASSES = ("(1 x 1)", "c(6 x 2)", "(√13 x √13)", "HTR")          # order of the baseline branch
 C_GRID = (0.01, 0.1, 1.0, 10.0, 100.0)
@@ -63,6 +64,11 @@ def build_graph(ctx, k: int = 10, transductive: bool = False, shuffle: bool = Fa
     if label_sources == "references":
         gd.source_class = {gd.index[str(p)]: core.frozen.TYPE_TO_INDEX[c] for c, ps in ctx.exp.references.items() for p in ps if str(p) in gd.index}; gd._q = None
     return gd
+
+
+def build_graph_ideal(ctx, k: int = 10, transductive: bool = False, shuffle: bool = False):
+    """Graph over the IDEAL images only (no trajectory frames): unlabelled ideal images (utility-validation; plus the outer-test images iff transductive) are the only unlabelled nodes."""
+    return gh.make_graph(ctx, k, shuffle=shuffle, keep=lambda ps: [p for p in ps if "Trajectories" not in p], transductive_test_ideals=transductive, label_sources="references")
 
 
 def class_scores_from_q(gd, q: torch.Tensor, test_paths, transductive: bool, cache) -> np.ndarray:
