@@ -1,0 +1,122 @@
+"""Tables of the temporal-graph study, generated from the result JSONs (nothing typed by hand).
+
+  python3 tg_tables.py dev DIR [--base=lap3_k10_st4] [--metrics=auc,acc,far_auc,far_acc,ll] [--splits=A,B] [--learners=a,b]   paired gains of every learner over the baseline, per split
+  python3 tg_tables.py confirm SPEC.json DIR [BLOCKED_DIR]                                                                   frozen test family: Holm over candidates x splits x {auc, acc}; verdicts; secondary endpoints
+  python3 tg_tables.py budget DIR --cand=NAME [--base=...]                                                                    gain by budget
+  python3 tg_tables.py edges DIR                                                                                              sizes of the edge sets (mean over cells)
+
+Gain = candidate - reference for auc / acc / far_* / near_* / inb_* ; reference - candidate for ll (positive = better).  Per-seed mean over (budget, draw) first, then Wilcoxon signed-rank over seeds (two-sided) and a
+paired-bootstrap 95 % interval over seeds.  Holm is applied over the family stated in the spec.
+"""
+import glob
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from scipy.stats import wilcoxon
+
+SIGN = {"ll": -1, "far_ll": -1, "near_ll": -1, "inb_ll": -1, "htr_ll": -1}
+
+
+def load(d) -> pd.DataFrame:
+    """All records of the fullest cells: a (seed, split) file counts only if it holds as many records as the fullest file of the directory (cells are written after every budget)."""
+    files = sorted(glob.glob(str(Path(d) / "seed*.json"))); data = {f: json.loads(Path(f).read_text()) for f in files}
+    if not data: return pd.DataFrame()
+    full = max(len(v) for v in data.values()); rows = [r for f, v in data.items() if len(v) >= full for r in v]; return pd.DataFrame(rows)
+
+
+def per_seed_gain(df, cand, ref, metric, split) -> pd.Series:
+    g = df[df.split == split]; a = g[g.learner == cand].set_index(["seed", "budget", "draw"]); b = g[g.learner == ref].set_index(["seed", "budget", "draw"]); common = a.index.intersection(b.index)
+    if not len(common) or metric not in a: return pd.Series(dtype=float)
+    return (SIGN.get(metric, 1) * (a.loc[common, metric] - b.loc[common, metric])).groupby(level=0).mean().dropna()
+
+
+def summarize(per: pd.Series) -> dict:
+    if len(per) < 2: return {"gain": float("nan"), "lo": float("nan"), "hi": float("nan"), "share+": float("nan"), "p": float("nan"), "n": len(per)}
+    bs = np.random.default_rng(0).choice(per.to_numpy(), (2000, len(per))).mean(1)
+    try: p = float(wilcoxon(per).pvalue)
+    except ValueError: p = 1.0
+    return {"gain": float(per.mean()), "lo": float(np.percentile(bs, 2.5)), "hi": float(np.percentile(bs, 97.5)), "share+": float((per > 0).mean()), "p": p, "n": len(per)}
+
+
+def holm(ps: dict) -> dict:
+    """Holm step-down adjusted p-values for a dict key -> p."""
+    keys = sorted(ps, key=lambda k: ps[k]); m = len(keys); adj = {}; run = 0.0
+    for i, k in enumerate(keys): run = max(run, min(1.0, (m - i) * ps[k])); adj[k] = run
+    return adj
+
+
+def md(df: pd.DataFrame, fmt="{:+.4f}") -> str:
+    cols = list(df.columns); out = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
+    for _, r in df.iterrows(): out.append("| " + " | ".join("" if (isinstance(v, float) and np.isnan(v)) else (fmt.format(v) if isinstance(v, float) else str(v)) for v in r) + " |")
+    return "\n".join(out)
+
+
+def dev_table(df, base, metrics, splits, learners=None) -> pd.DataFrame:
+    rows = []
+    for name in (learners or sorted(set(df.learner) - {base})):
+        for split in splits:
+            row = {"learner": name, "split": split}; n = 0
+            for m in metrics:
+                s = summarize(per_seed_gain(df, name, base, m, split)); row[m] = s["gain"]; row[m + "_p"] = s["p"]; n = max(n, s["n"])
+            row["n"] = n; rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def confirm(spec, df, blocked=None):
+    base = spec["baseline"]; splits = spec.get("splits", ["A", "B"]); metrics = spec.get("metrics", ["auc", "acc"]); cands = spec["candidates"]; out = []
+    tests = {(c["name"], s, m): summarize(per_seed_gain(df, c["name"], base, m, s)) for c in cands for s in splits for m in metrics}
+    adj = holm({k: v["p"] for k, v in tests.items()})
+    out.append(f"#### Main family: candidate - `{base}` (Holm over {len(tests)} tests = {len(cands)} candidates x {len(splits)} splits x {len(metrics)} metrics)\n")
+    rows = [{"candidate": k[0], "split": k[1], "metric": k[2], "gain": v["gain"], "CI95": f"[{v['lo']:+.4f}, {v['hi']:+.4f}]", "share_seeds+": v["share+"], "p": v["p"], "p_holm": adj[k], "n_seeds": v["n"]} for k, v in tests.items()]
+    out.append(md(pd.DataFrame(rows), "{:+.4f}").replace("+0.0000", "0")); verdicts = []
+    for c in cands:
+        name = c["name"]; mine = {k: v for k, v in tests.items() if k[0] == name}; pos = all(v["gain"] > 0 for v in mine.values()); nsig = sum(adj[k] < 0.05 for k in mine)
+        ctrl_rows = []
+        for ctrl in [x for x in (c.get("control"), c.get("control2")) if x]:
+            cs = {(s, m): summarize(per_seed_gain(df, name, ctrl, m, s)) for s in splits for m in metrics}; ctrl_rows += [{"candidate": name, "control": ctrl, "split": s, "metric": m, "cand - control": v["gain"], "p (uncorrected)": v["p"]} for (s, m), v in cs.items()]
+        beats = ctrl_rows and any(r["cand - control"] > 0 and r["p (uncorrected)"] < 0.05 for r in ctrl_rows if r["control"] == c.get("control"))
+        verdicts.append({"candidate": name, "all 4 gains > 0": pos, "Holm-significant (of 4)": nsig, "beats shuffled control (>0 and p<.05 in >=1 cell)": bool(beats), "SUCCESS": bool(pos and nsig >= 3 and beats)})
+        out.append(f"\n#### Controls of `{name}` (uncorrected)\n"); out.append(md(pd.DataFrame(ctrl_rows)))
+    out.append("\n#### Verdicts (success rule: all four gains positive, >= 3 Holm-significant, better than the shuffled-time control)\n"); out.append(md(pd.DataFrame(verdicts)))
+    sec = spec.get("secondary_metrics", ["far_auc", "far_acc", "near_auc", "near_acc", "ll", "htr_acc"])
+    rows = []
+    for c in cands:
+        for s in splits:
+            row = {"candidate": c["name"], "split": s}
+            for m in sec: sm = summarize(per_seed_gain(df, c["name"], base, m, s)); row[m] = sm["gain"]; row[m + "_p"] = sm["p"]
+            rows.append(row)
+    out.append("\n#### Secondary endpoints (anchor-far = both test images > 0.03 from every typed anchor; anchor-near = complement; uncorrected p)\n"); out.append(md(pd.DataFrame(rows)))
+    if blocked is not None and len(blocked):
+        rows = []
+        for c in cands:
+            row = {"candidate": c["name"], "split": "blocked"}
+            for m in spec.get("blocked_metrics", ["auc", "acc", "far_auc", "far_acc", "inb_auc", "inb_acc", "ll"]):
+                sm = summarize(per_seed_gain(blocked, c["name"], base, m, "blocked")); row[m] = sm["gain"]; row[m + "_p"] = sm["p"]
+            row["n"] = int(blocked[blocked.learner == c["name"]].seed.nunique()); rows.append(row)
+        out.append("\n#### Secondary: red-team time-blocked split (one context per seed; `inb_*` = test judgments with both images inside a held-out block; uncorrected p)\n"); out.append(md(pd.DataFrame(rows)))
+    return "\n".join(out)
+
+
+def budget_table(df, cand, base, metrics=("auc", "acc", "far_auc", "far_acc")) -> pd.DataFrame:
+    rows = []
+    for split in sorted(set(df.split)):
+        for b in sorted(set(df.budget)):
+            sub = df[df.budget == b]; row = {"split": split, "budget": b}
+            for m in metrics: row[m] = summarize(per_seed_gain(sub, cand, base, m, split))["gain"]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+if __name__ == "__main__":
+    mode = sys.argv[1]; opts = dict(a[2:].split("=", 1) for a in sys.argv[2:] if a.startswith("--") and "=" in a); args = [a for a in sys.argv[2:] if not a.startswith("--")]
+    if mode == "dev":
+        df = load(args[0]); t = dev_table(df, opts.get("base", "lap3_k10_st4"), opts.get("metrics", "auc,acc,far_auc,far_acc,ll").split(","), opts.get("splits", "A,B").split(","), opts["learners"].split(",") if "learners" in opts else None); print(md(t))
+    elif mode == "confirm":
+        spec = json.loads(Path(args[0]).read_text()); df = load(args[1]); blocked = load(args[2]) if len(args) > 2 else None; print(confirm(spec, df, blocked))
+    elif mode == "budget":
+        df = load(args[0]); print(md(budget_table(df, opts["cand"], opts.get("base", "lap3_k10_st4"))))
+    elif mode == "edges":
+        df = load(args[0]); print(md(df[df.learner.str.startswith("tg_")].groupby(["learner", "split"])[["n_knn", "n_temporal"]].mean().reset_index(), "{:.0f}"))

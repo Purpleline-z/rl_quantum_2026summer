@@ -7,6 +7,7 @@
 One JSON list per (seed, split); resumable per (budget, draw, learner).  Record = nd_core.metrics_from_d (standard endpoint) plus
   far_*  : the same metrics on the test judgments whose images are BOTH more than FAR (0.03) cosine distance from every typed ideal-image anchor ("anchor-far" endpoint, rt_a1b.py definition)
   near_* : the complement (at least one image within 0.03 of an anchor)
+  inb_*  : (blocked split only) judgments whose two images are both inside a held-out time block
   n_knn / n_temporal : sizes of the edge sets of the learner in this context.
 """
 from __future__ import annotations
@@ -46,13 +47,21 @@ def anchor_distance(sim: rt.Sim, ctx, test) -> np.ndarray:
     return np.minimum(1 - sim.max_sim(list(test.img1), anchors), 1 - sim.max_sim(list(test.img2), anchors))
 
 
+def in_block_mask(ctx, test, block: int = 100) -> np.ndarray:
+    """Blocked split only: test judgments whose BOTH images lie inside a held-out time block (the 25-frame buffer then holds for both; the partner image of a cross-block group lies outside the blocks,
+    so its temporal / feature neighbours stay in training and in the graph)."""
+    blocks = {tuple(b) for b in ctx.blocked["test_blocks"]}; inside = lambda p: rt.run_of(p) is not None and (rt.run_of(p), rt.frame_of(p) // block) in blocks
+    return np.array([inside(a) and inside(b) for a, b in zip(test.img1, test.img2)], dtype=bool)
+
+
 def subset(test, mask):
     return types.SimpleNamespace(sign=test.sign[mask], weight=test.weight[mask], k=test.k[mask])
 
 
-def stratum_metrics(d, test, far_mask) -> dict:
+def stratum_metrics(d, test, far_mask, inb_mask=None) -> dict:
     out = {}
-    for tag, m in (("far", far_mask), ("near", ~far_mask)):
+    strata = [("far", far_mask), ("near", ~far_mask)] + ([("inb", inb_mask)] if inb_mask is not None else [])
+    for tag, m in strata:
         if m.sum() >= 2:
             mm = core.metrics_from_d(d[m], subset(test, m)); out.update({f"{tag}_auc": mm["auc"], f"{tag}_acc": mm["acc"], f"{tag}_ll": mm["ll"]})
         else: out.update({f"{tag}_auc": float("nan"), f"{tag}_acc": float("nan"), f"{tag}_ll": float("nan")})
@@ -75,15 +84,15 @@ def main() -> None:
                 if all((b, d, n) in have for b in budgets for d in range(args.draws) for n in names): continue
                 started = time.monotonic()
                 ctx = rb.make_blocked_ctx(seed, scratch, cache, args.block, args.buffer) if split == "blocked" else core.make_ctx(seed, split, scratch, cache)
-                test = core.TestSet(ctx); far = anchor_distance(sim, ctx, test) > FAR; extra = {"n_test": int(len(test.k)), "far_share": float(far.mean())}
-                if split == "blocked": extra.update({k: v for k, v in ctx.blocked.items() if k != "test_blocks"})
+                test = core.TestSet(ctx); far = anchor_distance(sim, ctx, test) > FAR; inb = in_block_mask(ctx, test, args.block) if split == "blocked" else None; extra = {"n_test": int(len(test.k)), "far_share": float(far.mean())}
+                if split == "blocked": extra.update({k: v for k, v in ctx.blocked.items() if k != "test_blocks"}); extra["inb_share"] = float(inb.mean())
                 for budget in budgets:
                     for draw in range(args.draws):
                         labelled = core.random_labelled(ctx, budget, draw)
                         for name in names:
                             if (budget, draw, name) in have: continue
                             d = np.asarray(fns[name](ctx, labelled, seed * 7 + draw)(test), dtype=float)
-                            rec = {"seed": seed, "split": split, "budget": budget, "draw": draw, "learner": name, **core.metrics_from_d(d, test), **stratum_metrics(d, test, far), **extra}
+                            rec = {"seed": seed, "split": split, "budget": budget, "draw": draw, "learner": name, **core.metrics_from_d(d, test), **stratum_metrics(d, test, far, inb), **extra}
                             if name in T.SPEC_OF: rec.update(T.edge_counts(ctx, name))
                             done.append(rec)
                     target.write_text(json.dumps(done))
