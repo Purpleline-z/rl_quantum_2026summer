@@ -179,6 +179,9 @@ def exploratory_tables(bootstrap: bool = True) -> str:
             if b: out += "Test-group bootstrap of the lap3 − aw8_all gain: " + "; ".join(f"{m}: {b[m][0]:+.3f} [{b[m][1]:+.3f}, {b[m][2]:+.3f}]" for m in ("auc", "acc")) + f" ({b['n_groups']} test groups, {b['n_judgments']} judgments)\n\n"
     if (R / "dev_ridge").exists() and list((R / "dev_ridge").glob("seed*_*.json")):
         f = ga.load(R / "dev_ridge", "seed*_*.json"); out += "### Generic score shrinkage without a graph (ridge1/ridge3 = shrink random nodes' scores towards 0) vs lap3 vs shuffled graph on the three harsh split kinds, minus aw8_all (dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
+    if (R / "dev_cut").exists() and list((R / "dev_cut").glob("seed*.json")):
+        f = ga.load(R / "dev_cut"); c = f[f.endpoint == "class"]; p = f[f.endpoint == "pref"]
+        out += "### Class-aware edge cutting (lap3_cut: kNN edges between labelled ideal images of different classes removed) vs the full graph (dev seeds): classification accuracy (minus aw8_ref) and preference endpoint (minus aw8_all)\n\n" + ga.md(ga.arm_gains(c, ["endpoint"], "arm", "aw8_ref", metrics=("acc",))) + "\n" + ga.md(ga.arm_gains(p, ["split"], "arm", "aw8_all")) + "\n"
     if (R / "dev_k").exists() and list((R / "dev_k").glob("seed*_*.json")):
         f = ga.load(R / "dev_k", "seed*_*.json"); out += "### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
     import ge_htr

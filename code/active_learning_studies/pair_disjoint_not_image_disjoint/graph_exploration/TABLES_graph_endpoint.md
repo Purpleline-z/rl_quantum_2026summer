@@ -520,6 +520,24 @@ Test-group bootstrap of the lap3 − aw8_all gain: auc: +0.013 [-0.024, +0.063];
 | temp | ridge3 | auc | 20 | -0.098 | 0.000 | 1.91e-06 |
 | temp | ridge3 | acc | 20 | -0.117 | 0.000 | 8.84e-05 |
 
+### Class-aware edge cutting (lap3_cut: kNN edges between labelled ideal images of different classes removed) vs the full graph (dev seeds): classification accuracy (minus aw8_ref) and preference endpoint (minus aw8_all)
+
+| endpoint | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| class | lap3_cut | acc | 20 | -0.007 | 0.300 | 0.673 |
+| class | lap3_full | acc | 20 | -0.027 | 0.300 | 0.044 |
+
+| split | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| A | lap3_cut | auc | 20 | +0.008 | 0.850 | 0.004 |
+| A | lap3_cut | acc | 20 | +0.002 | 0.500 | 0.472 |
+| A | lap3_full | auc | 20 | +0.011 | 0.900 | 0.001 |
+| A | lap3_full | acc | 20 | +0.004 | 0.600 | 0.380 |
+| B | lap3_cut | auc | 20 | +0.007 | 0.750 | 0.004 |
+| B | lap3_cut | acc | 20 | +0.007 | 0.550 | 0.112 |
+| B | lap3_full | auc | 20 | +0.011 | 0.850 | 4.83e-04 |
+| B | lap3_full | acc | 20 | +0.015 | 0.650 | 0.013 |
+
 ### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all
 
 | kind | arm | metric | n_seeds | gain | share_better | p |

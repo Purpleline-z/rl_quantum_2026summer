@@ -34,6 +34,11 @@ def fit_head(ctx, labelled, seed, gd, featfn, node_x, dim, lap: float = 0.0, aw:
     return head.eval()
 
 
+def cut_cross_class_edges(gd):
+    """Drop the kNN edges whose two endpoints are both labelled ideal images of DIFFERENT classes (known labels; no test information).  Edits ``gd.edges`` in place (used by the Laplacian term) and returns gd."""
+    src = gd.source_class; e = gd.edges.numpy(); keep = np.array([not (a in src and b in src and src[a] != src[b]) for a, b in e]); gd.edges = gd.edges[torch.as_tensor(keep)]; gd.n_edges = len(gd.edges); return gd
+
+
 def winrate_vectors(ctx, head, paths) -> np.ndarray:
     """(n, 4) win-rate of each image against the references of the other classes for each candidate class, in CLASSES order -- the rule of ``frozen.evaluate_model``."""
     from ge_classify import CLASSES
