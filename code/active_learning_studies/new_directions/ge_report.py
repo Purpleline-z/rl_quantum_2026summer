@@ -1,0 +1,152 @@
+"""Generated tables and verdicts for the graph-endpoint study (PREREGISTRATION_GE1).  python3 ge_report.py --out TABLES.md [--template T --doc D]."""
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+
+import ge_analyze as ga
+
+R = ga.R
+CAND_K = [("laplr", "inductive", -1), ("laplr", "transductive", -1), ("sgc", "inductive", -1), ("sgc", "transductive", -1), ("lap3_ref", "inductive", 60)]
+REFS = {"nn": ("nn", "none", -1), "logreg": ("logreg", "none", -1)}
+label = lambda k: f"{k[0]} ({k[1]}{', ' + str(k[2]) + ' judgments' if k[2] > 0 else ''})"
+
+
+# ------------------------------------------------------------------------------------------ (a) classification
+def class_family(frame: pd.DataFrame, ref_key) -> pd.DataFrame:
+    per = frame.groupby(["seed", "method", "protocol", "budget"], as_index=False).acc.mean(); get = lambda k: per[(per.method == k[0]) & (per.protocol == k[1]) & (per.budget == k[2])].set_index("seed").acc
+    base = get(ref_key); rows = []
+    for k in CAND_K:
+        a = get(k); d = (a - base).dropna(); rows.append({"method": label(k), "n_seeds": len(d), "acc": float(a.mean()), "ref_acc": float(base.mean()), "diff": float(d.mean()), "better": int((d > 0).sum()), "worse": int((d < 0).sum()), "sd_diff": float(d.std(ddof=1)), "mde80": float(2.8 * d.std(ddof=1) / np.sqrt(len(d))), "p": ga.wil(d)})
+    t = pd.DataFrame(rows); hp = ga.holm(dict(enumerate(t.p))); t["holm"] = [hp[i] for i in range(len(t))]; return t
+
+
+def class_controls(frame: pd.DataFrame) -> pd.DataFrame:
+    pairs = [(("lap3_ref", "inductive", 60), ("aw8_ref", "none", 60), "lap3_ref - aw8_ref (graph vs non-graph head)"), (("lap3_ref", "inductive", 60), ("lap3_ref_shuf", "inductive", 60), "lap3_ref - shuffled graph"),
+             (("laplr", "inductive", -1), ("laplr_shuf", "inductive", -1), "laplr - shuffled graph"), (("laplr", "inductive", -1), REFS["logreg"], "laplr - logreg (gamma=0 limit)"), (("sgc", "transductive", -1), ("sgc", "inductive", -1), "sgc transductive - inductive")]
+    rows = []
+    for a, b, name in pairs:
+        r = ga.class_vs(frame, a, b); rows.append({"comparison": name, "n_seeds": r["n"], "diff": r["diff"], "p_uncorrected": r["p"]})
+    return pd.DataFrame(rows)
+
+
+def class_block(name: str, title: str):
+    path = R / f"{name}_class"
+    if not path.exists() or not list(path.glob("seed*.json")): return f"### {title}\n\n(not run yet)\n\n", None
+    f = ga.load(path); k1 = class_family(f, REFS["nn"]); k2 = class_family(f, REFS["logreg"]); refs = f[f.budget == -1].groupby("method").acc.mean()
+    text = f"### {title}\n\nseeds: {f.seed.nunique()}; mean accuracy of the controls: 1-NN {refs.get('nn', float('nan')):.3f}, logistic regression {refs.get('logreg', float('nan')):.3f}.\n\n**K1: candidates minus 1-NN (Holm over 5)**\n\n" + ga.md(k1) + "\n**K2 (secondary): candidates minus logistic regression (Holm over 5)**\n\n" + ga.md(k2) + "\n**Controls (uncorrected)**\n\n" + ga.md(class_controls(f)) + "\n"
+    return text, {"k1": k1, "k2": k2}
+
+
+# ------------------------------------------------------------------------------------------ (b) dose-response
+def dose_block(name: str, title: str):
+    path = R / f"{name}_dose"
+    if not path.exists() or not list(path.glob("seed*_*.json")): return f"### {title}\n\n(not run yet)\n\n", None
+    f = ga.load(path, "seed*_*.json"); g = ga.dose_gains(f); tr = pd.concat([ga.dose_trend(g, "all", "auc"), ga.dose_trend(g, "all", "acc")]); hp = ga.holm(dict(enumerate(tr.p))); tr["holm"] = [hp[i] for i in range(len(tr))]
+    out = ga.dose_trend(g, "out", "auc"), ga.dose_trend(g, "out", "acc"); levels = ga.dose_table(g)
+    plateau = []
+    for split, gg in g.groupby("split"):
+        piv = {m: gg.pivot(index="seed", columns="variant", values=m) for m in ("auc", "acc")}
+        for m in ("auc", "acc"):
+            d = (piv[m]["all_p100"] - piv[m]["all_p25"]).dropna(); plateau.append({"split": split, "metric": m, "n_seeds": len(d), "diff_p100_minus_p25": float(d.mean()), "p_uncorrected": ga.wil(d)})
+    text = f"### {title}\n\nseeds: {f.seed.nunique()}; gains = `lap3_k10` with the given node set minus `aw8_all` (mean over budgets and draws).\n\n**Gain at every level**\n\n" + ga.md(levels) + "\n**Pre-registered trend tests, series 'all' (Holm over 4)**\n\n" + ga.md(tr) + "\n**Plateau check: gain(100%) − gain(25%) (uncorrected)**\n\n" + ga.md(pd.DataFrame(plateau)) + "\n**Series 'out' (descriptive)**\n\n" + ga.md(pd.concat(out)) + "\n"
+    return text, {"trend": tr}
+
+
+# ------------------------------------------------------------------------------------------ (c) harsh splits
+def bootstrap_gain(path: Path, kind: str, arm: str, ref: str, reps: int = 300, seed: int = 0) -> dict:
+    """Test-group bootstrap of the mean gain (arm - ref) over seeds, budgets and draws: groups of the (fixed) test set are resampled with replacement, the same resample for every seed."""
+    files = sorted(path.glob(f"seed*_{kind}.d.npz"))
+    if not files: return {}
+    z0 = np.load(files[0], allow_pickle=True); groups = z0["meta_group"]; uniq = np.unique(groups); rng = np.random.default_rng(seed); index = {g: np.flatnonzero(groups == g) for g in uniq}; data = []
+    for f in files:
+        z = np.load(f, allow_pickle=True); keys = sorted({k[2:].rsplit("_", 1)[0] for k in z.files if k.startswith("d_")})
+        for key in keys:
+            if f"d_{key}_{arm}" in z.files and f"d_{key}_{ref}" in z.files: data.append((z[f"d_{key}_{arm}"], z[f"d_{key}_{ref}"], z["meta_sign"], z["meta_weight"]))
+    def metrics(d, s, w, idx):
+        d, s, w = d[idx], s[idx], w[idx]
+        return (roc_auc_score(s > 0, d) if len(set(s > 0)) == 2 else np.nan), float((w * ((d * s) > 0)).sum() / w.sum())
+    full = np.array([[*(np.subtract(metrics(a, s, w, np.arange(len(s))), metrics(b, s, w, np.arange(len(s)))))] for a, b, s, w in data]).mean(0); boots = []
+    for _ in range(reps):
+        pick = rng.choice(uniq, len(uniq)); idx = np.concatenate([index[g] for g in pick]); boots.append(np.nanmean([np.subtract(metrics(a, s, w, idx), metrics(b, s, w, idx)) for a, b, s, w in data], axis=0))
+    boots = np.array(boots); return {"auc": (float(full[0]), *map(float, np.nanpercentile(boots[:, 0], [2.5, 97.5]))), "acc": (float(full[1]), *map(float, np.nanpercentile(boots[:, 1], [2.5, 97.5]))), "n_groups": len(uniq), "n_judgments": len(groups)}
+
+
+def harsh_block(name: str, title: str, bootstrap: bool = True):
+    path = R / f"{name}_harsh"
+    if not path.exists() or not list(path.glob("seed*_*.json")): return f"### {title}\n\n(not run yet)\n\n", None
+    f = ga.load(path, "seed*_*.json"); gains = ga.arm_gains(f, ["kind"], "arm", "base"); fam = gains[gains.arm == "lap3"].copy(); hp = ga.holm(dict(enumerate(fam.p))); fam["holm"] = [hp[i] for i in range(len(fam))]
+    shuf = ga.arm_vs(f, ["kind"], "arm", "lap3", "lap3_shuf"); noisy = ga.arm_vs(f, ["kind"], "arm", "lap3", "lap3_n3")
+    text = f"### {title}\n\nseeds: {f.seed.nunique()}; test judgments pooled over the folds of the split kind (fixed across seeds).\n\n**Pre-registered family H: `lap3_k10` − `aw8_all` (Holm over 4)**\n\n" + ga.md(fam) + "\n**All arms vs `aw8_all` (descriptive)**\n\n" + ga.md(gains) + "\n**`lap3_k10` − shuffled-graph control (uncorrected)**\n\n" + ga.md(shuf) + "\n**`lap3_k10` − noisy-graph control (uncorrected)**\n\n" + ga.md(noisy) + "\n"
+    if bootstrap:
+        rows = []
+        for kind in ("run", "temp"):
+            b = bootstrap_gain(path, kind, "lap3", "base")
+            if b: rows += [{"kind": kind, "metric": m, "mean_gain": b[m][0], "ci_lo": b[m][1], "ci_hi": b[m][2], "test_groups": b["n_groups"], "test_judgments": b["n_judgments"]} for m in ("auc", "acc")]
+        if rows: text += "**Test-group bootstrap of the `lap3_k10` − `aw8_all` gain (300 resamples of the fixed test groups; caveat, not part of the criterion)**\n\n" + ga.md(pd.DataFrame(rows)) + "\n"
+    return text, {"fam": fam, "shuf": shuf}
+
+
+# ------------------------------------------------------------------------------------------ verdicts
+def verdict_a(res) -> str:
+    if not res: return "not run yet"
+    out = []
+    for proto in ("inductive", "transductive"):
+        k = res["k1"][res["k1"].method.str.contains(proto)]; ok = k[(k["diff"] > 0) & (k.holm < .05)]
+        out.append(f"{proto}: {'MET by ' + ', '.join(ok.method) if len(ok) else 'not met'} (best diff vs 1-NN {k['diff'].max():+.3f}, smallest Holm {k.holm.min():.3f})")
+    return "; ".join(out)
+
+
+def verdict_b(res) -> str:
+    if not res: return "not run yet"
+    t = res["trend"]; n = int(((t.slope > 0) & (t.holm < .05)).sum()); return f"{n} of {len(t)} trend tests positive with Holm < 0.05 -> {'MET' if n >= 3 else 'not met'}"
+
+
+def verdict_c(res) -> str:
+    if not res: return "not run yet"
+    fam, shuf = res["fam"], res["shuf"]; pos = int((fam["gain"] > 0).sum()); sig = int(((fam["gain"] > 0) & (fam.holm < .05)).sum())
+    beats = all(((shuf[(shuf.kind == k)]["diff"] > 0) & (shuf[(shuf.kind == k)].p_uncorrected < .05)).any() for k in ("run", "temp"))
+    return f"{pos} of 4 gains positive, {sig} with Holm < 0.05, beats shuffled control in both kinds: {beats} -> {'MET' if pos == 4 and sig >= 3 and beats else 'not met'}"
+
+
+def dev_tables() -> str:
+    out = ""
+    f = pd.concat([ga.load(R / d) for d in ("dev_class", "dev_class_ideal", "dev_class_laplr") if (R / d).exists()])
+    if len(f): out += "### Dev: classification endpoint (seeds 8400–8419; NOT evidence)\n\n" + ga.md(ga.class_table(f).drop(columns=["n_seeds"])) + "\n"
+    if (R / "dev_dose").exists():
+        g = ga.dose_gains(ga.load(R / "dev_dose", "seed*_*.json")); out += "### Dev: dose-response (NOT evidence)\n\n" + ga.md(ga.dose_table(g)) + "\n" + ga.md(pd.concat([ga.dose_trend(g, s, m) for s in ("all", "out") for m in ("auc", "acc")])) + "\n"
+    if (R / "dev_harsh").exists():
+        f = ga.load(R / "dev_harsh", "seed*_*.json"); out += "### Dev: harsh splits (NOT evidence)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
+    if (R / "dev_lam").exists():
+        f = ga.load(R / "dev_lam", "seed*_*.json"); out += "### Dev: lambda selected by internal validation (NOT evidence)\n\n" + ga.md(ga.arm_gains(f, ["split"], "arm", "base")) + "\n" + ga.md(ga.arm_vs(f, ["split"], "arm", "lap_auto", "lap3")) + "\n"
+        a = f[f.arm == "lap_auto"].chosen_lambda.value_counts(normalize=True).round(3).to_dict(); out += f"Chosen lambda shares: {a}\n\n"
+    return out
+
+
+def sections(bootstrap: bool = True) -> dict:
+    sec = {}; res = {}
+    for blk, tag in (("conf1", "Confirmation 1 (seeds 8500–8534)"), ("conf2", "Confirmation 2 (seeds 8550–8584, replication)")):
+        for key, fn in (("class", class_block), ("dose", dose_block), ("harsh", harsh_block)):
+            kw = {"bootstrap": bootstrap} if key == "harsh" else {}
+            text, r = fn(blk, f"{tag}: " + {"class": "classification endpoint (28 outer-test ideal images)", "dose": "dose-response of unlabelled images", "harsh": "harsh preference splits"}[key], **kw); sec[f"{blk}_{key}"] = text; res[(blk, key)] = r
+    sec["verdicts"] = "".join(f"- **{blk}**: (a) classification: {verdict_a(res[(blk, 'class')])}. (b) dose-response: {verdict_b(res[(blk, 'dose')])}. (c) harsh splits: {verdict_c(res[(blk, 'harsh')])}.\n" for blk in ("conf1", "conf2"))
+    sec["dev"] = dev_tables(); return sec
+
+
+def main():
+    ap = argparse.ArgumentParser(); ap.add_argument("--out", default=None); ap.add_argument("--template", default=None); ap.add_argument("--doc", default=None); ap.add_argument("--no-bootstrap", action="store_true"); a = ap.parse_args(); sec = sections(not a.no_bootstrap)
+    if a.out:
+        text = "# Tables for the graph-endpoint study (generated by ge_report.py; do not edit by hand)\n\n## Pre-registered readings\n\n" + sec["verdicts"] + "\n" + "".join(sec[f"{b}_{k}"] for b in ("conf1", "conf2") for k in ("class", "dose", "harsh")) + "\n## Development screens (not evidence)\n\n" + sec["dev"]
+        Path(a.out).write_text(text); print(f"wrote {a.out} ({len(text)} chars)")
+    if a.template and a.doc:
+        t = Path(a.template).read_text()
+        for k, v in sec.items(): t = t.replace(f"<!--TABLE:{k}-->", v)
+        Path(a.doc).write_text(t); print(f"wrote {a.doc}")
+
+
+if __name__ == "__main__":
+    main()
