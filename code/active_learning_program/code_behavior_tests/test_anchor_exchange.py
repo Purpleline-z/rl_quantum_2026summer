@@ -56,7 +56,7 @@ def test_subsets_are_class_blind_reproducible_and_rules_return_the_requested_cou
     import ae_core as ae, nd_graph_learner as gl
     u = ae.universe(ctx, "no_test"); a, b = ae.random_subset(ctx, u, 29, 1), ae.random_subset(ctx, u, 29, 1); assert a == b and ae.n_anchors(a) == 29 and ae.random_subset(ctx, u, 29, 2) != a
     gd, gs = gl.graph_for(ctx, 10), gl.graph_for(ctx, 10, True)
-    for rule in ("rand", "kcg", "kcg_shuf", "kcf", "typi", "amb", "amb_shuf", "htrq", "htrq_shuf"):
+    for rule in ("rand", "kcg", "kcg_shuf", "kcf", "typi", "amb", "amb_shuf", "htrq", "htrq_shuf", "strat", "kcf_bal"):
         s1, s2 = ae.active_subset(ctx, u, rule, 36, gd, gs), ae.active_subset(ctx, u, rule, 36, gd, gs); assert ae.n_anchors(s1) == 36 and s1 == s2
     assert ae.active_subset(ctx, u, "kcg", 36, gd, gs) != ae.active_subset(ctx, u, "kcg_shuf", 36, gd, gs)
 
