@@ -35,6 +35,11 @@ Reading: the anchor-weight gain (`aw8`, `aw8_all` over the default head) is **la
 ## 4. Audit 3: time-blocked evaluation (hold out whole 100-frame blocks of a run, 25-frame buffer around them removed from training groups, pool and graph)
 {{TABLE:a3}}
 
+## 4b. Audit 9: anchor-strict evaluation (typed anchors that are near-copies (cosine distance <= 0.003) of a held-out frame removed for all learners; development seeds 8800–8809, budgets 20 and 40)
+{{TABLE:a9}}
+
+(`gain` of the first row = `lap3_k10_st4` − `aw8_all_st2lr0.5`; `anchor-strict aw8` rows = `aw8_all` − default head. Holm here is over these 8 development tests only.)
+
 ## 5. Audit 4: independent re-implementation
 {{TABLE:a4}}
 
@@ -51,6 +56,9 @@ Reading: the anchor-weight gain (`aw8`, `aw8_all` over the default head) is **la
 
 ## 9. Confirmation (seeds 8850–8884; PREREGISTRATION_RT1)
 {{TABLE:confirm}}
+
+### 9.1 Anchor-strict evaluation (PREREGISTRATION_RT2; seeds 8850–8884)
+{{TABLE:confirm_a9}}
 
 ## 10. What this changes in the earlier conclusions
 {{IMPLICATIONS}}
