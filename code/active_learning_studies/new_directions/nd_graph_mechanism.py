@@ -33,7 +33,7 @@ def _is_ideal(path: str) -> bool:
 
 
 # ------------------------------------------------------------------------------------------ topology features
-def topology_features(base: G.GraphData, feat: str, whiten: int, noise: float) -> torch.Tensor:
+def topology_features(base: G.GraphData, feat: str, whiten: int, noise: float, lda: float = 0.0) -> torch.Tensor:
     """Unit-norm, mean-centred features used ONLY to decide which nodes are neighbours."""
     if feat == "final": x = base.x
     else:
@@ -42,6 +42,10 @@ def topology_features(base: G.GraphData, feat: str, whiten: int, noise: float) -
         elif feat == "l3l4": x = torch.cat([F.normalize(torch.stack([_LAYERS[l][p] for p in base.paths]).float(), dim=1) for l in ("l3", "l4")], dim=1)
         else: raise ValueError(feat)
     xc = x - x.mean(0)
+    if lda > 0:   # supervised metric for the TOPOLOGY only: LDA fitted on the ideal images of known class (training anchors; outer-test ideals are not nodes), 3 discriminant axes appended with weight `lda`
+        from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+        idx = sorted(base.source_class); y = [base.source_class[i] for i in idx]; z = torch.as_tensor(LinearDiscriminantAnalysis(solver="eigen", shrinkage="auto").fit(xc[idx].numpy(), y).transform(xc.numpy()), dtype=torch.float32)
+        z = z / z.std(0).clamp_min(1e-6); xc0 = xc / xc.norm(dim=1, keepdim=True).clamp_min(1e-9); xc = torch.cat([xc0, lda * z / z.shape[1] ** 0.5 / 2.0], 1)
     if whiten:   # PCA whitening on the node set (label-free): top `whiten` components scaled to unit variance
         u, s, v = torch.pca_lowrank(xc, q=whiten, center=False, niter=4); xc = (xc @ v[:, :whiten]) / (s[:whiten] / (len(xc) ** 0.5)).clamp_min(1e-6)
     xn = xc / xc.norm(dim=1, keepdim=True).clamp_min(1e-9)
@@ -61,11 +65,11 @@ def _upper(rows: torch.Tensor, cols: torch.Tensor, w: torch.Tensor | None):
 
 def build_edges(base: G.GraphData, spec: dict):
     """Returns (edges (E,2) long, weights (E,)) of the requested construction (union-symmetrised unless stated)."""
-    xs = topology_features(base, spec.get("feat", "final"), spec.get("whiten", 0), spec.get("noise", 0.0)); n = len(xs); kind = spec.get("construct", "knn"); k = spec.get("k", 10)
+    xs = topology_features(base, spec.get("feat", "final"), spec.get("whiten", 0), spec.get("noise", 0.0), spec.get("lda", 0.0)); n = len(xs); kind = spec.get("construct", "knn"); k = spec.get("k", 10)
     sim = xs @ xs.T; sim.fill_diagonal_(-2.0); nn_idx = sim.topk(max(k, 1) if kind != "bmatch" else 3 * spec.get("b", 10), dim=1).indices
     ar = torch.arange(n)[:, None]
     if kind == "knn":
-        if spec.get("feat", "final") == "final" and not spec.get("whiten", 0) and not spec.get("noise", 0.0) and k == base.k: return base.edges.clone(), torch.ones(len(base.edges))   # identical to GraphData (RNG-identical to lap<L>_k10)
+        if spec.get("feat", "final") == "final" and not spec.get("whiten", 0) and not spec.get("noise", 0.0) and not spec.get("lda", 0.0) and k == base.k: return base.edges.clone(), torch.ones(len(base.edges))   # identical to GraphData (RNG-identical to lap<L>_k10)
         ia, ib, w = _upper(ar.expand_as(nn_idx).reshape(-1), nn_idx.reshape(-1), None)
     elif kind == "mutual":
         a = torch.zeros(n, n, dtype=torch.bool); a[ar.expand_as(nn_idx), nn_idx] = True; m = a & a.T; r, c = torch.nonzero(m, as_tuple=True); keep = r < c; ia, ib, w = r[keep], c[keep], torch.ones(int(keep.sum()))
@@ -88,6 +92,11 @@ def build_edges(base: G.GraphData, spec: dict):
         keep = torch.as_tensor(keep, dtype=torch.long); ia, ib, w = ia0[keep], ib0[keep], torch.ones(len(keep))
     else: raise ValueError(kind)
     return torch.stack([ia, ib], 1), w
+
+
+def shuffle_edges(edges: torch.Tensor, n: int, seed: int) -> torch.Tensor:
+    """Control: relabel the nodes of an edge list with a random permutation (topology and degree sequence kept, link to the features destroyed), keep i < j."""
+    perm = torch.as_tensor(np.random.default_rng(seed * 7919 + 11).permutation(n)); e = perm[edges]; a, b = torch.minimum(e[:, 0], e[:, 1]), torch.maximum(e[:, 0], e[:, 1]); return torch.stack([a, b], 1)
 
 
 def filter_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, place: str):
@@ -113,13 +122,15 @@ def _record_quality(ctx, name: str, stats: dict) -> None:
     if name not in cur: cur[name] = stats; f.write_text(json.dumps(cur))
 
 
-_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place")
+_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda")
 
 
 def gm_graph(ctx, name: str, spec: dict):
     cache = ctx.__dict__.setdefault("_gm", {}); key = tuple(spec.get(x) for x in _KEYS)
     if key not in cache:
-        base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all")); cache[key] = (base, edges, w)
+        base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all"))
+        if spec.get("shuffle"): edges = shuffle_edges(edges, len(base.paths), ctx.seed)
+        cache[key] = (base, edges, w)
     base, edges, w = cache[key]; _record_quality(ctx, spec.get("quality_name", name), graph_quality(base, edges, w)); return base, edges, w
 
 
@@ -203,3 +214,13 @@ _reg("gm10_decay", lap=10, anneal="decay"); _reg("gm10_ramp", lap=10, anneal="ra
 for _l in (5, 20, 40): _reg(f"gm_lap{_l}_k10", lap=_l)
 for _kk in (5, 20, 30): _reg(f"gm10_k{_kk}", lap=10, k=_kk)
 _reg("gm20_lscale_k10", lap=20, construct="lscale", k=10); _reg("gm20_mutual_k15", lap=20, construct="mutual", k=15); _reg("gm20_snn", lap=20, construct="snn", k=10, snn_k=20)
+
+# ---- round 5: per-type switches (dev showed that the (1x1) and HTR scores carry the accuracy gain, c(6x2) and RT13 do not)
+_reg("gm10_type_1x1_htr", lap=10, type_w={2: 0.0, 3: 0.0}); _reg("gm10_type_no_rt13", lap=10, type_w={3: 0.0}); _reg("gm10_type_no_c6x2", lap=10, type_w={2: 0.0}); _reg("gm3_type_1x1_htr", lap=3, type_w={2: 0.0, 3: 0.0})
+
+# ---- round 6: a supervised (label-aware) topology: LDA axes of the ideal-image classes appended to the features used for the kNN search
+_reg("gm10_lda1", lap=10, lda=1.0); _reg("gm10_lda3", lap=10, lda=3.0); _reg("gm3_lda1", lap=3, lda=1.0)
+
+# ---- confirmation candidates (frozen in PREREGISTRATION_GM1.md) and their controls: type_w {3: 0} = Laplacian off for the RT13 scores; lambda 10
+_reg("gmc_t_no_rt13", lap=10, type_w={3: 0.0}); _reg("gmc_t_no_rt13_shuf", lap=10, type_w={3: 0.0}, shuffle=True); _reg("gmc_t_no_rt13_n3", lap=10, type_w={3: 0.0}, noise=3.0)
+_reg("gm_lap10_n0_shuf", lap=10, shuffle=True)    # shuffled-graph control of the uniform lambda-10 candidate (same construction as nd_graph_learner's lap10_k10_shuf, own RNG stream)

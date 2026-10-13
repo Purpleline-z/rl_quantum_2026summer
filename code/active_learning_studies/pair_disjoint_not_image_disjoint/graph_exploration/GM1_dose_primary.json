@@ -1,0 +1,15 @@
+{
+ "lambdas": [
+  10
+ ],
+ "metrics": [
+  "auc",
+  "acc"
+ ],
+ "splits": [
+  "A",
+  "B"
+ ],
+ "seeds": "8100-8134",
+ "min_sig": 3
+}

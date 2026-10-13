@@ -76,6 +76,31 @@ if __name__ == "__main__":
         frame = gt.load(dirs()); sd = arg("--seeds"); seeds = None
         if sd: lo, hi = sd.split("-"); seeds = set(range(int(lo), int(hi) + 1))
         d, r = dose_table(frame, seeds); print("\n#### graph quality and gain over aw8_all by noise dose\n"); print(gt.to_md(d)); print("\n#### per-seed Spearman(gain, graph quality) across the five doses\n"); print(gt.to_md(r))
+    elif mode == "dosetest":   # pre-registered dose-response tests: SPEC json {"lambdas": [10], "metrics": ["auc","acc"], "splits": ["A","B"], "seeds": "8100-8134"}; Holm over the family
+        spec = json.loads(Path(sys.argv[2]).read_text()); frame = gt.load([a for a in sys.argv[3:] if not a.startswith("--")]); lo, hi = spec["seeds"].split("-"); seeds = set(range(int(lo), int(hi) + 1))
+        d, r = dose_table(frame, seeds); r = r[r["lambda"].isin(spec["lambdas"]) & r.metric.isin(spec["metrics"]) & r.split.isin(spec["splits"])].copy()
+        r["holm"] = c.holm(r.p_wilcoxon.values); r["positive_and_sig"] = (r.mean_spearman > 0) & (r.holm < 0.05); print(gt.to_md(r)); print(); print(f"dose-response claim (>= {spec['min_sig']} of {len(r)} tests positive and Holm < .05): {'CONFIRMED' if int(r.positive_and_sig.sum()) >= spec['min_sig'] else 'NOT confirmed'}")
+        print(); print(gt.to_md(d[d.metric.isin(spec["metrics"]) & d["lambda"].isin(spec["lambdas"])]))
+    elif mode == "confirm":   # pre-registered tests of PREREGISTRATION_GM1 (spec: reference, candidates {name: {shuf, noise}}, nongraph, aw8)
+        spec = json.loads(Path(sys.argv[2]).read_text()); frame = gt.load([a for a in sys.argv[3:] if not a.startswith("--")]); ref, aw8, ng = spec["reference"], spec["aw8"], spec["nongraph"]; T = []
+        cell = lambda l: ["random", l]
+        for cand, ctl in spec["candidates"].items():
+            for split in spec["splits"]:
+                for m in ("auc", "acc"):
+                    T.append({"family": "main", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+                    T.append({"family": "vs_aw8", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(aw8)})
+                    for k, name in ctl.items(): T.append({"family": f"control:{k}", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(name)})
+                    T.append({"family": "control:nongraph", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ng)})
+                for m in ("ll", "htr_acc", "htr_ll"): T.append({"family": f"secondary:{m}", "cand": cand, "split": split, "metric": m, "a": cell(cand), "b": cell(ref)})
+        out = c.run({"tests": T}, frame.assign(selector="random")); out["cells"] = [f"{a[1]} - {b[1]}" for a, b in zip(out.a, out.b)]
+        cols = ["family", "split", "metric", "cells", "n_seeds", "gain", "lo", "hi", "share_better", "p", "holm"]; print(gt.to_md(out[cols].assign(**{k: out[k].astype(float) for k in ("gain", "lo", "hi", "share_better", "p", "holm")})))
+        rows = []
+        for cand in spec["candidates"]:
+            main = out[(out.family == "main") & (out.cand == cand)]; allpos = bool((main.gain > 0).all() and len(main) == 4); nsig = int((main.holm < 0.05).sum()); ctl_ok = {}
+            for k in spec["candidates"][cand]:
+                cc = out[(out.family == f"control:{k}") & (out.cand == cand)]; ctl_ok[k] = bool(((cc.gain > 0) & (cc.p < 0.05)).any())
+            rows.append({"candidate": cand, "all_four_positive": allpos, "n_holm_sig": nsig, **{f"beats_{k}": v for k, v in ctl_ok.items()}, "CONFIRMED": bool(allpos and nsig >= 3 and all(ctl_ok.values()))})
+        print(); print(gt.to_md(pd.DataFrame(rows), "{}"))
     elif mode == "qgain":   # across-learner dose-response: per-seed Spearman(gain over aw8_all, graph quality) across the named learners (different graph constructions)
         frame = gt.load(dirs()); names = arg("--names").split(","); ref = arg("--ref", "aw8_all"); rows = []
         for split in sorted(frame.split.unique()):
