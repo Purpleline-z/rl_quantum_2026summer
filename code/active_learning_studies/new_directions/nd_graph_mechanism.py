@@ -139,7 +139,7 @@ def _record_quality(ctx, name: str, stats: dict) -> None:
     if name not in cur: cur[name] = stats; f.write_text(json.dumps(cur))
 
 
-_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac", "purify")
+_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac", "purify", "rewire")
 
 
 def purify_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, add_same_class: int = 0):
@@ -156,11 +156,19 @@ def purify_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, add_sa
     return edges, w
 
 
+def rewire_edges(edges: torch.Tensor, n: int, frac: float, seed: int) -> torch.Tensor:
+    """Second dose axis for graph quality: a fraction `frac` of the edges keeps one endpoint and gets a uniformly random second endpoint (all other edges stay exact kNN edges)."""
+    g = torch.Generator().manual_seed(seed * 104729 + int(frac * 1000)); e = edges.clone(); k = int(round(frac * len(e))); sel = torch.randperm(len(e), generator=g)[:k]
+    e[sel, 1] = torch.randint(0, n, (k,), generator=g); a, b = torch.minimum(e[:, 0], e[:, 1]), torch.maximum(e[:, 0], e[:, 1]); keep = a != b
+    return torch.unique(torch.stack([a[keep], b[keep]], 1), dim=0)
+
+
 def gm_graph(ctx, name: str, spec: dict):
     cache = ctx.__dict__.setdefault("_gm", {}); key = tuple(spec.get(x) for x in _KEYS)
     if key not in cache:
         base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all"))
         if spec.get("shuffle"): edges = shuffle_edges(edges, len(base.paths), ctx.seed)
+        if spec.get("rewire"): edges = rewire_edges(edges, len(base.paths), float(spec["rewire"]), ctx.seed)
         if spec.get("purify"): edges, w = purify_edges(base, edges, w, add_same_class=int(spec["purify"]) - 1)
         cache[key] = (base, edges, w)
     base, edges, w = cache[key]; _record_quality(ctx, spec.get("quality_name", name), graph_quality(base, edges, w)); return base, edges, w
@@ -304,3 +312,6 @@ _reg("gmc5_t_no_rt13", lap=5, type_w={3: 0.0}); _reg("gmc20_t_no_rt13", lap=20, 
 # ---- round 15 (development only): robust penalties on the same graph: do they tolerate a degraded graph? (L1 / Huber instead of the quadratic penalty)
 _reg("gm10_l1", lap=10, pen="l1"); _reg("gm3_l1", lap=3, pen="l1"); _reg("gmc10_l1", lap=10, pen="l1", type_w={3: 0.0}); _reg("gm10_l1_n2", lap=10, pen="l1", noise=2.0); _reg("gm10_l1_n3", lap=10, pen="l1", noise=3.0)
 _reg("gm10_huber", lap=10, pen="huber", delta=0.5); _reg("gmc10_rt03", lap=10, type_w={3: 0.3}); _reg("gmc10_rt01", lap=10, type_w={3: 0.1})
+
+# ---- round 16 (development only): a second quality axis that does not distort the geometry of the kept edges: random rewiring of a fraction of the edges
+for _f in (0.1, 0.25, 0.5, 0.75): _reg(f"gm10_rw{int(_f * 100)}", lap=10, rewire=_f)
