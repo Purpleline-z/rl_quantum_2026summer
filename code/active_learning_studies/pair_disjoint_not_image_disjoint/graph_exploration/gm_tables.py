@@ -76,6 +76,22 @@ if __name__ == "__main__":
         frame = gt.load(dirs()); sd = arg("--seeds"); seeds = None
         if sd: lo, hi = sd.split("-"); seeds = set(range(int(lo), int(hi) + 1))
         d, r = dose_table(frame, seeds); print("\n#### graph quality and gain over aw8_all by noise dose\n"); print(gt.to_md(d)); print("\n#### per-seed Spearman(gain, graph quality) across the five doses\n"); print(gt.to_md(r))
+    elif mode == "qgain":   # across-learner dose-response: per-seed Spearman(gain over aw8_all, graph quality) across the named learners (different graph constructions)
+        frame = gt.load(dirs()); names = arg("--names").split(","); ref = arg("--ref", "aw8_all"); rows = []
+        for split in sorted(frame.split.unique()):
+            for metric in ("auc", "acc"):
+                g = {n: per_seed_gain(frame, split, metric, n, ref) for n in names}; seeds_ = sorted(set.intersection(*[set(v.index) for v in g.values()])); rhos = []
+                for s in seeds_:
+                    q = np.array([quality_of(s, split, n) for n in names]); y = np.array([g[n][s] for n in names])
+                    if not np.isnan(q).any(): rhos.append(spearmanr(q, y)[0])
+                p = float(wilcoxon(rhos).pvalue) if len(rhos) > 5 else float("nan"); rows.append({"split": split, "metric": metric, "n_learners": len(names), "n_seeds": len(rhos), "mean_spearman": float(np.mean(rhos)), "p_wilcoxon": p})
+        print(gt.to_md(pd.DataFrame(rows)))
+        tab = []
+        for n in names:
+            r = {"learner": n}
+            for split in sorted(frame.split.unique()): r[f"quality_{split}"] = float(np.nanmean([quality_of(s, split, n) for s in range(8000, 8020)])); r[f"auc_gain_{split}"] = float(per_seed_gain(frame, split, "auc", n, ref).mean())
+            tab.append(r)
+        print(); print(gt.to_md(pd.DataFrame(tab)))
     elif mode in ("budget", "types"):
         cands = arg("--learners").split(","); frame = gt.load(dirs()); ref = arg("--ref", "aw8_all")
         print(gt.to_md(gt.budget_table(frame, cands, ref) if mode == "budget" else gt.type_table(frame, cands, ref)))

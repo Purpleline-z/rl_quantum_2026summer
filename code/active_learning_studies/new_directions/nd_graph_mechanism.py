@@ -193,3 +193,13 @@ for _name, _spec in (("mutual_k15", dict(construct="mutual", k=15)), ("eps_d10",
                      ("lscale_k10", dict(construct="lscale", k=10)), ("bmatch_b10", dict(construct="bmatch", b=10)), ("pcaw32_k10", dict(whiten=32)), ("l3_k10", dict(feat="l3")), ("l2_k10", dict(feat="l2")),
                      ("l3l4_k10", dict(feat="l3l4")), ("norm_k10", dict(lap_type="norm"))):
     _reg(f"gm10_{_name}", lap=10, **_spec)
+
+# ---- round 3 (lambda 10): where the regulariser acts, which types carry it, annealing; non-graph smoothing controls are in the lambda-free block above (gm_noise*, gm_mix*, gm_wd*)
+_reg("gm10_place_unl", lap=10, place="unl"); _reg("gm10_place_it", lap=10, place="it")
+_reg("gm10_type_htr", lap=10, type_w={0: 0.0, 2: 0.0, 3: 0.0, 4: 1.0}); _reg("gm10_type_no_htr", lap=10, type_w={4: 0.0})
+_reg("gm10_decay", lap=10, anneal="decay"); _reg("gm10_ramp", lap=10, anneal="ramp")
+
+# ---- round 4 (refinements): lambda sweep on the plain kNN graph, k sweep at lambda 10, larger lambda on the two constructions with the highest ideal-ideal quality
+for _l in (5, 20, 40): _reg(f"gm_lap{_l}_k10", lap=_l)
+for _kk in (5, 20, 30): _reg(f"gm10_k{_kk}", lap=10, k=_kk)
+_reg("gm20_lscale_k10", lap=20, construct="lscale", k=10); _reg("gm20_mutual_k15", lap=20, construct="mutual", k=15); _reg("gm20_snn", lap=20, construct="snn", k=10, snn_k=20)
