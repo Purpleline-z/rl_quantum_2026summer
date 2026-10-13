@@ -86,6 +86,10 @@ def sections(reps: int = 1000) -> dict:
     sec["dev_dose"], _ = dose_block("dev_dose", "Development: anchor dose-response and exchange rate (seeds 8700–8709; NOT evidence)", reps)
     sec["conf_dose"], _ = dose_block("conf_dose", "Confirmation 1: anchor dose-response and exchange rate (seeds 8750–8784)", reps)
     sec["dev_lam"] = lam_block("dev_lam", "Development: interaction with lambda (seeds 8700–8709; NOT evidence)")
+    sec["exploratory"] = ""
+    if (R / "dev_active2").exists() and list((R / "dev_active2").glob("seed*_*.json")):
+        t, _ = active_block("dev_active2", "Exploratory: class balance of the anchors (dev seeds 8700–8719; strat = class-balanced random, a DIAGNOSTIC that uses the true classes; kcf_bal = sequential k-center with class balance)", ["strat", "kcf_bal", "kcf"], ["strat", "kcf_bal", "kcf"]); sec["exploratory"] += t
+    ans = Path(__file__).resolve().parent.parent / "pair_disjoint_not_image_disjoint" / "graph_exploration" / "answers_anchor_exchange.md"; sec["answers"] = ans.read_text() if ans.exists() else "(answers not written yet)"
     sec["verdict"] = f"- **Confirmation 1, rule (a)**: {verdict_a(rc)}\n"
     return sec
 
@@ -97,7 +101,7 @@ def main():
         Path(a.out).write_text(text); print(f"wrote {a.out} ({len(text)} chars)")
     if a.template and a.doc:
         t = Path(a.template).read_text()
-        for k, v in sec.items(): t = t.replace(f"<!--TABLE:{k}-->", v)
+        for k, v in sec.items(): t = t.replace(f"<!--TABLE:{k}-->", v).replace(f"<!--SECTION:{k}-->", v)
         Path(a.doc).write_text(t); print(f"wrote {a.doc}")
 
 
