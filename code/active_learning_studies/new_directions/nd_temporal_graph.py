@@ -211,6 +211,13 @@ for _n, _s in list(SPECS.items()):
 for _mu in (1.0, 10.0):
     for _n in ("tg_u2", "tg_u5"):
         kw = {k: v for k, v in SPECS[_n].items() if k != "name"}; register(f"{_n}_mu{_mu:g}", **{**kw, "mu": _mu}); register(f"{_n}_mu{_mu:g}_shuf", **{**kw, "mu": _mu, "shuf": True})
+# strength scan of the gentler temporal weights (development round 2)
+for _n in ("tg_dec5", "tg_curv", "tg_u2", "tg_u5", "tg_novel5"):
+    kw = {k: v for k, v in SPECS[_n].items() if k != "name"}
+    for _mu in (0.1, 0.3, 1.0):
+        if f"{_n}_mu{_mu:g}" not in LEARNERS: register(f"{_n}_mu{_mu:g}", **{**kw, "mu": _mu})
+        for _tag, _val in (("shuf", True), ("lshuf", "local"), ("krand", "knnrand")):
+            if f"{_n}_mu{_mu:g}_{_tag}" not in LEARNERS and not (_n == "tg_curv" and _tag == "krand"): register(f"{_n}_mu{_mu:g}_{_tag}", **{**kw, "mu": _mu, "shuf": _val})
 register("tg_base_check", kind=None)   # = lap3_k10_st4 (identity test)
 
 
