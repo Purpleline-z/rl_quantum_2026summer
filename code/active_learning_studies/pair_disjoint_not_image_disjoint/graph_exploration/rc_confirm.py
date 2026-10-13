@@ -55,8 +55,9 @@ def run(dirs, ref, cands, control=None) -> str:
     if control:
         rows = []
         for split in ("A", "B"):
-            for m in ("auc", "acc"): rows.append({"comparison": f"{ref} - {control}", "split": split, "metric": m, **T.summarize(T.per_seed_gain(df, ref, control, split, m))})
-        out.append("### Context: the incumbent against the graph-free control on these seeds (not part of the families)\n\n" + T.md(pd.DataFrame(rows)) + "\n")
+            for m in ("auc", "acc", "far_auc", "far_acc", "htr_acc", "htr_ll"): rows.append({"comparison": f"{ref} - {control}", "split": split, "metric": m, **T.summarize(T.per_seed_gain(df, ref, control, split, m))})
+        out.append("### Context: the incumbent against the graph-free control on these seeds (not part of the families; `far_*` = anchor-far stratum)\n\n" + T.md(pd.DataFrame(rows)) + "\n")
+        out.append("### Context: where the incumbent's gain over the graph-free control lives (anchor strata, descriptive)\n\n" + T.md(T.strata_table(T.load(dirs, keep_d=True), control, [ref])) + "\n")
     return "\n".join(out)
 
 
