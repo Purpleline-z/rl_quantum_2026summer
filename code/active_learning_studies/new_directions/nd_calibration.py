@@ -24,8 +24,8 @@ import torch.nn.functional as F
 from scipy.optimize import minimize_scalar
 from sklearn.metrics import roc_auc_score
 
+import nd_core as core  # first: puts the study modules on sys.path
 import judgment_unit_study as ju_study
-import nd_core as core
 import nd_graph_learner as G
 
 ACTIVE = (0, 2, 3, 4)
@@ -162,15 +162,27 @@ def fit_global_t(oof, prior=None) -> float:
     vals = [_wll(d, s, w, np.exp(lt)) + pen(lt) for lt in LOG_T_GRID]; return float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
 
 
-def fit_type_t(oof, tau: float = 8.0) -> dict:
-    """Per-type temperatures shrunk to the global one: minimise sum_i w_i loss_i(T_k) / sum w + tau * (log T_k - log T_global)^2 / n_k-free scale (penalty weight tau per unit of total weight / n)."""
-    m, d, s, w = _dec(oof); tg = fit_global_t(oof); out = {k: tg for k in core.TYPE_NAMES}
-    k = oof["k"][m]
+def fit_type_t(oof, tau: float = 8.0, center: dict | None = None) -> dict:
+    """Per-type temperatures: minimise sum_i w_i loss_i(T_k) + tau * (log T_k - c_k)^2 over a grid (tau = 1 / (2 sd^2): a Gaussian prior on log T_k with sd sqrt(1 / (2 tau))); the centre c_k is the
+    global OOF temperature (default), 0 (``center = {k: 1.0}``) or a prior supplied from the development seeds."""
+    m, d, s, w = _dec(oof); tg = fit_global_t(oof); out = {k: tg for k in core.TYPE_NAMES}; k = oof["k"][m]
     for kk in core.TYPE_NAMES:
-        sel = k == kk
-        if sel.sum() < 2: continue
-        n = float(w[sel].sum()); lt0 = np.log(tg)
-        vals = [(w[sel] * np.logaddexp(0.0, -s[sel] * d[sel] / np.exp(lt))).sum() + tau * (lt - lt0) ** 2 for lt in LOG_T_GRID]; out[kk] = float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
+        c = np.log(tg if center is None else center[kk]); sel = k == kk
+        if sel.sum() < 1: out[kk] = float(np.exp(c)); continue
+        vals = [(w[sel] * np.logaddexp(0.0, -s[sel] * d[sel] / np.exp(lt))).sum() + tau * (lt - c) ** 2 for lt in LOG_T_GRID]; out[kk] = float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
+    return out
+
+
+def fit_prior(recs) -> dict:
+    """Development-seed prior: per type, the temperature minimising the pooled OOF log-loss of all given label sets (labelled judgments only; no test label)."""
+    pooled = {kk: ([], [], []) for kk in core.TYPE_NAMES}
+    for rec in recs:
+        o = rec["oof"]; m = np.isin(o["outcome"], (1, -1))
+        for kk in core.TYPE_NAMES:
+            sel = m & (o["k"] == kk); pooled[kk][0].append(o["d"][sel]); pooled[kk][1].append(o["outcome"][sel].astype(float)); pooled[kk][2].append(o["weight"][sel])
+    out = {}
+    for kk, (d, s, w) in pooled.items():
+        d, s, w = np.concatenate(d), np.concatenate(s), np.concatenate(w); vals = [_wll(d, s, w, np.exp(lt)) for lt in LOG_T_GRID]; out[kk] = float(np.exp(LOG_T_GRID[int(np.argmin(vals))]))
     return out
 
 
@@ -190,7 +202,7 @@ def fit_conf_t(oof, key: str = "lab_min", gamma_pen: float = 4.0):
     u = feature_u(key, oof[f"g_{key}"][m]); best = (np.inf, 0.0, 0.0)
     for g in np.linspace(-0.6, 1.2, 37):
         for lt in LOG_T_GRID[::2]:
-            v = _wll(d, s, w, np.exp(lt + g * u)) if False else float((w * np.logaddexp(0.0, -s * d / np.exp(lt + g * u))).sum() / w.sum()) + gamma_pen * g * g / max(w.sum(), 1.0)
+            v = float((w * np.logaddexp(0.0, -s * d / np.exp(lt + g * u))).sum() / w.sum()) + gamma_pen * g * g / max(w.sum(), 1.0)
             if v < best[0]: best = (v, lt, g)
     return (float(np.exp(best[1])), float(best[2]))
 
@@ -206,7 +218,7 @@ def fit_shrink_far(oof, key: str = "anc_min", delta: float = FAR_THRESHOLD):
     if (x > 0).sum() < 3: return (t, 0.0)
     best = (np.inf, 0.0)
     for g in np.linspace(0.0, 6.0, 49):
-        v = _wll(d / (1 + g * x), s, w, t) + 0.02 * g * g / max(w.sum(), 1.0) * 10
+        v = _wll(d / (1 + g * x), s, w, t) + 0.2 * g * g / max(w.sum(), 1.0)
         if v < best[0]: best = (v, g)
     return (t, float(best[1]))
 
@@ -241,14 +253,14 @@ def apply_davidson(params, test, d): return d / params[0]
 # ------------------------------------------------------------------------------------------ scoring
 def scores(d, test) -> dict:
     """Confidence-weighted log-loss / accuracy, AUC, per-type log-loss, reliability-bin sums, and the anchor-far / anchor-near strata of the log-loss and accuracy."""
-    s, w, k = test["sign"], test["weight"], test["k"]; z = s * d; ll = np.logaddexp(0.0, -z); acc = (z > 0).astype(float)
+    d = np.asarray(d, dtype=np.float64); s, w, k = test["sign"], test["weight"], test["k"]; z = s * d; ll = np.logaddexp(0.0, -z); acc = (z > 0).astype(float)
     out = {"ll": float((w * ll).sum() / w.sum()), "acc": float((w * acc).sum() / w.sum()), "auc": float(roc_auc_score(s > 0, d)) if len(set(s)) == 2 else float("nan"), "n": int(len(d))}
     for kk, name in TYPE_NAME.items():
         m = k == kk; out[f"{name}_ll"] = float(ll[m].mean()) if m.any() else float("nan"); out[f"{name}_acc"] = float(acc[m].mean()) if m.any() else float("nan")
     far = test["g_anc_min"] > FAR_THRESHOLD
     for tag, m in (("far", far), ("near", ~far)):
         out[f"{tag}_n"] = int(m.sum()); out[f"{tag}_w"] = float(w[m].sum()); out[f"{tag}_llw"] = float((w[m] * ll[m]).sum()); out[f"{tag}_accw"] = float((w[m] * acc[m]).sum())
-    p = 1 / (1 + np.exp(-d)); conf = np.maximum(p, 1 - p); correct = ((p > .5) == (s > 0)).astype(float); b = np.minimum((conf - .5) / .5 * N_BINS, N_BINS - 1e-9).astype(int)
+    p = 1 / (1 + np.exp(-d)); conf = np.maximum(p, 1 - p); correct = ((p > .5) == (s > 0)).astype(float); b = np.clip(((conf - .5) / .5 * N_BINS).astype(int), 0, N_BINS - 1)
     out["bin_w"] = np.bincount(b, weights=w, minlength=N_BINS); out["bin_conf"] = np.bincount(b, weights=w * conf, minlength=N_BINS); out["bin_acc"] = np.bincount(b, weights=w * correct, minlength=N_BINS)
     return out
 
@@ -266,6 +278,10 @@ def variants(rec: dict, priors: dict | None = None) -> dict:
     oof, test, d = rec["oof"], rec["test"], rec["d"]; out = {"raw": d}
     tg = fit_global_t(oof); out["T_glob"] = d / tg
     for tau in (2.0, 8.0, 32.0): out[f"T_type_tau{tau:g}"] = apply_type_t(fit_type_t(oof, tau), test, d)
+    for tau in (0.5, 2.0): out[f"T_type0_tau{tau:g}"] = apply_type_t(fit_type_t(oof, tau, {k: 1.0 for k in core.TYPE_NAMES}), test, d)
+    if priors and "type" in priors:
+        for tau in (2.0, 8.0): out[f"T_typeprior_tau{tau:g}"] = apply_type_t(fit_type_t(oof, tau, priors["type"]), test, d)
+        out["T_typeprior_fixed"] = apply_type_t(priors["type"], test, d)
     for key in ("lab_min", "anc_min", "dens_max"): out[f"T_conf_{key}"] = apply_conf_t(fit_conf_t(oof, key), test, d, key)
     out["shrink_far"] = apply_shrink_far(fit_shrink_far(oof), test, d)
     out["Davidson"] = apply_davidson(fit_davidson(oof), test, d)
@@ -275,6 +291,4 @@ def variants(rec: dict, priors: dict | None = None) -> dict:
         e = np.mean([d] + list(rec["d_fold_test"]), axis=0); out["CF"] = e; out["CF_T"] = e / tg
     for key in rec:
         if key.startswith("d_ls"): out[key[2:]] = rec[key]; out[key[2:] + "_T"] = rec[key] / tg
-    if priors:   # constants fitted on the development seeds' OOF logits (labelled judgments only): applied unchanged
-        if "T_budget" in priors: out["T_prior"] = d / priors["T_budget"][rec["n_labelled_budget"]]
     return out
