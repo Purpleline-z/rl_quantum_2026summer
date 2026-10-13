@@ -113,6 +113,32 @@ def predict_gcn(ctx, ref, test, gd, transductive: bool, seed: int = 0, epochs: i
         return ((so + out[nb].sum(1)) / (gd.k + 1)).argmax(1).numpy()
 
 
+def _fit_laplr(zr, ry, zn, edges, C: float, gamma: float, iters: int = 80):
+    """Multinomial logistic regression on z-scored features with an extra manifold penalty gamma * mean over graph edges of ||(x_i - x_j) W||^2 (Belkin-style Laplacian regularisation)."""
+    d = zr.shape[1]; W = torch.zeros(d, 4, requires_grad=True); b = torch.zeros(4, requires_grad=True); y = torch.as_tensor(ry); n = len(y)
+    diff = (zn[edges[:, 0]] - zn[edges[:, 1]]) if gamma > 0 else None
+    opt = torch.optim.LBFGS([W, b], lr=1.0, max_iter=iters, line_search_fn="strong_wolfe")
+    def closure():
+        opt.zero_grad(); loss = F.cross_entropy(zr @ W + b, y) + (W ** 2).sum() / (2 * C * n)
+        if gamma > 0: loss = loss + gamma * ((diff @ W) ** 2).sum(1).mean()
+        loss.backward(); return loss
+    opt.step(closure); return W.detach(), b.detach()
+
+
+def predict_laplr(ctx, ref, test, gd, transductive: bool, seed: int = 0, gammas=(0.0, 0.01, 0.1, 1.0)) -> np.ndarray:
+    """Laplacian-regularised logistic regression: C = the logistic-regression C chosen by 5-fold CV on the references; gamma chosen by the same inner CV on the references (graph nodes stay in the penalty).
+    Inductive: the model is a function of the features, test images are not nodes.  Transductive: test images are unlabelled nodes in the smoothness term."""
+    (rp, ry), (tp, _) = ref, test; r = feats(ctx, rp); mu, sd = r.mean(0), r.std(0) + 1e-8; z = lambda x: torch.as_tensor((x - mu) / sd, dtype=torch.float32)
+    zr, zt = z(r), z(feats(ctx, tp)); zn = z(gd.x.numpy().astype(np.float64)); edges = gd.edges
+    folds = max(2, min(5, int(np.bincount(ry).min()))); cv = StratifiedKFold(folds, shuffle=True, random_state=seed)
+    scores = {c: cross_val_score(LogisticRegression(C=c, max_iter=2000), zr.numpy(), ry, cv=cv).mean() for c in C_GRID}; best = max(scores.values()); C = min(k_ for k_, s in scores.items() if s == best)
+    acc = {g: [] for g in gammas}
+    for tr, va in cv.split(zr.numpy(), ry):
+        for g in gammas: W, b = _fit_laplr(zr[tr], ry[tr], zn, edges, C, g); acc[g].append(float(((zr[va] @ W + b).argmax(1).numpy() == ry[va]).mean()))
+    means = {g: np.mean(v) for g, v in acc.items()}; g_best = min(g for g, v in means.items() if v == max(means.values()))
+    W, b = _fit_laplr(zr, ry, zn, edges, C, g_best); return (zt @ W + b).argmax(1).numpy()
+
+
 def accuracy(truth: np.ndarray, pred: np.ndarray) -> dict:
     out = {"acc": float((truth == pred).mean()), "n_test": int(len(truth))}
     for j, c in enumerate(CLASSES): out[f"recall_{j}"] = float((pred[truth == j] == j).mean()) if (truth == j).any() else float("nan")

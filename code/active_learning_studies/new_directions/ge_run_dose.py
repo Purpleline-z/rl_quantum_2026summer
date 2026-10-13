@@ -44,7 +44,7 @@ def variants(ctx):
     for p in FRACTIONS: out[f"all_p{int(p * 100)}"] = ("all", p, False)
     out["all_p10"] = ("all", 0.1, False)   # exploratory extra level
     for p in FRACTIONS[:-1]: out[f"out_p{int(p * 100)}"] = ("out", p, False)
-    out["all_p100_shuf"] = ("all", 1.0, True); out["all_p0_shuf"] = ("all", 0.0, True); return out
+    out["all_p100_shuf"] = ("all", 1.0, True); return out
 
 
 def main():
