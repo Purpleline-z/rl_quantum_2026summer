@@ -87,3 +87,28 @@ def test_harsh_folds_are_disjoint_from_training_and_graph(ctx_b, kind):
         assert test_groups and all(held(gi[g][0]) and held(gi[g][1]) for g in test_groups) and len(ctx.initial_groups) == 10
         train_imgs = {x for g in ctx.initial_groups + ctx.pool_groups for x in gi[g]}; assert not train_imgs & frames
         graph = gh.make_graph(ctx, 10, drop_paths=frames); assert not set(graph.paths) & frames and not {x for g in test_groups for x in gi[g]} & set(graph.paths)
+
+
+@needs_cache
+@pytest.mark.parametrize("kind", ["temp3", "late"])
+def test_exploratory_folds_are_disjoint_from_training_and_graph(kind):
+    import ge_harsh as hh, ge_heads as gh
+    with tempfile.TemporaryDirectory() as scratch: probe = core.make_ctx(8401, "A", scratch, core.feature_cache())
+    for i, (name, held) in enumerate(hh.folds_of(probe, kind)):
+        with tempfile.TemporaryDirectory() as scratch: ctx = core.make_ctx(8401, "A", scratch, core.feature_cache())
+        test_groups, frames = hh.make_fold(ctx, held, i); gi = hh.group_images(ctx)
+        assert test_groups and not {x for g in ctx.initial_groups + ctx.pool_groups for x in gi[g]} & frames
+        assert not set(gh.make_graph(ctx, 10, drop_paths=frames).paths) & frames
+
+
+@needs_cache
+def test_keep_heldout_pair_images_flag_adds_the_test_images_as_nodes(ctx_b):
+    import ge_heads as gh
+    held = {str(x) for g in list(ctx_b.validation) + list(ctx_b.test) for r in ctx_b.exp.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}
+    assert not held & set(gh.make_graph(ctx_b, 10).paths) and held <= set(gh.make_graph(ctx_b, 10, keep_heldout_pair_images=True).paths)
+
+
+def test_class_family_and_arm_helpers_on_synthetic_frames():
+    import ge_report as gr
+    rows = [{"seed": s, "method": m, "protocol": p, "budget": b, "draw": 0, "acc": a + .001 * s, **{f"recall_{j}": .5 for j in range(4)}} for s in range(10) for (m, p, b, a) in (("nn", "none", -1, .85), ("logreg", "none", -1, .9), ("laplr", "inductive", -1, .88), ("laplr", "transductive", -1, .86), ("sgc", "inductive", -1, .8), ("sgc", "transductive", -1, .81), ("lap3_ref", "inductive", 60, .75))]
+    t = gr.class_family(pd.DataFrame(rows), gr.REFS["nn"]); assert len(t) == 5 and t["diff"].iloc[0] == pytest.approx(.03) and t["diff"].iloc[4] < 0 and (t.holm.dropna() <= 1).all()

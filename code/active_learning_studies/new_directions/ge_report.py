@@ -172,6 +172,11 @@ def exploratory_tables(bootstrap: bool = True) -> str:
     if (R / "dev_traj").exists() and list((R / "dev_traj").glob("seed*.json")):
         f = ga.load(R / "dev_traj"); c = f[f.endpoint == "class"]; p = f[f.endpoint == "pref"]
         out += "### Trajectory-only graph (no ideal-image nodes) vs the full graph (dev seeds): classification accuracy (lap3 variants minus aw8_ref) and preference endpoint (minus aw8_all)\n\n" + ga.md(ga.arm_gains(c, ["endpoint"], "arm", "aw8_ref", metrics=("acc",))) + "\n" + ga.md(ga.arm_gains(p, ["split"], "arm", "aw8_all")) + "\n"
+    if (R / "dev_late").exists() and list((R / "dev_late").glob("seed*_*.json")):
+        f = ga.load(R / "dev_late", "seed*_*.json"); out += "### Forward-in-time split: the last third (by frame index) of every growth run held out (dev seeds; 25 test groups, 36 decisive judgments)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n" + ga.md(ga.arm_vs(f, ["kind"], "arm", "lap3", "lap3_shuf")) + "\n"
+        if bootstrap:
+            b = bootstrap_gain(R / "dev_late", "late", "lap3", "base")
+            if b: out += "Test-group bootstrap of the lap3 − aw8_all gain: " + "; ".join(f"{m}: {b[m][0]:+.3f} [{b[m][1]:+.3f}, {b[m][2]:+.3f}]" for m in ("auc", "acc")) + f" ({b['n_groups']} test groups, {b['n_judgments']} judgments)\n\n"
     if (R / "dev_k").exists() and list((R / "dev_k").glob("seed*_*.json")):
         f = ga.load(R / "dev_k", "seed*_*.json"); out += "### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
     import ge_htr

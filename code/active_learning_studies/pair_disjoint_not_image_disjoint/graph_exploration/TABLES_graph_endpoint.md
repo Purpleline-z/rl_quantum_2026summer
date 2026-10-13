@@ -473,6 +473,24 @@ Test-group bootstrap of the lap3 − aw8_all gain (all three bands pooled): auc:
 | B | lap3_trajonly | auc | 20 | +0.003 | 0.650 | 0.202 |
 | B | lap3_trajonly | acc | 20 | +0.004 | 0.550 | 0.376 |
 
+### Forward-in-time split: the last third (by frame index) of every growth run held out (dev seeds; 25 test groups, 36 decisive judgments)
+
+| kind | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| late | lap3 | auc | 20 | +0.013 | 0.850 | 7.78e-04 |
+| late | lap3 | acc | 20 | -0.001 | 0.500 | 0.663 |
+| late | lap3_n3 | auc | 20 | +0.032 | 1.000 | 8.81e-05 |
+| late | lap3_n3 | acc | 20 | -0.001 | 0.500 | 0.984 |
+| late | lap3_shuf | auc | 20 | +0.052 | 1.000 | 8.83e-05 |
+| late | lap3_shuf | acc | 20 | -0.042 | 0.150 | 1.34e-04 |
+
+| kind | arm | metric | n_seeds | diff | p_uncorrected |
+|---|---|---|---|---|---|
+| late | lap3 - lap3_shuf | auc | 20 | -0.039 | 1.91e-06 |
+| late | lap3 - lap3_shuf | acc | 20 | +0.040 | 3.38e-04 |
+
+Test-group bootstrap of the lap3 − aw8_all gain: auc: +0.013 [-0.024, +0.063]; acc: -0.001 [-0.011, +0.009] (17 test groups, 36 judgments)
+
 ### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all
 
 | kind | arm | metric | n_seeds | gain | share_better | p |
