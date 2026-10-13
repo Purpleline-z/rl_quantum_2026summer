@@ -34,6 +34,10 @@ def folds_of(ctx, kind: str):
     if kind == "run": return [(f"run:{r}", (lambda x, r=r: (meta(x) or {}).get("run") == r)) for r in sorted({v["run"] for v in m.values()})]
     if kind == "temp":
         cut = float(np.quantile([v["temp"] for v in m.values()], 2 / 3)); return [(f"temp>={cut:.0f}", lambda x, cut=cut: (meta(x) or {}).get("temp", -1) >= cut)]
+    if kind == "temp3":   # exploratory: all three temperature terciles in turn (more test groups than the top tercile alone)
+        q1, q2 = (float(v) for v in np.quantile([v["temp"] for v in m.values()], [1 / 3, 2 / 3]))
+        bands = [("temp<%.0f" % q1, lambda x, q1=q1: (meta(x) or {}).get("temp", 1e9) < q1), ("temp mid", lambda x, q1=q1, q2=q2: q1 <= (meta(x) or {}).get("temp", -1) < q2), ("temp>=%.0f" % q2, lambda x, q2=q2: (meta(x) or {}).get("temp", -1) >= q2)]
+        return bands
     raise ValueError(kind)
 
 

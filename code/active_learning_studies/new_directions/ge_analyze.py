@@ -79,9 +79,10 @@ def dose_table(gains: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def dose_trend(gains: pd.DataFrame, series: str, metric: str) -> pd.DataFrame:
+def dose_trend(gains: pd.DataFrame, series: str, metric: str, drop_zero: bool = False) -> pd.DataFrame:
     """Per split: slope of gain on fraction p (series 'all' uses all_p0..all_p100; 'out' uses out_p0, out_p25, out_p50 and all_p100); Wilcoxon of the per-seed slopes; pooled Spearman (descriptive)."""
     names = {"all": [f"all_p{p}" for p in (0, 25, 50, 100)], "out": ["out_p0", "out_p25", "out_p50", "all_p100"]}[series]; fr = np.array([0, .25, .5, 1.0]); rows = []
+    if drop_zero and series == "all": names = ["all_p10", "all_p25", "all_p50", "all_p100"]; fr = np.array([.1, .25, .5, 1.0])
     for split, g in gains.groupby("split"):
         piv = g.pivot(index="seed", columns="variant", values=metric)
         if not set(names) <= set(piv.columns): continue

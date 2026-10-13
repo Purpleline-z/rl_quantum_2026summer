@@ -47,13 +47,13 @@ def dose_block(name: str, title: str):
     path = R / f"{name}_dose"
     if not path.exists() or not list(path.glob("seed*_*.json")): return f"### {title}\n\n(not run yet)\n\n", None
     f = ga.load(path, "seed*_*.json"); g = ga.dose_gains(f); tr = pd.concat([ga.dose_trend(g, "all", "auc"), ga.dose_trend(g, "all", "acc")]); hp = ga.holm(dict(enumerate(tr.p))); tr["holm"] = [hp[i] for i in range(len(tr))]
-    out = ga.dose_trend(g, "out", "auc"), ga.dose_trend(g, "out", "acc"); levels = ga.dose_table(g)
+    out = ga.dose_trend(g, "out", "auc"), ga.dose_trend(g, "out", "acc"); ex = pd.concat([ga.dose_trend(g, "all", m, drop_zero=True) for m in ("auc", "acc")]); levels = ga.dose_table(g)
     plateau = []
     for split, gg in g.groupby("split"):
         piv = {m: gg.pivot(index="seed", columns="variant", values=m) for m in ("auc", "acc")}
         for m in ("auc", "acc"):
             d = (piv[m]["all_p100"] - piv[m]["all_p25"]).dropna(); plateau.append({"split": split, "metric": m, "n_seeds": len(d), "diff_p100_minus_p25": float(d.mean()), "p_uncorrected": ga.wil(d)})
-    text = f"### {title}\n\nseeds: {f.seed.nunique()}; gains = `lap3_k10` with the given node set minus `aw8_all` (mean over budgets and draws).\n\n**Gain at every level**\n\n" + ga.md(levels) + "\n**Pre-registered trend tests, series 'all' (Holm over 4)**\n\n" + ga.md(tr) + "\n**Plateau check: gain(100%) − gain(25%) (uncorrected)**\n\n" + ga.md(pd.DataFrame(plateau)) + "\n**Series 'out' (descriptive)**\n\n" + ga.md(pd.concat(out)) + "\n"
+    text = f"### {title}\n\nseeds: {f.seed.nunique()}; gains = `lap3_k10` with the given node set minus `aw8_all` (mean over budgets and draws).\n\n**Gain at every level**\n\n" + ga.md(levels) + "\n**Pre-registered trend tests, series 'all' (Holm over 4)**\n\n" + ga.md(tr) + "\n**Plateau check: gain(100%) − gain(25%) (uncorrected)**\n\n" + ga.md(pd.DataFrame(plateau)) + "\n**Exploratory: trend over the levels 10%, 25%, 50%, 100% only (p = 0 dropped; uncorrected)**\n\n" + ga.md(ex) + "\n**Series 'out' (descriptive)**\n\n" + ga.md(pd.concat(out)) + "\n"
     return text, {"trend": tr}
 
 
