@@ -139,7 +139,21 @@ def _record_quality(ctx, name: str, stats: dict) -> None:
     if name not in cur: cur[name] = stats; f.write_text(json.dumps(cur))
 
 
-_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac")
+_KEYS = ("construct", "k", "feat", "whiten", "noise", "deg", "b", "snn_k", "place", "shuffle", "lda", "r0", "frac", "purify")
+
+
+def purify_edges(base: G.GraphData, edges: torch.Tensor, w: torch.Tensor, add_same_class: int = 0):
+    """Learner-side graph cleaning with the class labels of the ideal ANCHORS (known training labels; outer-test ideals are not nodes): cut every edge between two ideal images of different classes;
+    optionally add edges from each ideal image to its `add_same_class` nearest same-class ideal images.  Raises the ideal-ideal same-class share to 1 BY CONSTRUCTION (so this quality number is circular)."""
+    src = base.source_class; cls = torch.full((len(base.paths),), -1, dtype=torch.long)
+    for i, c in src.items(): cls[i] = c
+    ci, cj = cls[edges[:, 0]], cls[edges[:, 1]]; keep = ~((ci >= 0) & (cj >= 0) & (ci != cj)); edges, w = edges[keep], w[keep]
+    if add_same_class > 0:
+        idx = torch.as_tensor(sorted(src)); x = base.xn[idx]; sim = x @ x.T; sim.fill_diagonal_(-2.0); sim[cls[idx][:, None] != cls[idx][None, :]] = -2.0
+        k = min(add_same_class, len(idx) - 1); nb = sim.topk(k, dim=1); a = idx[:, None].expand(-1, k).reshape(-1); b = idx[nb.indices.reshape(-1)]; ok = nb.values.reshape(-1) > -1.5
+        a, b = a[ok], b[ok]; lo, hi = torch.minimum(a, b), torch.maximum(a, b); n = len(base.paths); both = torch.unique(torch.cat([edges[:, 0] * n + edges[:, 1], lo * n + hi]))
+        new = torch.stack([both // n, both % n], 1); wn = torch.ones(len(new)); return new, wn
+    return edges, w
 
 
 def gm_graph(ctx, name: str, spec: dict):
@@ -147,6 +161,7 @@ def gm_graph(ctx, name: str, spec: dict):
     if key not in cache:
         base = G.graph_for(ctx, 10); edges, w = build_edges(base, spec); edges, w = filter_edges(base, edges, w, spec.get("place", "all"))
         if spec.get("shuffle"): edges = shuffle_edges(edges, len(base.paths), ctx.seed)
+        if spec.get("purify"): edges, w = purify_edges(base, edges, w, add_same_class=int(spec["purify"]) - 1)
         cache[key] = (base, edges, w)
     base, edges, w = cache[key]; _record_quality(ctx, spec.get("quality_name", name), graph_quality(base, edges, w)); return base, edges, w
 
@@ -274,3 +289,6 @@ def hidden_graph_learner(name: str, union: bool = False, **spec):
 
 
 LEARNERS["gm10_hid"] = hidden_graph_learner("gm10_hid", lap=10); LEARNERS["gm10_hid_union"] = hidden_graph_learner("gm10_hid_union", union=True, lap=10); LEARNERS["gmc10_hid"] = hidden_graph_learner("gmc10_hid", lap=10, type_w={3: 0.0})
+
+# ---- round 12 (causal check in the UPWARD direction): cut cross-class ideal-ideal edges (and optionally add same-class ideal edges) using the anchors' class labels
+_reg("gm10_pur", lap=10, purify=1); _reg("gm10_pur_add", lap=10, purify=6); _reg("gmc10_pur", lap=10, purify=1, type_w={3: 0.0})
