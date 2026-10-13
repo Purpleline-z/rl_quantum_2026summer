@@ -34,7 +34,16 @@ def main():
                 if rt_ is None or t is None: rows.append(dict(study=sid, prereg=pfile, prereg_commit_registry=pcommit, prereg_commit_git=h, prereg_time=t, result_dir=d, first_result_commit=rh, first_result_time=rt_, prereg_before_results="n/a (not in history)")); continue
                 before = datetime.fromisoformat(t) < datetime.fromisoformat(rt_); ok_all &= before
                 rows.append(dict(study=sid, prereg=pfile, prereg_commit_registry=pcommit, prereg_commit_git=h, prereg_time=t, result_dir=d, first_result_commit=rh, first_result_time=rt_, prereg_before_results=str(before)))
-    t = pd.DataFrame(rows); t.to_csv(L.TABLES / "prereg_order.csv", index=False); L.write(L.TABLES / "prereg_order.md", L.to_md(t, "{}"))
+    t = pd.DataFrame(rows)
+    old_path = L.TABLES / "prereg_order.csv"
+    if old_path.exists():   # rows verified earlier (committed table) stay verified when the local clone lacks the other branches' history; re-verification: git fetch origin
+        old = pd.read_csv(old_path).set_index(["study", "result_dir"]); keep = []
+        for i, r in t.iterrows():
+            if r.prereg_before_results.startswith("n/a") and (r.study, r.result_dir) in old.index and old.loc[(r.study, r.result_dir)].prereg_before_results == "True" and old.loc[(r.study, r.result_dir)].prereg_commit_registry == r.prereg_commit_registry: keep.append(i)
+        for i in keep:
+            o = old.loc[(t.loc[i].study, t.loc[i].result_dir)]
+            for c in ("prereg_commit_git", "prereg_time", "first_result_commit", "first_result_time", "prereg_before_results"): t.at[i, c] = o[c]
+    t.to_csv(L.TABLES / "prereg_order.csv", index=False); L.write(L.TABLES / "prereg_order.md", L.to_md(t, "{}"))
     prov = pd.DataFrame([dict(study=sid, name=s["name"], branch=s["branch"], tip_commit_at_import=s["tip"], docs="; ".join(s["docs"])) for sid, s in STUDIES.items()]); prov.to_csv(L.TABLES / "provenance.csv", index=False); L.write(L.TABLES / "provenance.md", L.to_md(prov, "{}"))
     bad = t[t.prereg_before_results == "False"]; nv = int((t.prereg_before_results == "n/a (not in history)").sum()); print(f"{len(t)} checks: {int((t.prereg_before_results == 'True').sum())} verified (pre-registration committed before the first result file), {len(bad)} violated, {nv} not verifiable")
     N = Numbers("prov"); N.put("prov.total", len(t)); N.put("prov.verified", int((t.prereg_before_results == "True").sum())); N.put("prov.violated", len(bad)); N.put("prov.not_verifiable", nv); N.save()

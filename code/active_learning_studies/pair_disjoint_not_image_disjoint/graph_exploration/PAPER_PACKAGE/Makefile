@@ -34,4 +34,5 @@ test: tables
 	$(PY) -m unittest discover -s tests
 
 clean:
-	rm -f tables/* figures/*.png figures/*.pdf build/* ABSTRACT_EN.md ADVISOR_SUMMARY_ZH.md
+	find tables -type f ! -name 'prereg_order.*' ! -name 'numbers_prov.json' -delete   # the verified pre-registration order is kept (needs git history of all branches to recompute)
+	rm -f figures/*.png figures/*.pdf build/* ABSTRACT_EN.md ADVISOR_SUMMARY_ZH.md
