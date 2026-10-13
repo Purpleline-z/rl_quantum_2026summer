@@ -92,8 +92,12 @@ Gain = mean over seeds of the per-seed mean (over budgets 10/20/40/60 and 3 rand
 | rt/a1 | 8800-8819 | 20 | 0 | red team: per-judgment scores of 4 learners (novelty columns) |
 | rt/a1b | 8800-8819 | 20 | 0 | red team: distance of each held-out judgment to the nearest typed anchor |
 | rt/a1c | 8800-8819 | 20 | 0 | red team: per-judgment scores baseline / aw8 / aw8_all (anchor-weight check) |
+| rt/a2 | 8800-8803 | 4 | 3 |  |
 | rt/a3 | 8800-8819 | 20 | 5 | red team: time-blocked evaluation |
-| rt/c_a1 | 8850-8877 | 28 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/a9 | 8800-8803 | 4 | 5 |  |
+| rt/c_a1 | 8850-8884 | 35 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/c_a1b | 8850-8884 | 35 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/c_a3 | 8850-8853 | 4 | 3 | red team: pre-registered confirmation (RT1) |
 | screen1 | 2000-2019 | 20 | 7 | new-directions development screen (seeds 2000-2019) |
 | screen10 | 2000-2011 | 12 | 6 | new-directions development screen (seeds 2000-2019) |
 | screen11_mix | 2000-2019 | 20 | 5 | new-directions development screen (seeds 2000-2019) |
@@ -164,10 +168,10 @@ Gain = mean over seeds of the per-seed mean (over budgets 10/20/40/60 and 3 rand
 | SH | selection x Laplacian learner x HTR (lap3_k10_st4) | claude/selection-htr-20261013 | c5074019b | graph_exploration/RESULTS_selection_htr.md; graph_exploration/SUMMARY_ZH_selection_htr.md |
 | GM | graph mechanism (graph quality, RT13 off) | claude/graph-mechanism-20261013 | facb44765 | graph_exploration/RESULTS_graph_mechanism.md; graph_exploration/SUMMARY_ZH_graph_mechanism.md |
 | GE | graph endpoint (classification, unlabelled dose, harsh splits) | claude/graph-endpoint-1013 | ab06e78ab | graph_exploration/RESULTS_graph_endpoint.md; graph_exploration/SUMMARY_ZH_graph_endpoint.md |
-| RT | red team (anchor proximity, novelty, de-duplication, time blocks, re-implementation) | claude/redteam-20261013 | 7bc38b214 | graph_exploration/PREREGISTRATION_RT1.md; graph_exploration/results_narrative_redteam.md |
+| RT | red team (anchor proximity, novelty, de-duplication, time blocks, re-implementation) | claude/redteam-20261013 | 94623deb3 | graph_exploration/PREREGISTRATION_RT1.md; graph_exploration/results_narrative_redteam.md |
 
 
-The result trees of `claude/graph-mechanism-20261013` and `claude/graph-endpoint-1013` (and the red-team, selection-htr, graph-learner and new-directions trees already contained in the base branch) are copied in unchanged; `sync_branches.sh` refreshes them from the branches (the red team's confirmation block 8850–8884 is still being written there; `pp_strata.py` includes it automatically once all 70 files of `rt/c_a1` and `rt/c_a1b` exist; `pp_registry.py` has the tip commits).
+The result trees of `claude/graph-mechanism-20261013` and `claude/graph-endpoint-1013` (and the red-team, selection-htr, graph-learner and new-directions trees already contained in the base branch) are copied in unchanged; `sync_branches.sh` refreshes them from the branches (the red team's confirmation block 8850–8884: its per-judgment files `rt/c_a1` and `rt/c_a1b` were complete and are analysed by `pp_strata.py`, which requires all 70 files of each; `rt/c_a2` and `rt/c_a3` were still being written; `pp_registry.py` has the tip commits).
 
 ## Not included (yet)
-Branches that had no result files when this package was built: `claude/representation-20261013`, `claude/anchor-exchange-1013`, `claude/temporal-graph-20261013`; the red team's confirmation block; per-judgment (anchor-far) versions of the standard confirmations (not stored; see `GPU_TASKS_paper_package.md`). The earlier line of work (judgment-unit protocol, selection under the old head, graph selection rules) appears only as *documented-only* rows in the claims appendix.
+Branches that had no result files when this package was built: `claude/representation-20261013`, `claude/anchor-exchange-1013`, `claude/temporal-graph-20261013`; the red team's `rt/c_a2` / `rt/c_a3` confirmations and its RT1 verdicts (its Holm family spans all four evaluations); per-judgment (anchor-far) versions of the standard confirmations of the other branches (not stored; see `GPU_TASKS_paper_package.md`). The earlier line of work (judgment-unit protocol, selection under the old head, graph selection rules) appears only as *documented-only* rows in the claims appendix.

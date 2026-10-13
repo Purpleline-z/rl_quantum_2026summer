@@ -58,8 +58,12 @@
 | rt/a1 | 8800-8819 | 20 | 0 | red team: per-judgment scores of 4 learners (novelty columns) |
 | rt/a1b | 8800-8819 | 20 | 0 | red team: distance of each held-out judgment to the nearest typed anchor |
 | rt/a1c | 8800-8819 | 20 | 0 | red team: per-judgment scores baseline / aw8 / aw8_all (anchor-weight check) |
+| rt/a2 | 8800-8803 | 4 | 3 |  |
 | rt/a3 | 8800-8819 | 20 | 5 | red team: time-blocked evaluation |
-| rt/c_a1 | 8850-8877 | 28 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/a9 | 8800-8803 | 4 | 5 |  |
+| rt/c_a1 | 8850-8884 | 35 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/c_a1b | 8850-8884 | 35 | 0 | red team: pre-registered confirmation (RT1) |
+| rt/c_a3 | 8850-8853 | 4 | 3 | red team: pre-registered confirmation (RT1) |
 | screen1 | 2000-2019 | 20 | 7 | new-directions development screen (seeds 2000-2019) |
 | screen10 | 2000-2011 | 12 | 6 | new-directions development screen (seeds 2000-2019) |
 | screen11_mix | 2000-2019 | 20 | 5 | new-directions development screen (seeds 2000-2019) |

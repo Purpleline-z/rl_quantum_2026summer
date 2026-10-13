@@ -53,7 +53,7 @@ def main():
     N = Numbers("strata"); out = []
     sources = [("development (rt 8800-8819)", "a1", "a1b", PAIRS["a1"]), ("development (rt 8800-8819)", "a1c", "a1b", PAIRS["a1c"])]
     complete = lambda d, pat: len(glob.glob(str(RES / "rt" / d / pat))) == 70      # 35 seeds x splits A, B; a partially finished red-team confirmation is NOT analysed
-    if complete("c_a1", "seed*.csv.gz") and complete("c_a1b", "seed*.csv"): sources += [("confirmation (rt 8850-8884)", "c_a1", "c_a1b", PAIRS["a1"])]
+    if complete("c_a1", "seed*.csv.gz") and complete("c_a1b", "seed*.csv"): sources += [("confirmation (rt 8850-8884)", "c_a1", "c_a1b", PAIRS["a1"] + [("aw8_all", "baseline")])]
     else: print("red-team confirmation block (rt/c_a1, rt/c_a1b) not complete: not included")
     for src, a1, a1b, pairs in sources:
         df = load_csvs(f"rt/{a1}", "seed*.csv.gz"); b = load_csvs(f"rt/{a1b}", "seed*.csv")

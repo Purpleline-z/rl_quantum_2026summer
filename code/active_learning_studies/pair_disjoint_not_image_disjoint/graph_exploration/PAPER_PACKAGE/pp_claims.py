@@ -67,14 +67,20 @@ def verdict_of(exp, claim):
 
 
 def far_cell(cand, ref, stratum="far>0.03"):
-    x = STR[(STR.source.str.startswith("dev")) & (STR.cand == cand) & (STR.ref == ref) & (STR.stratum == stratum) & (STR.metric == "auc")]
-    if not len(x): return "not evaluated", "n/a"
-    rows = {r.split: r for r in x.itertuples()}; txt = " / ".join(L.fmt_gain(rows[s].gain, rows[s].lo, rows[s].hi) for s in ("A", "B"))
-    if all(r.lo > 0 for r in rows.values()): tag = "gain kept (CI>0 in A and B)"
-    elif all(r.gain > 0 for r in rows.values()): tag = "point estimates >0, CI includes 0"
-    elif all(r.hi < 0 for r in rows.values()): tag = "gain absent (negative)"
-    else: tag = "not resolved / absent"
-    return txt, tag
+    """ΔAUC in a stratum, split A / B: the red-team CONFIRMATION block (35 seeds) when it exists, plus the development block (20 seeds); the tag is derived from the confirmation block when present."""
+    out, tag = {}, "n/a"
+    for key, prefix in (("conf", "conf"), ("dev", "dev")):
+        x = STR[(STR.source.str.startswith(prefix)) & (STR.cand == cand) & (STR.ref == ref) & (STR.stratum == stratum) & (STR.metric == "auc")]
+        if not len(x): continue
+        rows = {r.split: r for r in x.itertuples()}; out[key] = " / ".join(L.fmt_gain(rows[s].gain, rows[s].lo, rows[s].hi) for s in ("A", "B"))
+        if tag == "n/a":
+            if all(r.lo > 0 for r in rows.values()): tag = "gain kept (CI>0 in A and B)"
+            elif all(r.gain > 0 for r in rows.values()): tag = "point estimates >0, CI includes 0 in at least one split"
+            elif all(r.hi < 0 for r in rows.values()): tag = "gain absent (negative)"
+            else: tag = "not resolved / absent"
+            tag += f" [{key}]"
+    if not out: return "not evaluated", "n/a"
+    return "; ".join(f"{k}: {v}" for k, v in out.items()), tag
 
 
 def near_cell(cand, ref):
@@ -228,15 +234,24 @@ def build():
             BLOCK["SH1L"] + "; " + BLOCK["SH2L"] + "; " + BLOCK["SHCL"], "HTR acc: " + cell(e, "htr_acc"), "HTR ll: " + cell(e, "htr_ll"), ("not evaluated", "n/a"), "HTR acc A/B: " + repl_text([(x, f"lap3_k10_st4 - {ref}", f"htr:{ref}") for x in ("SH2L", "SHCL")], "htr_acc"), evidence(["SH1L"], "(PREREGISTRATION_SH1/SH2)"), kind="htr")
 
     # ------------------------------------------------------------------------------------------------ red team / limits
-    far, tag = far_cell("lap3_k10_st4", "aw8_all_st2lr0.5"); near = near_cell("lap3_k10_st4", "aw8_all_st2lr0.5")
-    for s in ("A", "B"):
-        for st in ("near<=0.001", "far>0.03", "far>0.01 (red-team threshold)", "all"):
-            r = STR[(STR.source.str.startswith("dev")) & (STR.cand == "lap3_k10_st4") & (STR.ref == "aw8_all_st2lr0.5") & (STR.split == s) & (STR.stratum == st) & (STR.metric == "auc")].iloc[0]
-            for f_ in ("gain", "lo", "hi"): N.put(f"cl.R1.{s}.{st}.{f_}", float(r[f_]))
-    allc = lambda cand, ref: " / ".join(L.fmt_gain(*(STR[(STR.source.str.startswith("dev")) & (STR.cand == cand) & (STR.ref == ref) & (STR.split == s) & (STR.stratum == "all") & (STR.metric == "auc")][["gain", "lo", "hi"]].iloc[0])) for s in ("A", "B"))
-    add("R1", "limits", "The learner gain over the graph-free control is concentrated in judgments with an image that is a (near-)copy of a typed anchor (accuracy column shows the anchor-NEAR stratum <= 0.001, ΔAUC; the AUC column is the all-judgments ΔAUC of these 20 seeds)", "AUDIT (red-team development, 20 seeds): not a confirmation", "RT dev 8800-8819 (20 seeds); RT1 confirmation block 8850-8884 used automatically if its files exist (see strata.csv)", allc("lap3_k10_st4", "aw8_all_st2lr0.5"), "near<=0.001: " + near, (far, tag), "", evidence(["RT"], "(rt/a1, a1b)"), kind="audit")
+    def strata_row(src, cand, ref, s, st, m="auc"):
+        return STR[(STR.source.str.startswith(src)) & (STR.cand == cand) & (STR.ref == ref) & (STR.split == s) & (STR.stratum == st) & (STR.metric == m)].iloc[0]
+    have_conf = bool((STR.source.str.startswith("conf")).any()); src = "conf" if have_conf else "dev"
+    for srcn in (["dev", "conf"] if have_conf else ["dev"]):
+        for s in ("A", "B"):
+            for st in ("near<=0.001", "0.001-0.01", "0.01-0.03", "far>0.03", "far>0.01 (red-team threshold)", "all"):
+                for m in ("auc", "acc"):
+                    r = strata_row(srcn, "lap3_k10_st4", "aw8_all_st2lr0.5", s, st, m)
+                    for f_ in ("gain", "lo", "hi"): N.put(f"cl.R1.{srcn}.{s}.{st}.{m}.{f_}", float(r[f_]))
+    allc = lambda cand, ref: " / ".join(L.fmt_gain(*(strata_row(src, cand, ref, s, "all", "auc")[["gain", "lo", "hi"]])) for s in ("A", "B"))
+    far, tag = far_cell("lap3_k10_st4", "aw8_all_st2lr0.5")
+    acc_far = " / ".join(L.fmt_gain(strata_row(src, "lap3_k10_st4", "aw8_all_st2lr0.5", s, "far>0.03", "acc").gain) for s in ("A", "B")); auc_01 = " / ".join(L.fmt_gain(strata_row(src, "lap3_k10_st4", "aw8_all_st2lr0.5", s, "far>0.01 (red-team threshold)", "auc").gain) for s in ("A", "B"))
+    add("R1", "limits", "Where the gain of lap3_k10_st4 over the tuned graph-free control lives, by distance of the judgment's closer image to the nearest typed anchor: strong in anchor-NEAR judgments (<= 0.001; accuracy column shows that stratum's ΔAUC), present again in anchor-FAR judgments (> 0.03; 'both images farther than 0.03 from every anchor'), absent in the intermediate bands (0.001 to 0.03); with the red team's own far threshold 0.01 the far stratum shows about 0 AUC gain",
+        "AUDIT on the red team's data: " + ("confirmation block (35 unused seeds, RT1) + " if have_conf else "") + "development block (20 seeds). The 0.03 stratum is this package's secondary endpoint; RT1's frozen 'far' rule uses 0.01 and its verdict is the red team's to report", ("RT confirmation 8850-8884 (35 seeds); " if have_conf else "") + "RT dev 8800-8819 (20 seeds)", allc("lap3_k10_st4", "aw8_all_st2lr0.5"),
+        "near<=0.001 ΔAUC: " + " / ".join(L.fmt_gain(strata_row(src, "lap3_k10_st4", "aw8_all_st2lr0.5", s, "near<=0.001").gain, strata_row(src, "lap3_k10_st4", "aw8_all_st2lr0.5", s, "near<=0.001").lo, strata_row(src, "lap3_k10_st4", "aw8_all_st2lr0.5", s, "near<=0.001").hi) for s in ("A", "B")), (far, tag),
+        f"far>0.03 Δaccuracy {acc_far}; far>0.01 (red-team threshold) ΔAUC {auc_01}", evidence(["RT"], "(rt/c_a1, c_a1b, a1, a1b)"), kind="audit")
     far2, tag2 = far_cell("aw8_all", "baseline")
-    add("R2", "limits", "The anchor-weight gain (aw8_all vs default head) is NOT an anchor-copy artefact: it is as large or larger in anchor-far judgments (accuracy column shows the anchor-NEAR stratum ΔAUC)", "AUDIT (red-team development, 20 seeds): not a confirmation", "RT dev 8800-8819, budgets 20/40, 2 draws", allc("aw8_all", "baseline"), "near<=0.001: " + near_cell("aw8_all", "baseline"), (far2, tag2), "", evidence(["RT"], "(rt/a1c, a1b)"), kind="audit")
+    add("R2", "limits", "The anchor-weight gain (aw8_all vs default head) is NOT an anchor-copy artefact: it is as large in anchor-far judgments as anywhere (accuracy column shows the anchor-NEAR ΔAUC)", "AUDIT on the red team's data (" + ("confirmation + " if have_conf else "") + "development block)", ("RT confirmation 8850-8884 (35 seeds); " if have_conf else "") + "RT dev 8800-8819 (20 seeds; budgets 20/40, 2 draws)", allc("aw8_all", "baseline"), "near<=0.001: " + near_cell("aw8_all", "baseline"), (far2, tag2), "", evidence(["RT"], "(rt/c_a1, a1c, a1b)"), kind="audit")
     rx = pd.read_csv(L.TABLES / "redteam_extra.csv") if (L.TABLES / "redteam_extra.csv").exists() and (L.TABLES / "redteam_extra.csv").stat().st_size > 5 else pd.DataFrame()
     if len(rx[rx.audit == "a3"]) if len(rx) else 0:
         g = lambda ref, m, f_: float(rx[(rx.audit == "a3") & (rx.cand == "lap3_k10_st4") & (rx.ref == ref) & (rx.group == "blocked") & (rx.metric == m)][f_].iloc[0])

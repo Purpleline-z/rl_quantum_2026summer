@@ -2,14 +2,14 @@
 
 | ID | Claim | Status | ΔAUC A / B | Δacc A / B | Anchor-far ΔAUC A / B |
 |---|---|---|---|---|---|
-| L1 | aw8 (anchor weight 0.25 -> 8) beats the default head | CONFIRMED + replicated | +0.012 / +0.019 | +0.019 / +0.023 | +0.050 / +0.015 |
-| L2 | aw8_all (all ideal images as anchors) beats the default head | CONFIRMED | +0.020 / +0.023 | +0.026 / +0.030 | +0.044 / +0.035 |
-| L2b | aw8_all vs aw8 | DESCRIPTIVE | +0.007 / +0.009 | +0.009 / +0.009 | -0.006 / +0.020 |
-| L3 | Laplacian kNN-graph regulariser (lap3_k10) beats aw8_all | CONFIRMED + replicated | +0.015 / +0.014 | +0.014 / +0.013 | +0.016 / +0.016 |
-| L4 | 4x training steps (lap3_k10_st4) beats lap3_k10 | CONFIRMED + replicated | +0.010 / +0.007 | +0.013 / +0.014 | -0.006 / +0.005 |
-| L5 | BEST: lap3_k10_st4 beats the tuned graph-free control | CONFIRMED + replicated | +0.021 / +0.016 | +0.023 / +0.020 | +0.016 / +0.021 |
-| L6 | whole recipe (lap3_k10_st4) vs aw8_all | DESCRIPTIVE | +0.027 / +0.022 | +0.031 / +0.022 | +0.009 / +0.020 |
-| L7 | graph-free schedule tuning alone vs aw8_all | DESCRIPTIVE | +0.006 / +0.006 | +0.008 / +0.003 | -0.007 / -0.001 |
+| L1 | aw8 (anchor weight 0.25 -> 8) beats the default head | CONFIRMED + replicated | +0.012 / +0.019 | +0.019 / +0.023 | dev: +0.050 / +0.015 |
+| L2 | aw8_all (all ideal images as anchors) beats the default head | CONFIRMED | +0.020 / +0.023 | +0.026 / +0.030 | conf: +0.020 / +0.034; dev: +0.044 / +0.035 |
+| L2b | aw8_all vs aw8 | DESCRIPTIVE | +0.007 / +0.009 | +0.009 / +0.009 | dev: -0.006 / +0.020 |
+| L3 | Laplacian kNN-graph regulariser (lap3_k10) beats aw8_all | CONFIRMED + replicated | +0.015 / +0.014 | +0.014 / +0.013 | conf: +0.013 / +0.027; dev: +0.016 / +0.016 |
+| L4 | 4x training steps (lap3_k10_st4) beats lap3_k10 | CONFIRMED + replicated | +0.010 / +0.007 | +0.013 / +0.014 | conf: +0.012 / -0.001; dev: -0.006 / +0.005 |
+| L5 | BEST: lap3_k10_st4 beats the tuned graph-free control | CONFIRMED + replicated | +0.021 / +0.016 | +0.023 / +0.020 | conf: +0.019 / +0.013; dev: +0.016 / +0.021 |
+| L6 | whole recipe (lap3_k10_st4) vs aw8_all | DESCRIPTIVE | +0.027 / +0.022 | +0.031 / +0.022 | conf: +0.025 / +0.026; dev: +0.009 / +0.020 |
+| L7 | graph-free schedule tuning alone vs aw8_all | DESCRIPTIVE | +0.006 / +0.006 | +0.008 / +0.003 | conf: +0.006 / +0.013; dev: -0.007 / -0.001 |
 | L8 | real graph beats shuffled-graph control (a low bar) | PRE-REG. control | +0.085 / +0.089 | +0.120 / +0.115 | not evaluated |
 | L9 | RT13-off variant beats lap3_k10 (not tested vs st4) | CONFIRMED + replicated | +0.010 / +0.010 | +0.007 / +0.006 | not evaluated |
 | L10 | uniform lambda 10 beats lap3_k10 | NOT CONFIRMED | +0.004 / +0.002 | +0.004 / +0.003 | not evaluated |
@@ -30,6 +30,6 @@
 | S4 | HTR-directed selection (vopt_htr4) | PRE-REG. rule: mixed (see full table) | HTR acc: +0.005 / +0.006 | HTR ll: +0.026 / +0.019 | not evaluated |
 | S5 | HTR: st4 vs tuned graph-free control | PRE-REG. rule: mixed (see full table) | HTR acc: +0.014 / +0.014 | HTR ll: +0.037 / +0.022 | not evaluated |
 | S6 | HTR: st4 vs lap3_k10 | PRE-REG. rule: mixed (see full table) | HTR acc: +0.017 / +0.019 | HTR ll: +0.124 / +0.120 | not evaluated |
-| R1 | gain concentrated in anchor-near judgments | AUDIT (red-team dev) | +0.019 / +0.017 | near<=0.001: +0.035 / +0.028 | +0.016 / +0.021 |
-| R2 | aw8 gain is not an anchor-copy artefact | AUDIT (red-team dev) | +0.013 / +0.022 | near<=0.001: +0.004 / +0.028 | +0.044 / +0.035 |
+| R1 | gain concentrated in anchor-near judgments | AUDIT (red-team dev) | +0.019 / +0.018 | near<=0.001 ΔAUC: +0.035 / +0.037 | conf: +0.019 / +0.013; dev: +0.016 / +0.021 |
+| R2 | aw8 gain is not an anchor-copy artefact | AUDIT (red-team dev) | +0.023 / +0.024 | near<=0.001: conf: +0.015 / +0.027; dev: +0.004 / +0.028 | conf: +0.020 / +0.034; dev: +0.044 / +0.035 |
 | R3 | time-blocked split keeps the gain | AUDIT (red-team dev) | +0.026 | +0.012 | not evaluated (blocked split has no anchor strata) |
