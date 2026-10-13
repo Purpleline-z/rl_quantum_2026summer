@@ -108,11 +108,15 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm10_gauss_k10 | +0.0047 | 20 | +0.0076 | +0.0165 | +0.0275 |
 | A | gm10_hid | +0.0129 | 20 | +0.0035 | -0.0173 | +0.0379 |
 | A | gm10_hid_union | +0.0187 | 20 | +0.0083 | -0.0303 | +0.0407 |
+| A | gm10_huber | +0.0158 | 20 | +0.0127 | +0.0100 | +0.0380 |
 | A | gm10_imnet | +0.0019 | 20 | -0.0278 | -0.0738 | +0.0282 |
 | A | gm10_imnet_simclr | +0.0208 | 20 | +0.0165 | -0.0346 | +0.0368 |
 | A | gm10_k20 | +0.0129 | 20 | -0.0071 | -0.0808 | +0.0316 |
 | A | gm10_k30 | +0.0115 | 20 | -0.0132 | -0.1030 | +0.0186 |
 | A | gm10_k5 | +0.0116 | 20 | +0.0067 | -0.0027 | +0.0383 |
+| A | gm10_l1 | +0.0207 | 20 | -0.0049 | -0.1082 | +0.0242 |
+| A | gm10_l1_n2 | -0.1344 | 20 | -0.1263 | -0.2724 | -0.0521 |
+| A | gm10_l1_n3 | -0.2633 | 20 | -0.2264 | -0.2815 | -0.1285 |
 | A | gm10_l2_k10 | +0.0115 | 20 | +0.0014 | -0.0345 | +0.0277 |
 | A | gm10_l3_k10 | +0.0126 | 20 | +0.0105 | -0.0172 | +0.0331 |
 | A | gm10_l3l4_k10 | +0.0158 | 20 | +0.0112 | -0.0135 | +0.0352 |
@@ -141,6 +145,7 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm20_mutual_k15 | +0.0194 | 20 | +0.0099 | -0.0075 | +0.0286 |
 | A | gm20_snn | +0.0198 | 20 | +0.0017 | -0.0470 | +0.0426 |
 | A | gm3_imnet | +0.0141 | 20 | +0.0028 | -0.0151 | +0.0379 |
+| A | gm3_l1 | +0.0208 | 20 | +0.0104 | -0.0064 | +0.0418 |
 | A | gm3_lda1 | +0.0150 | 20 | +0.0061 | +0.0118 | +0.0376 |
 | A | gm3_type_1x1_htr | +0.0178 | 20 | +0.0138 | +0.0354 | +0.0404 |
 | A | gm_lap10_n0 | +0.0201 | 20 | +0.0121 | -0.0185 | +0.0431 |
@@ -172,8 +177,13 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gmc10_h3 | +0.0259 | 20 | +0.0127 | +0.0391 | +0.0384 |
 | A | gmc10_h30 | +0.0246 | 20 | +0.0142 | +0.0263 | +0.0435 |
 | A | gmc10_hid | +0.0210 | 20 | +0.0032 | +0.0315 | +0.0384 |
+| A | gmc10_l1 | +0.0270 | 20 | +0.0006 | -0.0079 | +0.0284 |
 | A | gmc10_pur | +0.0219 | 20 | +0.0083 | +0.0324 | +0.0415 |
+| A | gmc10_rt01 | +0.0245 | 20 | +0.0132 | +0.0221 | +0.0423 |
+| A | gmc10_rt03 | +0.0235 | 20 | +0.0128 | +0.0070 | +0.0447 |
 | A | gmc10_t1_30 | +0.0262 | 20 | +0.0079 | +0.0263 | +0.0440 |
+| A | gmc20_t_no_rt13 | +0.0262 | 20 | +0.0109 | +0.0223 | +0.0462 |
+| A | gmc5_t_no_rt13 | +0.0238 | 20 | +0.0135 | +0.0439 | +0.0428 |
 | A | lap3_k10 | +0.0167 | 20 | +0.0138 | +0.0181 | +0.0428 |
 | B | gm10_bmatch_b10 | +0.0164 | 20 | +0.0048 | -0.0375 | +0.0113 |
 | B | gm10_decay | +0.0155 | 20 | +0.0136 | +0.0350 | +0.0200 |
@@ -183,11 +193,15 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm10_gauss_k10 | +0.0079 | 20 | +0.0068 | +0.0216 | +0.0166 |
 | B | gm10_hid | +0.0122 | 20 | +0.0013 | -0.0150 | +0.0230 |
 | B | gm10_hid_union | +0.0186 | 20 | +0.0112 | -0.0260 | +0.0254 |
+| B | gm10_huber | +0.0195 | 20 | +0.0109 | +0.0187 | +0.0217 |
 | B | gm10_imnet | +0.0014 | 20 | -0.0217 | -0.0688 | +0.0211 |
 | B | gm10_imnet_simclr | +0.0180 | 20 | +0.0111 | -0.0321 | +0.0211 |
 | B | gm10_k20 | +0.0167 | 20 | +0.0011 | -0.0749 | +0.0337 |
 | B | gm10_k30 | +0.0132 | 20 | -0.0051 | -0.1011 | +0.0294 |
 | B | gm10_k5 | +0.0130 | 20 | +0.0084 | -0.0001 | +0.0234 |
+| B | gm10_l1 | +0.0201 | 20 | +0.0017 | -0.1021 | +0.0196 |
+| B | gm10_l1_n2 | -0.1239 | 20 | -0.1162 | -0.2695 | -0.0351 |
+| B | gm10_l1_n3 | -0.2299 | 20 | -0.1874 | -0.2769 | -0.1160 |
 | B | gm10_l2_k10 | +0.0145 | 20 | +0.0060 | -0.0256 | +0.0243 |
 | B | gm10_l3_k10 | +0.0156 | 20 | +0.0088 | -0.0127 | +0.0221 |
 | B | gm10_l3l4_k10 | +0.0155 | 20 | +0.0124 | -0.0106 | +0.0235 |
@@ -216,6 +230,7 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm20_mutual_k15 | +0.0177 | 20 | +0.0080 | -0.0075 | +0.0199 |
 | B | gm20_snn | +0.0178 | 20 | +0.0118 | -0.0472 | +0.0342 |
 | B | gm3_imnet | +0.0088 | 20 | -0.0055 | -0.0189 | +0.0212 |
+| B | gm3_l1 | +0.0228 | 20 | +0.0099 | -0.0006 | +0.0224 |
 | B | gm3_lda1 | +0.0171 | 20 | +0.0096 | +0.0172 | +0.0213 |
 | B | gm3_type_1x1_htr | +0.0195 | 20 | +0.0181 | +0.0316 | +0.0230 |
 | B | gm_lap10_n0 | +0.0205 | 20 | +0.0152 | -0.0125 | +0.0257 |
@@ -247,8 +262,13 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gmc10_h3 | +0.0279 | 20 | +0.0150 | +0.0445 | +0.0223 |
 | B | gmc10_h30 | +0.0272 | 20 | +0.0184 | +0.0327 | +0.0370 |
 | B | gmc10_hid | +0.0217 | 20 | -0.0002 | +0.0355 | +0.0212 |
+| B | gmc10_l1 | +0.0259 | 20 | +0.0054 | -0.0019 | +0.0213 |
 | B | gmc10_pur | +0.0257 | 20 | +0.0112 | +0.0378 | +0.0258 |
+| B | gmc10_rt01 | +0.0284 | 20 | +0.0189 | +0.0298 | +0.0267 |
+| B | gmc10_rt03 | +0.0245 | 20 | +0.0151 | +0.0129 | +0.0253 |
 | B | gmc10_t1_30 | +0.0300 | 20 | +0.0204 | +0.0338 | +0.0264 |
+| B | gmc20_t_no_rt13 | +0.0301 | 20 | +0.0191 | +0.0303 | +0.0334 |
+| B | gmc5_t_no_rt13 | +0.0258 | 20 | +0.0143 | +0.0488 | +0.0229 |
 | B | lap3_k10 | +0.0185 | 20 | +0.0138 | +0.0222 | +0.0224 |
 
 ### 3.3 Gain over the new baseline `lap3_k10`
@@ -265,11 +285,15 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm10_gauss_k10 | -0.0121 | 20 | -0.0063 | -0.0016 | -0.0154 |
 | A | gm10_hid | -0.0038 | 20 | -0.0103 | -0.0354 | -0.0049 |
 | A | gm10_hid_union | +0.0020 | 20 | -0.0055 | -0.0484 | -0.0022 |
+| A | gm10_huber | -0.0009 | 20 | -0.0011 | -0.0081 | -0.0048 |
 | A | gm10_imnet | -0.0148 | 20 | -0.0416 | -0.0919 | -0.0146 |
 | A | gm10_imnet_simclr | +0.0041 | 20 | +0.0027 | -0.0527 | -0.0060 |
 | A | gm10_k20 | -0.0038 | 20 | -0.0209 | -0.0989 | -0.0112 |
 | A | gm10_k30 | -0.0052 | 20 | -0.0270 | -0.1211 | -0.0243 |
 | A | gm10_k5 | -0.0051 | 20 | -0.0072 | -0.0208 | -0.0046 |
+| A | gm10_l1 | +0.0040 | 20 | -0.0187 | -0.1263 | -0.0186 |
+| A | gm10_l1_n2 | -0.1511 | 20 | -0.1401 | -0.2906 | -0.0949 |
+| A | gm10_l1_n3 | -0.2800 | 20 | -0.2402 | -0.2997 | -0.1713 |
 | A | gm10_l2_k10 | -0.0052 | 20 | -0.0125 | -0.0526 | -0.0151 |
 | A | gm10_l3_k10 | -0.0041 | 20 | -0.0033 | -0.0353 | -0.0097 |
 | A | gm10_l3l4_k10 | -0.0009 | 20 | -0.0026 | -0.0317 | -0.0076 |
@@ -298,6 +322,7 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gm20_mutual_k15 | +0.0027 | 20 | -0.0039 | -0.0256 | -0.0142 |
 | A | gm20_snn | +0.0031 | 20 | -0.0121 | -0.0651 | -0.0003 |
 | A | gm3_imnet | -0.0026 | 20 | -0.0110 | -0.0332 | -0.0050 |
+| A | gm3_l1 | +0.0041 | 20 | -0.0034 | -0.0245 | -0.0011 |
 | A | gm3_lda1 | -0.0017 | 20 | -0.0077 | -0.0063 | -0.0052 |
 | A | gm3_type_1x1_htr | +0.0011 | 20 | -0.0001 | +0.0173 | -0.0025 |
 | A | gm_lap10_n0 | +0.0034 | 20 | -0.0018 | -0.0367 | +0.0003 |
@@ -329,8 +354,13 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | A | gmc10_h3 | +0.0092 | 20 | -0.0011 | +0.0210 | -0.0044 |
 | A | gmc10_h30 | +0.0079 | 20 | +0.0004 | +0.0082 | +0.0006 |
 | A | gmc10_hid | +0.0043 | 20 | -0.0106 | +0.0134 | -0.0045 |
+| A | gmc10_l1 | +0.0103 | 20 | -0.0132 | -0.0261 | -0.0145 |
 | A | gmc10_pur | +0.0052 | 20 | -0.0055 | +0.0143 | -0.0013 |
+| A | gmc10_rt01 | +0.0078 | 20 | -0.0006 | +0.0039 | -0.0006 |
+| A | gmc10_rt03 | +0.0068 | 20 | -0.0010 | -0.0112 | +0.0018 |
 | A | gmc10_t1_30 | +0.0095 | 20 | -0.0060 | +0.0082 | +0.0011 |
+| A | gmc20_t_no_rt13 | +0.0094 | 20 | -0.0029 | +0.0042 | +0.0034 |
+| A | gmc5_t_no_rt13 | +0.0071 | 20 | -0.0003 | +0.0257 | -0.0000 |
 | B | aw8_all | -0.0185 | 20 | -0.0138 | -0.0222 | -0.0224 |
 | B | gm10_bmatch_b10 | -0.0021 | 20 | -0.0090 | -0.0596 | -0.0111 |
 | B | gm10_decay | -0.0030 | 20 | -0.0002 | +0.0129 | -0.0024 |
@@ -340,11 +370,15 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm10_gauss_k10 | -0.0106 | 20 | -0.0070 | -0.0006 | -0.0057 |
 | B | gm10_hid | -0.0063 | 20 | -0.0124 | -0.0371 | +0.0007 |
 | B | gm10_hid_union | +0.0000 | 20 | -0.0026 | -0.0482 | +0.0030 |
+| B | gm10_huber | +0.0009 | 20 | -0.0029 | -0.0035 | -0.0007 |
 | B | gm10_imnet | -0.0172 | 20 | -0.0355 | -0.0909 | -0.0012 |
 | B | gm10_imnet_simclr | -0.0006 | 20 | -0.0027 | -0.0543 | -0.0013 |
 | B | gm10_k20 | -0.0019 | 20 | -0.0127 | -0.0971 | +0.0113 |
 | B | gm10_k30 | -0.0053 | 20 | -0.0189 | -0.1232 | +0.0070 |
 | B | gm10_k5 | -0.0055 | 20 | -0.0054 | -0.0223 | +0.0010 |
+| B | gm10_l1 | +0.0016 | 20 | -0.0121 | -0.1243 | -0.0028 |
+| B | gm10_l1_n2 | -0.1424 | 20 | -0.1300 | -0.2917 | -0.0575 |
+| B | gm10_l1_n3 | -0.2485 | 20 | -0.2012 | -0.2990 | -0.1384 |
 | B | gm10_l2_k10 | -0.0040 | 20 | -0.0078 | -0.0478 | +0.0019 |
 | B | gm10_l3_k10 | -0.0030 | 20 | -0.0050 | -0.0349 | -0.0003 |
 | B | gm10_l3l4_k10 | -0.0030 | 20 | -0.0014 | -0.0328 | +0.0011 |
@@ -373,6 +407,7 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gm20_mutual_k15 | -0.0008 | 20 | -0.0058 | -0.0296 | -0.0025 |
 | B | gm20_snn | -0.0008 | 20 | -0.0020 | -0.0694 | +0.0119 |
 | B | gm3_imnet | -0.0098 | 20 | -0.0192 | -0.0410 | -0.0012 |
+| B | gm3_l1 | +0.0043 | 20 | -0.0039 | -0.0227 | +0.0001 |
 | B | gm3_lda1 | -0.0014 | 20 | -0.0042 | -0.0050 | -0.0011 |
 | B | gm3_type_1x1_htr | +0.0010 | 20 | +0.0043 | +0.0094 | +0.0006 |
 | B | gm_lap10_n0 | +0.0020 | 20 | +0.0014 | -0.0347 | +0.0033 |
@@ -404,8 +439,13 @@ The plan (`PREREGISTRATION_GM0_development_plan.md`) said four rounds of at most
 | B | gmc10_h3 | +0.0093 | 20 | +0.0012 | +0.0223 | -0.0001 |
 | B | gmc10_h30 | +0.0087 | 20 | +0.0046 | +0.0105 | +0.0146 |
 | B | gmc10_hid | +0.0032 | 20 | -0.0139 | +0.0134 | -0.0012 |
+| B | gmc10_l1 | +0.0074 | 20 | -0.0084 | -0.0241 | -0.0011 |
 | B | gmc10_pur | +0.0072 | 20 | -0.0026 | +0.0157 | +0.0034 |
+| B | gmc10_rt01 | +0.0098 | 20 | +0.0051 | +0.0077 | +0.0043 |
+| B | gmc10_rt03 | +0.0060 | 20 | +0.0013 | -0.0093 | +0.0029 |
 | B | gmc10_t1_30 | +0.0114 | 20 | +0.0066 | +0.0117 | +0.0040 |
+| B | gmc20_t_no_rt13 | +0.0115 | 20 | +0.0053 | +0.0082 | +0.0110 |
+| B | gmc5_t_no_rt13 | +0.0073 | 20 | +0.0005 | +0.0267 | +0.0006 |
 
 ### 3.4 Across graph constructions (λ = 10): does quality predict gain?
 Per-seed Spearman across the 12 constructions of rounds 1–2 (quality vs AUC / accuracy gain over `aw8_all`):
@@ -574,11 +614,98 @@ Cut every edge between two ideal images of different classes (quality 1.0 on ide
 | B | gm_lap10_n0 | +0.0020 | 20 | +0.0014 | -0.0347 | +0.0033 |
 | B | gmc10_pur | +0.0072 | 20 | -0.0026 | +0.0157 | +0.0034 |
 
+### 3.4f Robust penalties, partial RT13 weights, λ of the confirmed candidate (rounds 14–15, development only)
+#### gain over `aw8_all` (development seeds; AUC/accuracy: learner - ref; log-loss: ref - learner)
+
+| split | learner | auc | n | acc | ll | htr_acc |
+|---|---|---|---|---|---|---|
+| A | gm10_huber | +0.0158 | 20 | +0.0127 | +0.0100 | +0.0380 |
+| A | gm10_l1 | +0.0207 | 20 | -0.0049 | -0.1082 | +0.0242 |
+| A | gm10_l1_n2 | -0.1344 | 20 | -0.1263 | -0.2724 | -0.0521 |
+| A | gm10_l1_n3 | -0.2633 | 20 | -0.2264 | -0.2815 | -0.1285 |
+| A | gm10_type_no_rt13 | +0.0255 | 20 | +0.0145 | +0.0356 | +0.0446 |
+| A | gm3_l1 | +0.0208 | 20 | +0.0104 | -0.0064 | +0.0418 |
+| A | gm_lap10_n0 | +0.0201 | 20 | +0.0121 | -0.0185 | +0.0431 |
+| A | gm_lap10_n2 | -0.0028 | 20 | -0.0184 | -0.2105 | +0.0315 |
+| A | gm_lap10_n3 | -0.0196 | 20 | -0.0351 | -0.2375 | +0.0105 |
+| A | gmc10_l1 | +0.0270 | 20 | +0.0006 | -0.0079 | +0.0284 |
+| A | gmc10_rt01 | +0.0245 | 20 | +0.0132 | +0.0221 | +0.0423 |
+| A | gmc10_rt03 | +0.0235 | 20 | +0.0128 | +0.0070 | +0.0447 |
+| A | gmc20_t_no_rt13 | +0.0262 | 20 | +0.0109 | +0.0223 | +0.0462 |
+| A | gmc5_t_no_rt13 | +0.0238 | 20 | +0.0135 | +0.0439 | +0.0428 |
+| B | gm10_huber | +0.0195 | 20 | +0.0109 | +0.0187 | +0.0217 |
+| B | gm10_l1 | +0.0201 | 20 | +0.0017 | -0.1021 | +0.0196 |
+| B | gm10_l1_n2 | -0.1239 | 20 | -0.1162 | -0.2695 | -0.0351 |
+| B | gm10_l1_n3 | -0.2299 | 20 | -0.1874 | -0.2769 | -0.1160 |
+| B | gm10_type_no_rt13 | +0.0277 | 20 | +0.0174 | +0.0417 | +0.0249 |
+| B | gm3_l1 | +0.0228 | 20 | +0.0099 | -0.0006 | +0.0224 |
+| B | gm_lap10_n0 | +0.0205 | 20 | +0.0152 | -0.0125 | +0.0257 |
+| B | gm_lap10_n2 | +0.0038 | 20 | -0.0121 | -0.2084 | +0.0350 |
+| B | gm_lap10_n3 | -0.0101 | 20 | -0.0200 | -0.2331 | +0.0199 |
+| B | gmc10_l1 | +0.0259 | 20 | +0.0054 | -0.0019 | +0.0213 |
+| B | gmc10_rt01 | +0.0284 | 20 | +0.0189 | +0.0298 | +0.0267 |
+| B | gmc10_rt03 | +0.0245 | 20 | +0.0151 | +0.0129 | +0.0253 |
+| B | gmc20_t_no_rt13 | +0.0301 | 20 | +0.0191 | +0.0303 | +0.0334 |
+| B | gmc5_t_no_rt13 | +0.0258 | 20 | +0.0143 | +0.0488 | +0.0229 |
+
+#### gain over `lap3_k10` (development seeds; AUC/accuracy: learner - ref; log-loss: ref - learner)
+
+| split | learner | auc | n | acc | ll | htr_acc |
+|---|---|---|---|---|---|---|
+| A | gm10_huber | -0.0009 | 20 | -0.0011 | -0.0081 | -0.0048 |
+| A | gm10_l1 | +0.0040 | 20 | -0.0187 | -0.1263 | -0.0186 |
+| A | gm10_l1_n2 | -0.1511 | 20 | -0.1401 | -0.2906 | -0.0949 |
+| A | gm10_l1_n3 | -0.2800 | 20 | -0.2402 | -0.2997 | -0.1713 |
+| A | gm10_type_no_rt13 | +0.0087 | 20 | +0.0006 | +0.0175 | +0.0018 |
+| A | gm3_l1 | +0.0041 | 20 | -0.0034 | -0.0245 | -0.0011 |
+| A | gm_lap10_n0 | +0.0034 | 20 | -0.0018 | -0.0367 | +0.0003 |
+| A | gm_lap10_n2 | -0.0195 | 20 | -0.0323 | -0.2286 | -0.0113 |
+| A | gm_lap10_n3 | -0.0363 | 20 | -0.0490 | -0.2556 | -0.0323 |
+| A | gmc10_l1 | +0.0103 | 20 | -0.0132 | -0.0261 | -0.0145 |
+| A | gmc10_rt01 | +0.0078 | 20 | -0.0006 | +0.0039 | -0.0006 |
+| A | gmc10_rt03 | +0.0068 | 20 | -0.0010 | -0.0112 | +0.0018 |
+| A | gmc20_t_no_rt13 | +0.0094 | 20 | -0.0029 | +0.0042 | +0.0034 |
+| A | gmc5_t_no_rt13 | +0.0071 | 20 | -0.0003 | +0.0257 | -0.0000 |
+| B | gm10_huber | +0.0009 | 20 | -0.0029 | -0.0035 | -0.0007 |
+| B | gm10_l1 | +0.0016 | 20 | -0.0121 | -0.1243 | -0.0028 |
+| B | gm10_l1_n2 | -0.1424 | 20 | -0.1300 | -0.2917 | -0.0575 |
+| B | gm10_l1_n3 | -0.2485 | 20 | -0.2012 | -0.2990 | -0.1384 |
+| B | gm10_type_no_rt13 | +0.0092 | 20 | +0.0036 | +0.0195 | +0.0025 |
+| B | gm3_l1 | +0.0043 | 20 | -0.0039 | -0.0227 | +0.0001 |
+| B | gm_lap10_n0 | +0.0020 | 20 | +0.0014 | -0.0347 | +0.0033 |
+| B | gm_lap10_n2 | -0.0148 | 20 | -0.0259 | -0.2306 | +0.0126 |
+| B | gm_lap10_n3 | -0.0286 | 20 | -0.0338 | -0.2553 | -0.0025 |
+| B | gmc10_l1 | +0.0074 | 20 | -0.0084 | -0.0241 | -0.0011 |
+| B | gmc10_rt01 | +0.0098 | 20 | +0.0051 | +0.0077 | +0.0043 |
+| B | gmc10_rt03 | +0.0060 | 20 | +0.0013 | -0.0093 | +0.0029 |
+| B | gmc20_t_no_rt13 | +0.0115 | 20 | +0.0053 | +0.0082 | +0.0110 |
+| B | gmc5_t_no_rt13 | +0.0073 | 20 | +0.0005 | +0.0267 | +0.0006 |
+
+### 3.4g Cold start (10 random initial judgments instead of the initial pair groups; development seeds, `ND_INITIAL=random`)
+#### gain over `aw8_all` (development seeds; AUC/accuracy: learner - ref; log-loss: ref - learner)
+
+| split | learner | auc | n | acc | ll | htr_acc |
+|---|---|---|---|---|---|---|
+| A | gmc_t_no_rt13 | +0.0235 | 20 | +0.0075 | +0.0328 | +0.0462 |
+| A | lap3_k10 | +0.0177 | 20 | +0.0090 | +0.0173 | +0.0435 |
+| B | gmc_t_no_rt13 | +0.0332 | 20 | +0.0190 | +0.0492 | +0.0528 |
+| B | lap3_k10 | +0.0221 | 20 | +0.0146 | +0.0267 | +0.0487 |
+
+#### gain over `lap3_k10` (development seeds; AUC/accuracy: learner - ref; log-loss: ref - learner)
+
+| split | learner | auc | n | acc | ll | htr_acc |
+|---|---|---|---|---|---|---|
+| A | aw8_all | -0.0177 | 20 | -0.0090 | -0.0173 | -0.0435 |
+| A | gmc_t_no_rt13 | +0.0058 | 20 | -0.0015 | +0.0154 | +0.0027 |
+| B | aw8_all | -0.0221 | 20 | -0.0146 | -0.0267 | -0.0487 |
+| B | gmc_t_no_rt13 | +0.0112 | 20 | +0.0044 | +0.0224 | +0.0041 |
+
 ### 3.5 What the development screen showed (observations, optimistic)
 - **Noise dose, λ=10:** the AUC gain falls monotonically with noise (≈ +0.02 at σ ≤ 0.5, ≈ 0 at σ = 1–2, ≈ −0.015 at σ = 3), and log-loss gets worse at every step; at λ=3 the dependence is weak.
 - **No better graph was found.** Mutual kNN, ε graph, shared nearest neighbours, Gaussian and locally scaled weights, b-matching, PCA whitening, layer-2/3/3+4 features, normalised Laplacian, skipping near-duplicate neighbours, λ ∈ {5, 10, 20, 40}, k ∈ {5, 10, 20, 30}: none is better than `lap3_k10` by more than ≈ +0.003 AUC; PCA whitening (−0.025), the ε graph (−0.018) and Gaussian weights (−0.01) are worse. The plain kNN graph with k=10 sits on a plateau.
 - **A graph that is "purer" in type but built in another geometry hurts:** the LDA topology (weight 3, quality 0.99, circular) is −0.03 AUC; the ImageNet-ResNet-18 topology (quality 0.79, close to SimCLR's 0.79) is −0.015 AUC vs `lap3_k10`; concatenating both features gives the same as SimCLR alone. So the ideal-ideal same-class share is not sufficient; what seems to matter is that the edges respect the geometry of the head's own input space (hypothesis; across the 26 graphs Spearman with `overlap_with_head_knn` is +0.43, with quality +0.37, with mean edge cosine +0.40, none strong). A self-consistent graph built in the hidden layer of a first-stage head (round 11) did not help either (3.4d).
 - **The dose-response is one-sided.** Degrading the graph hurts, but "purifying" it does not help: cutting the cross-class ideal-ideal edges gives −0.002/−0.001 AUC vs `lap3_k10` (uniform λ=10: −0.005/−0.003 relative to `gm_lap10_n0`) and adding same-class ideal edges hurts (−0.009/−0.004). So type-purity of the ideal-ideal edges is not what the head is missing; the confirmed dose-response says the penalty needs a topology that is not distorted, not that a purer one is better.
+- **A robust penalty does not tolerate a degraded graph either:** replacing the quadratic penalty by L1 (total variation) or Huber on the same graph gives the same AUC on the clean graph (+0.020 / +0.016–0.020) but L1 is catastrophic with a degraded graph (σ = 2: −0.13 AUC, σ = 3: −0.26, vs −0.003 / −0.02 for the quadratic penalty); partial RT13 weights (0.1, 0.3) are as good as RT13 off; λ = 5, 10, 20 for the RT13-off learner all give +0.007 to +0.012 AUC over `lap3_k10`; under a cold start (random initial judgments) the RT13-off learner is +0.006 / +0.011 AUC over `lap3_k10` and +0.024 / +0.033 over `aw8_all`.
 - **Generic smoothing does not reproduce the gain:** input-noise consistency (noise the size of a kNN step) +0.002 AUC, weight-decay 1e-3/1e-2 ≈ 0, mixup consistency on random node pairs is harmful (−0.13 to −0.18 AUC, scores explode; a strong "linearity" constraint), annealing the λ is not better than a constant λ.
 - **Which nodes / edges (development, round 3 + 13; table 3.6b):** penalising only unlabelled-unlabelled edges (≈ 5700 edges) gives +0.005/+0.011 AUC and no accuracy gain; only ideal-trajectory edges (≈ 500) +0.007/+0.008 AUC; only ideal-ideal edges (≈ 520) +0.013/+0.010 AUC and +0.016/+0.011 accuracy; every edge touching at least one ideal image (≈ 1000) +0.015/+0.014 AUC and +0.015/+0.018 accuracy — the same accuracy gain as all edges (+0.012/+0.015) — all edges +0.020/+0.021 AUC. So the **accuracy** gain comes from the edges that involve the ideal (anchor) images, the **AUC** gain needs the large unlabelled part of the graph as well.
 - **Which types:** the penalty on HTR scores gives the HTR accuracy gain; on the 1x1 scores the 1x1 gain; c(6x2) ≈ 0; RT13 slightly negative. Switching the penalty off for RT13 (`gm10_type_no_rt13`) is +0.009 AUC over `lap3_k10` in both splits (development), which is the candidate C1.

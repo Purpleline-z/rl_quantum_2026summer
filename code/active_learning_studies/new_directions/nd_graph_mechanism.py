@@ -193,7 +193,9 @@ def fit_gm(ctx, labelled, seed: int, base: G.GraphData, edges, w, spec: dict):
             pick = torch.randint(n_e, (G.EDGE_BATCH,), generator=gen) if uniform else torch.multinomial(w, G.EDGE_BATCH, replacement=True, generator=gen)
             e = edges[pick]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]
             if norm: si, sj = si / dn[e[:, 0]][:, None], sj / dn[e[:, 1]][:, None]
-            loss = loss + sched * lam * (tw * (si - sj) ** 2).sum(1).mean()
+            dd = si - sj; pen = spec.get("pen", "l2")
+            phi = dd ** 2 if pen == "l2" else (dd.abs() if pen == "l1" else F.huber_loss(dd, torch.zeros_like(dd), reduction="none", delta=float(spec.get("delta", 0.5))))   # robust (total-variation / Huber) penalties tolerate wrong edges better than the quadratic one
+            loss = loss + sched * lam * (tw * phi).sum(1).mean()
         if spec.get("noise_cons", 0) > 0:   # no graph: scores of random nodes must be stable under Gaussian input noise of the size of a kNN step
             u = torch.randint(len(node_x), (G.EDGE_BATCH,), generator=gen); xu = node_x[u]; eps = torch.randn(xu.shape, generator=gen); eps = eps / eps.norm(dim=1, keepdim=True) * scale
             loss = loss + sched * spec["noise_cons"] * (tw * (head(xu + eps)[:, active] - head(xu)[:, active]) ** 2).sum(1).mean()
@@ -295,3 +297,10 @@ _reg("gm10_pur", lap=10, purify=1); _reg("gm10_pur_add", lap=10, purify=6); _reg
 
 # ---- round 13 (nodes): ideal-ideal edges only; every edge that touches at least one ideal image
 _reg("gm10_place_ii", lap=10, place="ii"); _reg("gm10_place_any", lap=10, place="ideal_any")
+
+# ---- round 14 (development only): strength of the confirmed candidate (RT13 off) at lambda 5 and 20
+_reg("gmc5_t_no_rt13", lap=5, type_w={3: 0.0}); _reg("gmc20_t_no_rt13", lap=20, type_w={3: 0.0})
+
+# ---- round 15 (development only): robust penalties on the same graph: do they tolerate a degraded graph? (L1 / Huber instead of the quadratic penalty)
+_reg("gm10_l1", lap=10, pen="l1"); _reg("gm3_l1", lap=3, pen="l1"); _reg("gmc10_l1", lap=10, pen="l1", type_w={3: 0.0}); _reg("gm10_l1_n2", lap=10, pen="l1", noise=2.0); _reg("gm10_l1_n3", lap=10, pen="l1", noise=3.0)
+_reg("gm10_huber", lap=10, pen="huber", delta=0.5); _reg("gmc10_rt03", lap=10, type_w={3: 0.3}); _reg("gmc10_rt01", lap=10, type_w={3: 0.1})
