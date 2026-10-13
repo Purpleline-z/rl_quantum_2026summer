@@ -55,6 +55,12 @@ RT_DEV_SEEDS = tuple(range(8800, 8820)); RT_CONFIRM = tuple(range(8850, 8885)); 
 assert not RT_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(RT_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | RT_SEEDS_ALL
 
+# calibration study (branch claude/calibration-*): development 9100-9119, confirmation 9150-9184 (the blocks 8000-8199, 8400-8799, 8885-8999 belong to parallel studies)
+CAL_DEV_SEEDS = tuple(range(9100, 9120)); CAL_CONFIRM = tuple(range(9150, 9185)); CAL_SEEDS_ALL = set(CAL_DEV_SEEDS) | set(CAL_CONFIRM)
+assert not CAL_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(CAL_SEEDS_ALL) == 20 + 35
+assert not CAL_SEEDS_ALL & (set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000)))
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | CAL_SEEDS_ALL
+
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
 
