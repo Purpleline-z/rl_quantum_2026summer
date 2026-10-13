@@ -207,7 +207,7 @@ SELECTORS.update({f"fam_{n}": _family_selector(n) for n in FAMILY})
 # ------------------------------------------------------------------------------------------ graph selectors of the earlier graph studies, run under the learners of this harness
 import graph_typed as _gt
 import graph_vopt as _gv
-for _n in ("typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_coverage_typeonly", "typed_decisive_coverage_shuffled", "typed_decisive_coverage_unc_typeonly", "typed_decisive_coverage_unc_shuffled", "typed_decisive_bald"):
+for _n in ("typed_decisive_coverage", "typed_decisive_coverage_unc", "typed_decisive_coverage_typeonly", "typed_decisive_coverage_shuffled", "typed_decisive_coverage_unc_typeonly", "typed_decisive_coverage_unc_shuffled", "typed_decisive_bald", "typed_decisive_bald_shuffled", "typed_decisive_uncertainty", "typed_decisive_uncertainty_shuffled"):
     SELECTORS[_n] = _family_selector(_n)
 SELECTORS.update(_gv.NEW)
 import nd_select_graph as _sg
