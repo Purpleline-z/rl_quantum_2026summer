@@ -168,9 +168,32 @@ def sequential_rule(ctx, uni, gd, n: int, rule: str, rounds: int = 3, seed_subse
     return chosen[:n]
 
 
+def stratified_random(ctx, uni, n: int, subset_id: int = 0) -> dict[str, list[str]]:
+    """DIAGNOSTIC (uses the true classes of the universe): n/4 random anchors per class (class-balanced random)."""
+    rng = np.random.default_rng(ctx.seed * 7919 + 101 * subset_id + 29); per = n // len(uni); out = {}
+    for c, ps in uni.items(): out[c] = [ps[i] for i in rng.permutation(len(ps))[:per]]
+    return out
+
+
+def kcf_balanced(ctx, uni, gd, n: int, rounds: int = 3, seed_subset: int = 0) -> list[str]:
+    """Sequential feature k-center with class balance: round 1 = the random start of ``sequential_rule``; later rounds pick farthest-first (feature distance to the chosen anchors) with the score multiplied by
+    1 + deficit/target of the PREDICTED class (label-spreading posterior of the anchors labelled so far), so under-represented classes are sought.  Uses only the labels of anchors already chosen."""
+    items = flat(uni); cls_of = {p: CLASSES.index(c) for c, p in items}; rng = np.random.default_rng(ctx.seed * 7919 + 101 * seed_subset + 13); order = [items[i][1] for i in rng.permutation(len(items))]
+    per = n // rounds; chosen = order[:per]; paths = [p for _, p in items]; X = _feat(gd, paths); pos = {p: i for i, p in enumerate(paths)}; target = n / 4
+    while len(chosen) < n:
+        q = spreading_posterior(gd, {gd.index[p]: cls_of[p] for p in chosen}); pred = q[[gd.index[p] for p in paths]].argmax(1); counts = np.bincount([cls_of[p] for p in chosen], minlength=4)
+        mind = 1 - (X @ X[[pos[p] for p in chosen]].T).max(1); take = min(per, n - len(chosen)); cur = set(chosen)
+        for _ in range(take):
+            deficit = np.maximum(0, target - counts)[pred] / target; score = mind * (1 + deficit); score[[pos[p] for p in cur]] = -1; j = int(np.argmax(score)); cur.add(paths[j]); chosen.append(paths[j]); counts[cls_of[paths[j]]] += 1
+            mind = np.minimum(mind, 1 - X @ X[j])
+    return chosen[:n]
+
+
 def active_subset(ctx, uni, rule: str, n: int, gd, gd_shuf, subset_id: int = 0) -> dict[str, list[str]]:
     """rule in rand | kcg | kcg_shuf | kcf | typi | amb | amb_shuf | htrq | htrq_shuf."""
     if rule == "rand": return random_subset(ctx, uni, n, subset_id)
+    if rule == "strat": return stratified_random(ctx, uni, n, subset_id)
+    if rule == "kcf_bal": return subset_by_paths(uni, set(kcf_balanced(ctx, uni, gd, n, seed_subset=subset_id)))
     if rule == "kcg": return subset_by_paths(uni, set(kcenter_graph(ctx, uni, gd, n)))
     if rule == "kcg_shuf": return subset_by_paths(uni, set(kcenter_graph(ctx, uni, gd_shuf, n)))
     if rule == "kcf": return subset_by_paths(uni, set(kcenter_feature(ctx, uni, gd, n)))
