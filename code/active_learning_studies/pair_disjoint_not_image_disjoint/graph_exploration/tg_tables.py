@@ -21,15 +21,15 @@ SIGN = {"ll": -1, "far_ll": -1, "near_ll": -1, "inb_ll": -1, "htr_ll": -1}
 
 
 def load(d) -> pd.DataFrame:
-    """All records of the fullest cells: a (seed, split) file counts only if it holds as many records as the fullest file of the directory (cells are written after every budget)."""
-    files = sorted(glob.glob(str(Path(d) / "seed*.json"))); data = {f: json.loads(Path(f).read_text()) for f in files}
-    if not data: return pd.DataFrame()
-    full = max(len(v) for v in data.values()); rows = [r for f, v in data.items() if len(v) >= full for r in v]; return pd.DataFrame(rows)
+    """All records of a result directory (cells are written after every budget, so a seed enters a comparison only if both learners have every budget x draw of it: see ``per_seed_gain``)."""
+    rows = [r for f in sorted(glob.glob(str(Path(d) / "seed*.json"))) for r in json.loads(Path(f).read_text())]; return pd.DataFrame(rows)
 
 
 def per_seed_gain(df, cand, ref, metric, split) -> pd.Series:
     g = df[df.split == split]; a = g[g.learner == cand].set_index(["seed", "budget", "draw"]); b = g[g.learner == ref].set_index(["seed", "budget", "draw"]); common = a.index.intersection(b.index)
     if not len(common) or metric not in a: return pd.Series(dtype=float)
+    need = df.budget.nunique() * (int(df.draw.max()) + 1); full = pd.Series(1, index=common).groupby(level=0).sum(); keep = full[full == need].index; common = [c for c in common if c[0] in set(keep)]
+    if not len(common): return pd.Series(dtype=float)
     return (SIGN.get(metric, 1) * (a.loc[common, metric] - b.loc[common, metric])).groupby(level=0).mean().dropna()
 
 
