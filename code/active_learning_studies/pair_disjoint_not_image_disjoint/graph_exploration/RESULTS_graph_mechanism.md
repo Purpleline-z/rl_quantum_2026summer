@@ -577,6 +577,20 @@ And the 26 λ=10 graphs with other statistics (descriptive; `gm_edge_stats.py`):
 | B | gm10_place_it | +0.0327 | +0.0637 | +0.0050 | +0.7022 | -0.0339 | +0.0006 | +0.0212 | +0.0063 |
 | B | gm_noise10 | -0.0040 | +0.3340 | +0.0022 | +0.5420 | -0.0008 | +0.5751 | -0.0023 | +0.2076 |
 
+### 3.8 Per-type look at the graph (descriptive; confirmation-seed node sets, split A, 12 seeds; `gm_type_purity.py`)
+Among edges that join two ideal images, how often both have the same class, by class. The graph is reliable for (1x1) and c(6x2) but RT13 and HTR ideal images are each other's nearest ideal neighbours in 36–41 % of their edges:
+
+| class | ideal nodes per seed | ideal-ideal edges (both ends) | same-class share | most frequent other class | mean degree of ideal nodes (all neighbours) |
+|---|---|---|---|---|---|
+| (1x1) | 33.0 | 3870 | 0.859 | c(6x2) (0.101) | 12.2 |
+| c(6x2) | 33.0 | 5062 | 0.904 | (1x1) (0.077) | 14.0 |
+| RT13 | 29.0 | 1688 | 0.571 | HTR (0.358) | 12.0 |
+| HTR | 21.0 | 1482 | 0.505 | RT13 (0.408) | 11.7 |
+
+(seeds 8100..8111, split A node sets; chance = class frequency)
+
+This does not line up with where the penalty helps (HTR and 1x1 gain, c(6x2) unclear, RT13 hurt): HTR has the lowest purity and still gains, so per-type purity alone does not explain the type pattern. Why RT13 is the one hurt is not established (observation only).
+
 ## 4. Frozen pre-registration
 `PREREGISTRATION_GM1.md` (committed at 0f33c6f65 before any confirmation seed): two claims judged separately — (a) the graph-quality dose-response at λ=10 (4 tests, Holm, ≥3 positive and significant), (b) new candidates better than `lap3_k10` (C1 = `gmc_t_no_rt13`, C2 = `gm_lap10_n0`, each with shuffled-graph, noise-graph and non-graph controls; 8 tests, Holm; ≥3 Holm-significant, all four positive, beats both graph controls in at least one split). Everything else is reported without a verdict.
 
