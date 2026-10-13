@@ -156,6 +156,22 @@ def exploratory_tables(bootstrap: bool = True) -> str:
     if (R / "dev_target").exists() and list((R / "dev_target").glob("seed*_*.json")):
         f = ga.load(R / "dev_target", "seed*_*.json"); out += "### Dose-response of the held-out condition's UNLABELLED frames (lapF25/50/100 = that fraction of the held-out run/band frames, test images excluded, enters the graph; lap3_T = all frames plus the test images; dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
         out += ga.md(pd.concat([ga.arm_vs(f, ["kind"], "arm", a, "lap3") for a in ("lapF25", "lapF50", "lapF100", "lap3_T")])) + "\n"
+    rows = []
+    for b in ("conf1", "conf2"):
+        if not (R / f"{b}_dose").exists(): continue
+        f = ga.load(R / f"{b}_dose", "seed*_*.json"); per = f.groupby(["split", "seed", "variant"], as_index=False)[["htr_acc", "acc"]].mean()
+        for split, g in per.groupby("split"):
+            piv = g.pivot(index="seed", columns="variant", values="htr_acc"); d = piv["all_p100"] - piv["base"]; rows.append({"block": b, "split": split, "n_seeds": len(d), "htr_acc_gain": float(d.mean()), "p_uncorrected": ga.wil(d)})
+    if rows: out += "### HTR accuracy gain of lap3_k10 over aw8_all on the ORDINARY splits, from the confirmation dose blocks (descriptive, not pre-registered; HTR is the lab's priority type)\n\n" + ga.md(pd.DataFrame(rows)) + "\n"
+    rows = []
+    for b in ("conf1", "conf2"):
+        if not (R / f"{b}_class").exists(): continue
+        f = ga.load(R / f"{b}_class"); per = f.groupby(["seed", "method"], as_index=False)[[f"recall_{j}" for j in range(4)]].mean(); a = per[per.method == "lap3_ref"].set_index("seed"); ref = per[per.method == "aw8_ref"].set_index("seed")
+        for j, name in enumerate(("(1x1)", "c(6x2)", "(sqrt13)", "HTR")): d = (a[f"recall_{j}"] - ref[f"recall_{j}"]).dropna(); rows.append({"block": b, "class": name, "recall_change_lap3_ref_minus_aw8_ref": float(d.mean()), "p_uncorrected": ga.wil(d)})
+    if rows: out += "### Which classes does the Laplacian head lose? Recall change of lap3_ref relative to aw8_ref (classification endpoint, 60 judgments; descriptive)\n\n" + ga.md(pd.DataFrame(rows)) + "\n"
+    if (R / "dev_traj").exists() and list((R / "dev_traj").glob("seed*.json")):
+        f = ga.load(R / "dev_traj"); c = f[f.endpoint == "class"]; p = f[f.endpoint == "pref"]
+        out += "### Trajectory-only graph (no ideal-image nodes) vs the full graph (dev seeds): classification accuracy (lap3 variants minus aw8_ref) and preference endpoint (minus aw8_all)\n\n" + ga.md(ga.arm_gains(c, ["endpoint"], "arm", "aw8_ref", metrics=("acc",))) + "\n" + ga.md(ga.arm_gains(p, ["split"], "arm", "aw8_all")) + "\n"
     if (R / "dev_k").exists() and list((R / "dev_k").glob("seed*_*.json")):
         f = ga.load(R / "dev_k", "seed*_*.json"); out += "### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
     import ge_htr

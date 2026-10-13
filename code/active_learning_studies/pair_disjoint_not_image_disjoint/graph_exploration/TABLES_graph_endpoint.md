@@ -433,6 +433,46 @@ Test-group bootstrap of the lap3 − aw8_all gain (all three bands pooled): auc:
 | temp | lap3_T - lap3 | auc | 20 | -0.001 | 0.629 |
 | temp | lap3_T - lap3 | acc | 20 | +0.012 | 0.004 |
 
+### HTR accuracy gain of lap3_k10 over aw8_all on the ORDINARY splits, from the confirmation dose blocks (descriptive, not pre-registered; HTR is the lab's priority type)
+
+| block | split | n_seeds | htr_acc_gain | p_uncorrected |
+|---|---|---|---|---|
+| conf1 | A | 35 | 0.037 | 1.55e-04 |
+| conf1 | B | 35 | 0.025 | 4.33e-04 |
+| conf2 | A | 35 | 0.029 | 2.68e-05 |
+| conf2 | B | 35 | 0.021 | 1.95e-04 |
+
+### Which classes does the Laplacian head lose? Recall change of lap3_ref relative to aw8_ref (classification endpoint, 60 judgments; descriptive)
+
+| block | class | recall_change_lap3_ref_minus_aw8_ref | p_uncorrected |
+|---|---|---|---|
+| conf1 | (1x1) | -0.126 | 4.95e-06 |
+| conf1 | c(6x2) | 0.001 | 0.317 |
+| conf1 | (sqrt13) | 0.068 | 0.008 |
+| conf1 | HTR | -0.029 | 0.381 |
+| conf2 | (1x1) | -0.123 | 4.51e-06 |
+| conf2 | c(6x2) | 0.000 |  |
+| conf2 | (sqrt13) | 0.050 | 8.95e-04 |
+| conf2 | HTR | -0.021 | 0.625 |
+
+### Trajectory-only graph (no ideal-image nodes) vs the full graph (dev seeds): classification accuracy (lap3 variants minus aw8_ref) and preference endpoint (minus aw8_all)
+
+| endpoint | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| class | lap3_full | acc | 20 | -0.027 | 0.300 | 0.044 |
+| class | lap3_trajonly | acc | 20 | +0.001 | 0.350 | 0.959 |
+
+| split | arm | metric | n_seeds | gain | share_better | p |
+|---|---|---|---|---|---|---|
+| A | lap3_full | auc | 20 | +0.011 | 0.900 | 0.001 |
+| A | lap3_full | acc | 20 | +0.004 | 0.600 | 0.380 |
+| A | lap3_trajonly | auc | 20 | +0.008 | 0.750 | 0.008 |
+| A | lap3_trajonly | acc | 20 | +0.004 | 0.550 | 0.260 |
+| B | lap3_full | auc | 20 | +0.011 | 0.850 | 4.83e-04 |
+| B | lap3_full | acc | 20 | +0.015 | 0.650 | 0.013 |
+| B | lap3_trajonly | auc | 20 | +0.003 | 0.650 | 0.202 |
+| B | lap3_trajonly | acc | 20 | +0.004 | 0.550 | 0.376 |
+
 ### Graph degree on the harsh splits (dev seeds): lap3 = k 10 (frozen), lap3_k5, lap3_k20 minus aw8_all
 
 | kind | arm | metric | n_seeds | gain | share_better | p |
