@@ -45,8 +45,9 @@ USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GL_SEEDS_ALL   # later
 
 # selection x graph-learner x HTR study (branch claude/selection-htr-*): dev 8200-8219, confirmation 1 = 8300-8334, confirmation 2 = 8350-8384.  The parallel studies of the same round own 8000-8199 and 8400-8599.
 SH_DEV_SEEDS = tuple(range(8200, 8220)); SH_CONFIRM1 = tuple(range(8300, 8335)); SH_CONFIRM2 = tuple(range(8350, 8385))
-SH_SEEDS_ALL = set(SH_DEV_SEEDS) | set(SH_CONFIRM1) | set(SH_CONFIRM2)
-assert not SH_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(SH_SEEDS_ALL) == 20 + 2 * 35
+SH_COLD = tuple(range(8385, 8400))   # cold-start confirmation of the learner family (15 seeds; pre-registered in PREREGISTRATION_SH2 before it was run)
+SH_SEEDS_ALL = set(SH_DEV_SEEDS) | set(SH_CONFIRM1) | set(SH_CONFIRM2) | set(SH_COLD)
+assert not SH_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(SH_SEEDS_ALL) == 20 + 2 * 35 + 15
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | SH_SEEDS_ALL
 
 

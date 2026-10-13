@@ -1,0 +1,7 @@
+# Pre-registration SH2 — cold-start confirmation of the learner family (written before the cells exist)
+
+Addendum to `PREREGISTRATION_SH1.md`, written 2026-10-13 07:30 UTC while confirmation 2 was running. SH1 stated that the cold start was not run; there is time for a small run. **Seeds 8385–8399 (15 seeds; `nd_core.SH_COLD`, never used before), both splits, initial set = 10 random initial judgments (`ND_INITIAL=random`)**, random selection, learners `aw8_all`, `aw8_all_st2lr0.5`, `lap3_k10`, `lap3_k10_st4`, `lap3_k10_st4_shuf`, identical label sets. Tests and success rule exactly as the learner family of SH1 (`SH2_spec_cold.json` = `SH1_spec_learner.json`): candidate `lap3_k10_st4` vs `aw8_all_st2lr0.5` and vs `lap3_k10`, A/B × AUC/accuracy, Holm within each reference, ≥ 3 of 4 Holm p < 0.05, all four positive, better than the shuffled control; HTR family separate. With 15 seeds the power is lower than in SH1 (a Wilcoxon test over 15 seeds cannot go below p ≈ 6e-5, so Holm over 4 tests is still reachable only for large, consistent gains); a non-significant result is therefore "not confirmed", not evidence of absence. No selection candidates are run from a cold start. Nothing is re-tuned.
+```
+ND_INITIAL=random bash scripts_sh/run_sel.sh cold_learn random aw8_all,aw8_all_st2lr0.5,lap3_k10,lap3_k10_st4,lap3_k10_st4_shuf 8385-8399 A,B 4
+python3 sh_tables.py confirm SH2_spec_cold.json ../../new_directions/results/sh/cold_learn
+```

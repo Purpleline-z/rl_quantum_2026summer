@@ -33,7 +33,7 @@ def pool(ctx_a):
 
 def test_seed_block_is_new_and_marked_used():
     assert not set(core.SH_SEEDS_ALL) & (core.GL_SEEDS_ALL | set(range(7000, 7336)) | set(range(0, 7000)) - set(range(8200, 8220)))
-    assert core.SH_SEEDS_ALL <= core.USED_SEEDS_BY_EARLIER_WORK and len(core.SH_SEEDS_ALL) == 90
+    assert core.SH_SEEDS_ALL <= core.USED_SEEDS_BY_EARLIER_WORK and len(core.SH_SEEDS_ALL) == 105
 
 
 def test_graph_selectors_ignore_hidden_outcomes_and_return_distinct_pool_members(ctx_a, pool):

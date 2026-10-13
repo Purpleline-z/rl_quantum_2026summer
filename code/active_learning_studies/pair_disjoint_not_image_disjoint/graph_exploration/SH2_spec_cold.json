@@ -1,0 +1,2 @@
+{"candidate": "lap3_k10_st4", "references": ["aw8_all_st2lr0.5", "lap3_k10"], "splits": ["A", "B"],
+ "controls": {"shuf": "lap3_k10_st4_shuf"}}
