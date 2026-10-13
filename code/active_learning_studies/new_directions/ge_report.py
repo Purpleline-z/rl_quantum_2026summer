@@ -59,6 +59,16 @@ def dose_block(name: str, title: str):
 
 # ------------------------------------------------------------------------------------------ (c) harsh splits
 def bootstrap_gain(path: Path, kind: str, arm: str, ref: str, reps: int = 300, seed: int = 0) -> dict:
+    import json as _json
+    cache_file = R / "bootstrap_cache.json"; cache = _json.loads(cache_file.read_text()) if cache_file.exists() else {}
+    key = f"{path.name}|{kind}|{arm}|{ref}|{reps}|{seed}|{len(list(path.glob(f'seed*_{kind}.d.npz')))}"
+    if key in cache: return {k: (tuple(v) if isinstance(v, list) else v) for k, v in cache[key].items()}
+    out = _bootstrap_gain(path, kind, arm, ref, reps, seed)
+    if out: cache[key] = out; cache_file.write_text(_json.dumps(cache))
+    return out
+
+
+def _bootstrap_gain(path: Path, kind: str, arm: str, ref: str, reps: int = 300, seed: int = 0) -> dict:
     """Test-group bootstrap of the mean gain (arm - ref) over seeds, budgets and draws: groups of the (fixed) test set are resampled with replacement, the same resample for every seed."""
     files = sorted(path.glob(f"seed*_{kind}.d.npz"))
     if not files: return {}
@@ -127,6 +137,28 @@ def dev_tables() -> str:
     return out
 
 
+def exploratory_tables(bootstrap: bool = True) -> str:
+    out = ""
+    if (R / "dev_nodes").exists() and list((R / "dev_nodes").glob("seed*_*.json")):
+        f = ga.load(R / "dev_nodes", "seed*_*.json"); t = ga.arm_gains(f, ["split"], "variant", "base"); t["n_nodes"] = [f[(f.variant == a) & (f.split == s)].n_nodes.mean() for a, s in zip(t.arm, t.split)]
+        out += "### Which graph nodes carry the gain? (lap3_k10 − aw8_all, preference endpoint, standard splits; node sets: ideal = ideal images only; train = ideal + images of the labelled judgments; cand = ideal + unlabelled candidate-pool images; groups = ideal + all pair-group images; all = standard graph)\n\n" + ga.md(t[["split", "arm", "metric", "n_nodes", "gain", "share_better", "p"]]) + "\n"
+    if (R / "dev_lamclass").exists():
+        f = ga.load(R / "dev_lamclass"); g = f.groupby(["seed", "lam"], as_index=False).acc.mean(); piv = g.pivot(index="seed", columns="lam", values="acc")
+        rows = [{"lambda": l, "n_seeds": len(piv), "acc": float(piv[l].mean()), "diff_vs_lambda0": float((piv[l] - piv[0.0]).mean()), "p_uncorrected": ga.wil(piv[l] - piv[0.0])} for l in piv.columns]
+        out += "### Does the Laplacian term hurt type classification? (reference-only anchors, 60 judgments, inductive graph, dev seeds)\n\n" + ga.md(pd.DataFrame(rows)) + "\n"
+    if (R / "dev_temp3").exists() and list((R / "dev_temp3").glob("seed*_*.json")):
+        f = ga.load(R / "dev_temp3", "seed*_*.json"); out += "### Three temperature terciles held out in turn (dev seeds; more test groups than the top tercile alone)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n" + ga.md(ga.arm_vs(f, ["kind"], "arm", "lap3", "lap3_shuf")) + "\n"
+        if bootstrap:
+            b = bootstrap_gain(R / "dev_temp3", "temp3", "lap3", "base")
+            if b: out += "Test-group bootstrap of the lap3 − aw8_all gain (all three bands pooled): " + "; ".join(f"{m}: {b[m][0]:+.3f} [{b[m][1]:+.3f}, {b[m][2]:+.3f}]" for m in ("auc", "acc")) + f" ({b['n_groups']} test groups, {b['n_judgments']} judgments)\n\n"
+    if (R / "dev_trans").exists() and list((R / "dev_trans").glob("seed*_*.json")):
+        f = ga.load(R / "dev_trans", "seed*_*.json"); out += "### Unlabelled frames of the held-out condition in the graph (lap3_T: transductive, held-out frames and test images are unlabelled nodes) vs inductive lap3 (dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n" + ga.md(ga.arm_vs(f, ["kind"], "arm", "lap3_T", "lap3")) + "\n"
+    if (R / "dev_target").exists() and list((R / "dev_target").glob("seed*_*.json")):
+        f = ga.load(R / "dev_target", "seed*_*.json"); out += "### Dose-response of the held-out condition's UNLABELLED frames (lapF25/50/100 = that fraction of the held-out run/band frames, test images excluded, enters the graph; lap3_T = all frames plus the test images; dev seeds)\n\n" + ga.md(ga.arm_gains(f, ["kind"], "arm", "base")) + "\n"
+        out += ga.md(pd.concat([ga.arm_vs(f, ["kind"], "arm", a, "lap3") for a in ("lapF25", "lapF50", "lapF100", "lap3_T")])) + "\n"
+    return out or "(no exploratory runs yet)\n"
+
+
 def sections(bootstrap: bool = True) -> dict:
     sec = {}; res = {}
     for blk, tag in (("conf1", "Confirmation 1 (seeds 8500–8534)"), ("conf2", "Confirmation 2 (seeds 8550–8584, replication)")):
@@ -134,17 +166,17 @@ def sections(bootstrap: bool = True) -> dict:
             kw = {"bootstrap": bootstrap} if key == "harsh" else {}
             text, r = fn(blk, f"{tag}: " + {"class": "classification endpoint (28 outer-test ideal images)", "dose": "dose-response of unlabelled images", "harsh": "harsh preference splits"}[key], **kw); sec[f"{blk}_{key}"] = text; res[(blk, key)] = r
     sec["verdicts"] = "".join(f"- **{blk}**: (a) classification: {verdict_a(res[(blk, 'class')])}. (b) dose-response: {verdict_b(res[(blk, 'dose')])}. (c) harsh splits: {verdict_c(res[(blk, 'harsh')])}.\n" for blk in ("conf1", "conf2"))
-    sec["dev"] = dev_tables(); return sec
+    sec["dev"] = dev_tables(); sec["exploratory"] = exploratory_tables(bootstrap); return sec
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--out", default=None); ap.add_argument("--template", default=None); ap.add_argument("--doc", default=None); ap.add_argument("--no-bootstrap", action="store_true"); a = ap.parse_args(); sec = sections(not a.no_bootstrap)
     if a.out:
-        text = "# Tables for the graph-endpoint study (generated by ge_report.py; do not edit by hand)\n\n## Pre-registered readings\n\n" + sec["verdicts"] + "\n" + "".join(sec[f"{b}_{k}"] for b in ("conf1", "conf2") for k in ("class", "dose", "harsh")) + "\n## Development screens (not evidence)\n\n" + sec["dev"]
+        text = "# Tables for the graph-endpoint study (generated by ge_report.py; do not edit by hand)\n\n## Pre-registered readings\n\n" + sec["verdicts"] + "\n" + "".join(sec[f"{b}_{k}"] for b in ("conf1", "conf2") for k in ("class", "dose", "harsh")) + "\n## Exploratory runs (not evidence)\n\n" + sec["exploratory"] + "\n## Development screens (not evidence)\n\n" + sec["dev"]
         Path(a.out).write_text(text); print(f"wrote {a.out} ({len(text)} chars)")
     if a.template and a.doc:
         t = Path(a.template).read_text()
-        for k, v in sec.items(): t = t.replace(f"<!--TABLE:{k}-->", v)
+        for k, v in sec.items(): t = t.replace(f"<!--TABLE:{k}-->", v).replace(f"<!--SECTION:{k}-->", v)
         Path(a.doc).write_text(t); print(f"wrote {a.doc}")
 
 

@@ -45,14 +45,14 @@ def winrate_vectors(ctx, head, paths) -> np.ndarray:
 
 
 # ------------------------------------------------------------------------------------------ generalised graph
-def make_graph(ctx, k: int = 10, shuffle: bool = False, noise: float = 0.0, keep=None, drop_paths=None, transductive_test_ideals: bool = False, label_sources: str = "all"):
+def make_graph(ctx, k: int = 10, shuffle: bool = False, noise: float = 0.0, keep=None, drop_paths=None, transductive_test_ideals: bool = False, label_sources: str = "all", keep_heldout_pair_images: bool = False):
     """GraphData over the allowed nodes of ``ctx`` with extra controls.
     keep(paths) -> subset of paths to keep as nodes (dose-response); drop_paths: image paths removed from the node set (held-out run/condition frames);
     transductive_test_ideals: keep the outer-test ideal images as unlabelled nodes; label_sources 'references' = labels only from reference images, 'all' = as nd_graph_learner."""
     original_ex, original_ch = gl.excluded_identities, gl.content_hashes
     drop = {str(p) for p in (drop_paths or ())}
     def excluded(c):
-        paths = {str(x) for g in list(c.validation) + list(c.test) for r in c.exp.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}
+        paths = set() if keep_heldout_pair_images else {str(x) for g in list(c.validation) + list(c.test) for r in c.exp.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}
         if not transductive_test_ideals: paths |= {str(p) for ps in c.exp.test_images.values() for p in ps}
         paths |= drop
         return set(gl.content_hashes(sorted(paths)).values())
