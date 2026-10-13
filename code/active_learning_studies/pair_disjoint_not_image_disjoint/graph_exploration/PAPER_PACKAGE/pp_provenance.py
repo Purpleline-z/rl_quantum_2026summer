@@ -31,7 +31,7 @@ def main():
             h, t = first_add(prepath)
             for d in dirs:
                 dpath = f"code/active_learning_studies/new_directions/results/{d}"; rh, rt_ = first_add(dpath)
-                if rt_ is None or t is None: rows.append(dict(study=sid, prereg=pfile, prereg_commit_registry=pcommit, prereg_commit_git=h, prereg_time=t, result_dir=d, first_result_commit=rh, first_result_time=rt_, prereg_before_results="n/a (not in history)")); continue
+                if rt_ is None or t is None or rh == h: rows.append(dict(study=sid, prereg=pfile, prereg_commit_registry=pcommit, prereg_commit_git=h, prereg_time=t, result_dir=d, first_result_commit=rh, first_result_time=rt_, prereg_before_results="n/a (not in history)")); continue
                 before = datetime.fromisoformat(t) < datetime.fromisoformat(rt_); ok_all &= before
                 rows.append(dict(study=sid, prereg=pfile, prereg_commit_registry=pcommit, prereg_commit_git=h, prereg_time=t, result_dir=d, first_result_commit=rh, first_result_time=rt_, prereg_before_results=str(before)))
     t = pd.DataFrame(rows)
