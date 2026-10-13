@@ -15,7 +15,7 @@ def dirs(*names): return [RES / n for n in names if (RES / n).is_dir()]
 
 
 def learners_table(ref, selector="random"):
-    f = T.load(dirs("sdev1", "sdev3", "sdev4", "sdev5", "sdev6", "sdev9")); rows = []
+    f = T.load(dirs("sdev1", "sdev3", "sdev4", "sdev5", "sdev6", "sdev9", "sdev10")); rows = []
     for split in sorted(f.split.unique()):
         for l in sorted(set(f[(f.split == split) & (f.selector == selector)].learner) - {ref}):
             r = {"split": split, "learner": l}

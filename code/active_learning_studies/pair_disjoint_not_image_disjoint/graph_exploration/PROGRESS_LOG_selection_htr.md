@@ -9,3 +9,4 @@
 - 07:30 SH2 addendum (cold-start learner confirmation, seeds 8385–8399) committed before it ran; 09:49 done (confirmed).
 - 09:50–10:10 sdev9 development check of a graph-free regulariser at the long schedule (`cons0.3_st4`): reaches most of the gain → recorded as a caveat in the results.
 - 10:11 final tables generated (`sh_report.py`), docs written (RESULTS, SUMMARY_ZH, HANDOFF, GPU_TASKS).
+- 10:37 sdev10 (cons0.1_st4, lap3+cons0.3 at the long schedule) complete; docs updated; final push.
