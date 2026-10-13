@@ -95,6 +95,7 @@ Secondary (λ = 3):
 
 ## 8. Limits
 - Same 168 pair groups in every seed (re-splits), so seed-level independence is only approximate and p-values are optimistic; the type-switch for RT13 (C1) was chosen on development seeds that share these groups with the confirmation seeds.
+- Graph quality is almost a monotone function of the noise dose (σ = 0.5 is even slightly above σ = 0), so the dose-response test is in effect a test that the gain falls when the topology is increasingly distorted; it cannot separate "quality" from "amount of distortion" (the across-construction analysis in 3.4 is the attempt to do that, and it is only weakly supportive).
 - Graph quality is measured on ideal-ideal edges only (≈ 480 edges, 4 classes); for most trajectory-trajectory edges there is no label. The dose-response axis is noise added to the topology features, which also changes degree and neighbourhood geometry; so the confirmed statement is about this axis, not about "the optimal graph".
 - Only one frozen encoder (SimCLR, plus its layers 2/3 and cached ImageNet features for the topology); a better encoder, end-to-end training, learned graphs and prospective data are in `GPU_TASKS_graph_mechanism.md`.
 - Non-graph controls: noise consistency, mixup consistency and weight decay were implemented once with one strength each (two for noise/mixup); "no non-graph smoothing helps" means these implementations, not impossibility.
