@@ -49,7 +49,8 @@ def summarize(per):
 
 def fmt_md(df, floatfmt="{:+.4f}"):
     cols = list(df.columns); out = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
-    for _, r in df.iterrows(): out.append("| " + " | ".join("" if (isinstance(v, float) and np.isnan(v)) else (floatfmt.format(v) if isinstance(v, float) else str(v)) for v in r) + " |")
+    intcols = {c for c in cols if "(of4)" in c or c in ("n", "n_seeds")}
+    for _, r in df.iterrows(): out.append("| " + " | ".join("" if (isinstance(v, float) and np.isnan(v)) else ("{:.0f}".format(v) if (c in intcols and isinstance(v, (int, float, np.integer, np.floating))) else (floatfmt.format(v) if isinstance(v, float) else str(v))) for c, v in zip(cols, r)) + " |")
     return "\n".join(out)
 
 

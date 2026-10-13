@@ -41,6 +41,7 @@ def table(name: str) -> str:
     if name == "dev2_ref": return dev(["dev2"], "lap3_k10_st4")
     if name == "dev3_ref": return dev(["dev3"], "lap3_k10_st4")
     if name == "far_counts": return n_far(["dev1"])
+    if name == "far_conf": return n_far(["conf"])
     m = re.match(r"strata:(.+?):(.+?):(.+?)$", name)   # strata:<dirs comma>:<cand>:<ref>
     if m: return strata_table(m.group(1).split(","), m.group(2), m.group(3))
     m = re.match(r"confirm:(.+?):(.+)$", name)         # confirm:<spec>:<dirs comma>
