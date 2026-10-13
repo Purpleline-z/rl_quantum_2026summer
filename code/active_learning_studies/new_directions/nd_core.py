@@ -194,3 +194,10 @@ def fit_head_ext(head, xa, xb, type_index, weight, winner, refs, bad, lr, steps,
         if bad is not None and len(bad): loss = loss + bad_weight * F.relu(head(bad) + 1.0).mean()
         optimizer.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); optimizer.step()
     return head.eval()
+
+
+# ------------------------------------------------------------------------------------------ anchor-exchange study (branch claude/anchor-exchange-*): own seed block, separate lines
+AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785)); AE_SEEDS_ALL = set(AE_DEV_SEEDS) | set(AE_CONFIRM1)
+RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
+assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
