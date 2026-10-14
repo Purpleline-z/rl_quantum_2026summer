@@ -1,0 +1,9 @@
+# learner lists of the pre-registered runs (scripts_td/run_td.sh MODE OUTNAME LEARNERS SEEDS [SPLITS]); each run once
+confirmation 1 (seeds 10530-10564)
+ forward  confirm1_fwd : BASE,STD,G0,C:trans_win:c0.3,AQ:ind:r0.3,L:trans_fut,L:trans_win,L:trans_test,AQ:trans_win:r0.3,AQ:trans_test:r0.3,L:trans_win:shuf,L:trans_test:shuf,AQ:trans_win:r0.3:shuf,AQ:trans_test:r0.3:shuf,L:trans_win:tshuf,L:trans_test:tshuf,AQ:trans_win:r0.3:tshuf,AQ:trans_test:r0.3:tshuf
+ standard confirm1_std : BASE,G0,C:trans_fut:c0.3,L:trans_fut,L:trans_fut:shuf,L:trans_fut:tshuf,AQ:trans_fut:r0.3,AQ:trans_fut:r0.3:shuf,AQ:trans_fut:r0.3:tshuf     (splits A,B; budgets 10,20,40,60)
+ blocked  confirm1_blk : same as confirm1_std
+confirmation 2 (seeds 10565-10599)
+ forward  confirm2_fwd : BASE,G0,C:trans_win:c0.3,L:trans_win,L:trans_test,AQ:trans_win:r0.3,AQ:trans_test:r0.3,L:trans_win:shuf,L:trans_test:shuf,AQ:trans_win:r0.3:shuf,AQ:trans_test:r0.3:shuf
+ standard confirm2_std : BASE,G0,L:trans_fut,L:trans_fut:shuf,AQ:trans_fut:r0.3,AQ:trans_fut:r0.3:shuf
+ blocked  confirm2_blk : same as confirm2_std (run only if time allows; stated in the results document)

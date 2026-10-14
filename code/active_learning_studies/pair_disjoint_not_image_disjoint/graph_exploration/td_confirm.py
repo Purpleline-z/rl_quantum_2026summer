@@ -21,12 +21,12 @@ import td_tables as T
 HERE = Path(__file__).resolve().parent
 
 
-def verdicts(spec: dict, fam: pd.DataFrame, shuf: dict) -> list:
+def verdicts(spec: dict, fam: pd.DataFrame, shuf: dict, kinds=("global", "targeted")) -> list:
     out = []
     for c in spec["candidates"]:
         sub = fam[fam.learner == c["learner"]]; wins = int(((sub.gain > 0) & (sub.holm_p < 0.05)).sum())
-        beats = all(shuf.get((c["learner"], w), (-1, 1))[0] > 0 and shuf.get((c["learner"], w), (-1, 1))[1] < 0.05 for w in spec["windows"])
-        out.append(f"- **{c['id']} `{c['learner']}`**: {wins} of {len(sub)} tests positive with Holm p < 0.05; beats its shuffled control (AUC, both windows, uncorrected p < 0.05): {beats} -> " + ("**SUCCESS**" if wins >= spec["min_wins"] and beats else "not met"))
+        beats = all(shuf.get((c["learner"], w, k), (-1, 1))[0] > 0 and shuf.get((c["learner"], w, k), (-1, 1))[1] < 0.05 for w in spec["windows"] for k in kinds)
+        out.append(f"- **{c['id']} `{c['learner']}`**: {wins} of {len(sub)} tests positive with Holm p < 0.05; beats its shuffled controls ({'+'.join(kinds)}; AUC, both windows, uncorrected p < 0.05): {beats} -> " + ("**SUCCESS**" if wins >= spec["min_wins"] and beats else "not met"))
     return out
 
 
@@ -35,14 +35,16 @@ def forward_tables(spec: dict, dirs, boot: int) -> str:
     n = df[(df.learner == base)].groupby(["window"]).n_test.agg(["mean", "min", "max"]); nj = df[(df.learner == base)].groupby(["seed", "cut", "window"]).n_test.first().groupby("window").sum()
     text.append(f"{df.seed.nunique()} seeds x 6 cuts; decisive test judgments per (seed, cut, window): " + "; ".join(f"{w} mean {r['mean']:.0f} (min {r['min']:.0f}, max {r['max']:.0f})" for w, r in n.iterrows()) + "; distinct test groups per window pooled over cuts and seeds are the groups of the 168 (windows overlap between cuts).")
     fam = T.test_family(df, meta, base, cands, spec["windows"], tuple(spec["metrics"]), boot); text += ["\n**Primary family (forward endpoint), gain over BASE = `lap3_k10_st4` on the past-only graph**\n", T.md(fam)]
-    shuf = {}; rows = []
+    shuf = {}; rows = []; have = set(df.learner); kinds = ["global"] + (["targeted"] if all(c["tshuffled"] in have for c in spec["candidates"]) else [])
     for c in spec["candidates"]:
-        for w in spec["windows"]:
-            for m in ("auc", "acc"):
-                s = T.summarize(T.per_seed(df, c["learner"], c["shuffled"], w, m)); rows.append({"learner": c["learner"], "control": c["shuffled"], "window": w, "metric": m, "gain": s["gain"], "seed_ci": f"[{s['lo']:+.4f},{s['hi']:+.4f}]", "p": s["p"]})
-                if m == "auc": shuf[(c["learner"], w)] = (s["gain"], s["p"])
-    text += ["\n**Candidate minus its shuffled-graph control** (uncorrected)\n", T.md(pd.DataFrame(rows))]
-    text += ["\n**Verdicts**\n"] + verdicts(spec, fam, shuf)
+        for kind, key in (("global", "shuffled"), ("targeted", "tshuffled")):
+            if kind not in kinds: continue
+            for w in spec["windows"]:
+                for m in ("auc", "acc"):
+                    s = T.summarize(T.per_seed(df, c["learner"], c[key], w, m)); rows.append({"learner": c["learner"], "control": c[key], "window": w, "metric": m, "gain": s["gain"], "seed_ci": f"[{s['lo']:+.4f},{s['hi']:+.4f}]", "p": s["p"]})
+                    if m == "auc": shuf[(c["learner"], w, kind)] = (s["gain"], s["p"])
+    text += ["\n**Candidate minus its shuffled-graph controls** (global shuffle; targeted shuffle of the held-out nodes only, where run; uncorrected)\n", T.md(pd.DataFrame(rows))]
+    text += ["\n**Verdicts**\n"] + verdicts(spec, fam, shuf, tuple(kinds))
     ref = []
     for name, lab in [(spec.get("tuned_graph_free"), "tuned graph-free control"), (spec.get("graph_free_control"), "graph-free transductive control (dropout consistency on the same nodes)")] + [(x, "decomposition") for x in spec.get("decomposition", [])]:
         if not name: continue
@@ -62,7 +64,12 @@ def forward_tables(spec: dict, dirs, boot: int) -> str:
 
 
 def standard_tables(spec: dict, dirs, kind: str, boot: int) -> str:
-    df, meta = T.load_with_meta(dirs); base = spec["baseline"]; cands = [c["learner"] for c in spec["candidates"]]
+    df, meta = T.load_with_meta(dirs); base = spec["baseline"]
+    std_c = list({c["standard"]: {"learner": c["standard"], "shuffled": c["standard_shuffled"], "ids": []} for c in spec["candidates"]}.values())   # in the standard split all transductive node sets coincide: distinct learners only
+    for c in spec["candidates"]:
+        for x in std_c:
+            if x["learner"] == c["standard"]: x["ids"].append(c["id"])
+    spec = {**spec, "candidates": std_c}; cands = [c["learner"] for c in std_c]
     fams = []
     splits = ["A", "B"] if kind == "standard" else ["blocked"]
     for sp in splits:
@@ -77,7 +84,7 @@ def standard_tables(spec: dict, dirs, kind: str, boot: int) -> str:
             for m in ("auc", "acc"): s = T.summarize(T.per_seed(d, c["learner"], c["shuffled"], "T", m)); rows.append({"learner": c["learner"], "control": c["shuffled"], "split": sp, "metric": m, "gain": s["gain"], "p": s["p"]})
     out += ["\n**Candidate minus its shuffled control**\n", T.md(pd.DataFrame(rows))]
     ref = []
-    for name in [spec.get("tuned_graph_free"), spec.get("graph_free_control")]:
+    for name in [spec.get("tuned_graph_free"), spec.get("graph_free_control_standard")]:
         if not name: continue
         for sp in splits:
             d = df[df.split == sp].copy(); d["window"] = "T"; r = {"learner": name, "split": sp}

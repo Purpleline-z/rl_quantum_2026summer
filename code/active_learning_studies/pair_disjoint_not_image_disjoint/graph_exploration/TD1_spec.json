@@ -1,0 +1,85 @@
+{
+ "name": "TD1",
+ "baseline": "BASE",
+ "tuned_graph_free": "G0",
+ "graph_free_control": "C:trans_win:c0.3",
+ "windows": [
+  "FA",
+  "FB"
+ ],
+ "metrics": [
+  "auc",
+  "acc"
+ ],
+ "min_wins": 3,
+ "decomposition": [
+  "STD",
+  "L:trans_test",
+  "L:trans_win",
+  "L:trans_fut",
+  "AQ:ind:r0.3"
+ ],
+ "candidates": [
+  {
+   "id": "C1",
+   "learner": "L:trans_win",
+   "shuffled": "L:trans_win:shuf",
+   "tshuffled": "L:trans_win:tshuf",
+   "standard": "L:trans_fut",
+   "standard_shuffled": "L:trans_fut:shuf"
+  },
+  {
+   "id": "C2",
+   "learner": "L:trans_test",
+   "shuffled": "L:trans_test:shuf",
+   "tshuffled": "L:trans_test:tshuf",
+   "standard": "L:trans_fut",
+   "standard_shuffled": "L:trans_fut:shuf"
+  },
+  {
+   "id": "C3",
+   "learner": "AQ:trans_win:r0.3",
+   "shuffled": "AQ:trans_win:r0.3:shuf",
+   "tshuffled": "AQ:trans_win:r0.3:tshuf",
+   "standard": "AQ:trans_fut:r0.3",
+   "standard_shuffled": "AQ:trans_fut:r0.3:shuf"
+  },
+  {
+   "id": "C4",
+   "learner": "AQ:trans_test:r0.3",
+   "shuffled": "AQ:trans_test:r0.3:shuf",
+   "tshuffled": "AQ:trans_test:r0.3:tshuf",
+   "standard": "AQ:trans_fut:r0.3",
+   "standard_shuffled": "AQ:trans_fut:r0.3:shuf"
+  }
+ ],
+ "blocks": [
+  {
+   "name": "confirmation 1",
+   "seeds": "10530-10564",
+   "forward": [
+    "confirm1_fwd"
+   ],
+   "standard": [
+    "confirm1_std"
+   ],
+   "blocked": [
+    "confirm1_blk"
+   ]
+  },
+  {
+   "name": "confirmation 2",
+   "seeds": "10565-10599",
+   "forward": [
+    "confirm2_fwd"
+   ],
+   "standard": [
+    "confirm2_std"
+   ],
+   "blocked": [
+    "confirm2_blk"
+   ]
+  }
+ ],
+ "graph_free_control_standard": "C:trans_fut:c0.3"
+}

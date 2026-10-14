@@ -49,3 +49,19 @@ def test_fit_td_reproduces_baseline_and_propagation_limits():
         s0 = td.propagate_scores(gd, h, 0.0); assert torch.allclose(s0, h(gd.x), atol=1e-6)                   # alpha = 0: head scores
         s5 = td.propagate_scores(gd, h, 0.5); s5s = td.propagate_scores(gd, h, 0.5, shuffle_seed=ctx.seed); assert not torch.allclose(s5, s5s) and s5.std() < s0.std() * 1.0001
         assert td.td_graph(ctx, "trans").n_edges > gd.n_edges and set(gd.paths) < set(td.td_graph(ctx, "trans").paths)
+
+
+@needs_cache
+def test_window_nodes_nesting_and_targeted_shuffle_keeps_degrees():
+    import td_core as td
+    torch.set_num_threads(1); cache = core.feature_cache()
+    with tempfile.TemporaryDirectory() as s:
+        ctx = td.make_forward_ctx(10502, 40, s, cache); f = ctx.forward; ctx._window = "FA"
+        ind = set(td.td_graph(ctx, "ind").paths); wa = set(td.td_graph(ctx, "trans_win_FA").paths); wb = set(td.td_graph(ctx, "trans_win_FB").paths); tf = set(td.td_graph(ctx, "trans_fut").paths); tt = set(td.td_graph(ctx, "trans_test").paths)
+        assert ind <= wa <= wb <= tf and tt <= tf and ind <= tt
+        end = td.group_time(ctx, f["near"][-1]); assert all(td.img_time(p) is None or td.img_time(p) <= end for p in wa)   # causal: nothing after the last scored group of the window
+        test_imgs = {p for g in f["near"] for p in td.group_images(ctx, g)}; assert test_imgs <= wa
+        gd = td.td_graph(ctx, "trans_win_FA"); sh = td.td_graph(ctx, "trans_win_FA", 10, "test")
+        idx = np.array([gd.index[p] for p in td.heldout_paths(ctx) if p in gd.index]); rest = np.setdiff1d(np.arange(len(gd.paths)), idx)
+        assert np.array_equal(np.sort(gd.adj.sum(1).numpy()[idx]), np.sort(sh.adj.sum(1).numpy()[idx])) and np.array_equal(gd.adj.sum(1).numpy()[rest], sh.adj.sum(1).numpy()[rest])
+        assert not torch.equal(gd.adj, sh.adj)
