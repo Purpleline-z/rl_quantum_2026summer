@@ -25,7 +25,7 @@ def load(dirs):
     return pd.DataFrame(rows), pd.DataFrame(metas)
 
 
-B_FREE = ("cr_src", "cr_ind_src", "cr_nolap_src", "cr_anchor0", "cr_align_src")   # learners without target labels: stored once at b = 0
+B_FREE = ("cr_src", "cr_ind_src", "cr_nolap_src", "cr_shuf_src", "cr_anchor0", "cr_align_src")   # learners without target labels: stored once at b = 0
 
 
 def resolve(learner, b):
@@ -171,7 +171,7 @@ def wacc(d, s, w, mult):
 
 def prepare(df, meta, specs):
     """specs: list of (learner, b).  Returns cells[(seed, split, run)] = {"sign", "weight", "group_idx", "far", "d": {spec: array}} and the per-run group lists."""
-    mm = meta.set_index(["seed", "split", "run"]); cells = {}; groups = {r: sorted({g for key, row in mm.iterrows() if key[2] == r for g in row["test_group"]}) for r in RUNS}; gidx = {r: {g: i for i, g in enumerate(groups[r])} for r in RUNS}
+    mm = meta.drop_duplicates(["seed", "split", "run"]).set_index(["seed", "split", "run"]); cells = {}; groups = {r: sorted({g for key, row in mm.iterrows() if key[2] == r for g in row["test_group"]}) for r in RUNS}; gidx = {r: {g: i for i, g in enumerate(groups[r])} for r in RUNS}
     for spec in specs:
         l, bb = resolve(*spec); g = df[(df.learner == l) & (df.budget == bb)]
         for _, r in g.iterrows():
@@ -204,3 +204,59 @@ def cluster_bootstrap(df, meta, specs, n_boot=1000, seed=0, subset=None, kinds=N
         mults = {r: np.bincount(rng.integers(0, len(groups[r]), len(groups[r])), minlength=len(groups[r])) for r in RUNS}; res = pooled_metrics(cells, groups, mults, specs, subset=subset, kinds=kinds)
         for k, v in res.items(): boots[k].append(v)
     return point, {k: np.asarray(v) for k, v in boots.items()}
+
+
+# ------------------------------------------------------------------------------------------ pre-registered tests
+def _chunk_boot(args):
+    df, meta, specs, n, seed, subset, kinds = args; return cluster_bootstrap(df, meta, specs, n_boot=n, seed=seed, subset=subset, kinds=kinds)[1]
+
+
+def parallel_bootstrap(df, meta, specs, n_boot=2000, seed=0, subset=None, kinds=None, jobs=4):
+    """cluster bootstrap split over processes; returns (point, boots)."""
+    from concurrent.futures import ProcessPoolExecutor
+    point = cluster_bootstrap(df, meta, specs, n_boot=1, seed=seed, subset=subset, kinds=kinds)[0]
+    per = [n_boot // jobs + (1 if i < n_boot % jobs else 0) for i in range(jobs)]
+    with ProcessPoolExecutor(jobs) as ex: parts = list(ex.map(_chunk_boot, [(df, meta, specs, n, seed * 1000 + i + 1, subset, kinds) for i, n in enumerate(per)]))
+    return point, {k: np.concatenate([p[k] for p in parts]) for k in point}
+
+
+def one_sided_p(boot):   # H0: gain <= 0
+    return float((1 + (boot <= 0).sum()) / (len(boot) + 1))
+
+
+def needed_specs(spec):
+    out = set()
+    for c in spec["candidates"]:
+        for b in spec["primary_b"]: out |= {(c, b), ("cr_src", b), ("cr_tgt", b)}
+    for c, bs in spec["secondary"].items():
+        for b in bs: out |= {(c, b), ("cr_src", b), ("cr_tgt", b)}
+    for a, ref in spec["mechanism"].values(): out |= {(a, 0), (ref, 0)}
+    return sorted(out)
+
+
+def run_confirm(df, meta, spec, n_boot=2000, jobs=4, seed=0):
+    specs = needed_specs(spec); point, boots = parallel_bootstrap(df, meta, specs, n_boot, seed, jobs=jobs); rows = []
+    def add(family, name, a, ref, metric):
+        g = point[(a, metric)] - point[(ref, metric)]; bt = boots[(a, metric)] - boots[(ref, metric)]; lo, hi = np.percentile(bt, [2.5, 97.5]); return {"family": family, "test": name, "a": f"{a[0]}@b={a[1]}", "ref": f"{ref[0]}@b={ref[1]}", "metric": metric, "gain": g, "lo": lo, "hi": hi, "p": one_sided_p(bt)}
+    prim = []
+    for c in spec["candidates"]:
+        for b in spec["primary_b"]:
+            for m in spec["metrics"]:
+                parts = [add("PRIMARY", f"{c} b={b}", (c, b), (r, b), m) for r in spec["comparators"]]; rows += parts
+                prim.append({"family": "PRIMARY_IU", "test": f"{c} b={b}", "a": c, "ref": "max over src,tgt", "metric": m, "gain": min(x["gain"] for x in parts), "lo": min(x["lo"] for x in parts), "hi": min(x["hi"] for x in parts), "p": max(x["p"] for x in parts), "cand": c, "b": b})
+    ph = holm([x["p"] for x in prim])
+    for x, h in zip(prim, ph): x["holm"] = h
+    sec = []
+    for c, bs in spec["secondary"].items():
+        for b in bs:
+            for m in spec["metrics"]: x = add("SECONDARY_VS_SRC", f"{c} b={b}", (c, b), ("cr_src", b), m); sec.append(x)
+    for x, h in zip(sec, holm([x["p"] for x in sec])): x["holm"] = h
+    mech = [add("MECHANISM", name, (a, 0), (ref, 0), m) for name, (a, ref) in spec["mechanism"].items() for m in spec["metrics"]]
+    for x, h in zip(mech, holm([x["p"] for x in mech])): x["holm"] = h
+    return pd.DataFrame(rows), pd.DataFrame(prim), pd.DataFrame(sec), pd.DataFrame(mech), point
+
+
+def success(prim):
+    out = {}
+    for c, g in prim.groupby("cand"): out[c] = bool(len(g) == 2 * 2 and (g.gain > 0).all() and (g.holm < 0.05).all())
+    return out

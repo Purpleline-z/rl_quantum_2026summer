@@ -200,6 +200,7 @@ class Runner:
             isr = torch.zeros(len(self.gd.paths), dtype=torch.bool); isr[self.run_nodes] = True; sub = name[len("cr_lapR"):]; pool = sub.endswith("_pool"); w = float(sub.replace("_pool", ""))
             if pool and b == 0: return train_head(ctx, self.gd, self.seed, f.source, [], lap_extra=w, lap_extra_nodes=isr)
             return train_head(ctx, self.gd, seed if pool else self.seed, f.source, tgt if pool else [], lap_extra=w, lap_extra_nodes=isr)
+        if name == "cr_shuf_src": return train_head(ctx, self.gd_shuf, self.seed, f.source, [])   # shuffled-graph control of the Laplacian (source labels only)
         if name == "cr_nolap_src": return train_head(ctx, self.gd, self.seed, f.source, [], lap=0.0)
         if name == "cr_anchor0": return train_head(ctx, self.gd, self.seed, [], [], lap=0.0)
         if name.startswith("cr_align_"):
