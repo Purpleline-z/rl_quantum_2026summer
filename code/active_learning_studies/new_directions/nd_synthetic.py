@@ -38,6 +38,12 @@ def ideal_fixed() -> dict:
     d = syn_ideal_fix.load(); return {"paths": d["paths"], "fix16": d["fix16"], "mask": d["mask"], "mask_keep16": d["mask_keep16"], "index": {p: i for i, p in enumerate(d["paths"])}}
 
 
+@lru_cache(maxsize=1)
+def is16_paths() -> frozenset:
+    from PIL import Image
+    return frozenset(p for p in ideal_fixed()["paths"] if Image.open(p).mode.startswith("I;16"))
+
+
 def patched_cache(ctx, variant: str) -> dict:
     """Copy of the feature cache with the ideal-image features replaced (the shared cache is never mutated)."""
     key = ("_syn_cache", variant); store = ctx.__dict__.setdefault("_syn", {})
@@ -79,7 +85,7 @@ def _anchor_loss_w(scores, cols, weights):
 
 
 def make_spec(name, **kw):
-    s = dict(name=name, ideal=None, ideal_graph="same", shuf_graph=False, extra=None, syn=None, lam=3.0, steps=4.0); s.update(kw); return s
+    s = dict(name=name, ideal=None, ideal_graph="same", shuf_graph=False, drop16=False, extra=None, syn=None, lam=3.0, steps=4.0); s.update(kw); return s
 
 
 def fit_syn(ctx, labelled, seed, spec):
@@ -91,6 +97,11 @@ def fit_syn(ctx, labelled, seed, spec):
     try:
         featfn = core.identity_features(ctx); lr, steps = ctx.params_for(labelled); steps = int(round(steps * spec["steps"])); rows = ju_study.rows_of(ctx.exp, labelled)
         head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, True)
+        if spec.get("drop16"):   # remove the 16-bit PNG ideal images (saturated by the loader) from the anchor set
+            fx = ideal_fixed(); keep16 = {}
+            for c in refs:
+                ps = [str(p) for p in list(ctx.exp.references.get(c, [])) + list(ctx.exp.utility_images.get(c, [])) + list(ctx.exp.test_images.get(c, []))]; keep16[c] = torch.tensor([p not in is16_paths() for p in ps])
+            refs = {c: f[keep16[c]] for c, f in refs.items()}
         if len(rows):
             xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
             weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
@@ -118,7 +129,10 @@ def fit_syn(ctx, labelled, seed, spec):
     for _ in range(steps):
         loss = G._bt_terms(head(xa)[index, typ], head(xb)[index, typ], masks, weight) / max(len(typ), 1)
         if len(refs) > 1:
-            if not pools and not extra_fixed: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
+            if syn and syn.get("replace"):   # diagnostic: the REAL anchors are replaced by synthetic ones (no real anchor image is used)
+                scores = {n: head(pools[n][torch.randint(len(pools[n]), (syn.get("per_step", 16),), generator=gens)]) for n in refs if n in pools}
+                if len(scores) > 1: loss = loss + aw * G._anchor_loss(scores, cols, None)
+            elif not pools and not extra_fixed: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
             else:
                 scores, ws = {}, {}
                 for n, f in refs.items():
@@ -155,3 +169,32 @@ register("sy_mask16", ideal="mask_keep16")                                   # d
 register("sy_maskanc", ideal="mask", ideal_graph=None)                       # masked ideal images as ANCHORS only (graph nodes keep the loader features)
 register("sy_both50", extra=dict(variant="mask", share=0.5))                 # original anchors + masked copies of the same ideal images (weight share 0.5)
 register("sy_both33", extra=dict(variant="mask", share=1 / 3))
+
+
+# ------------------------------------------------------------------------------------------ two-head learners (inference-time combination)
+def anchor_distance_fn(ctx):
+    """Cosine distance (centred, normalised loader features, rt_a1b convention) of an image to the nearest typed ideal image (references, utility, outer-test ideal images) - uses only the image itself."""
+    store = ctx.__dict__.setdefault("_syn", {})
+    if "anc" not in store:
+        c = ctx.features.cache; paths = sorted(c); mu = torch.stack([c[p].float() for p in paths]).mean(0)
+        anc = sorted({str(p) for t in (ctx.exp.references, ctx.exp.utility_images, ctx.exp.test_images) for ps in t.values() for p in ps}); A = torch.stack([c[p].float() for p in anc]) - mu; A = A / A.norm(dim=1, keepdim=True).clamp_min(1e-9)
+        def dist(images):
+            x = torch.stack([c[str(p)].float() for p in images]) - mu; x = x / x.norm(dim=1, keepdim=True).clamp_min(1e-9); return (1 - (x @ A.T).max(1).values).numpy()
+        store["anc"] = dist
+    return store["anc"]
+
+
+def _two_head_learner(spec_a, spec_b, mode, thr=0.03, seed_b_offset=0):
+    """mode: 'mean' (average of the two logit gaps), 'gate' (second head where BOTH test images are farther than ``thr`` from every typed anchor, first head elsewhere)."""
+    def learner(ctx, labelled, seed):
+        ha = fit_syn(ctx, labelled, seed, spec_a); hb = fit_syn(ctx, labelled, seed + seed_b_offset, spec_b); fa, fb = core.identity_features(ctx), core.identity_features(ctx)
+        def predict(test):
+            da = core.head_d(ha, fa, test); db = core.head_d(hb, fb, test)
+            if mode == "mean": return 0.5 * (da + db)
+            dist = anchor_distance_fn(ctx); far = np.minimum(dist(test.img1), dist(test.img2)) > thr; return np.where(far, db, da)
+        return predict
+    return learner
+
+
+def register_two(name, spec_a, spec_b, mode, **kw):
+    LEARNERS[name] = _two_head_learner(spec_a, spec_b, mode, **kw); SPEC_OF[name] = dict(name=name, a=spec_a["name"], b=spec_b["name"], mode=mode, **kw); return name
