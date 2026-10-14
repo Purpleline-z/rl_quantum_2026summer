@@ -8,6 +8,7 @@ are NOT near an HTR ideal image (1x1-like vs RT13-like frames) by a poorly deter
   hfb_g<G>     post-hoc blend      d' = d + G * (r(a) - r(b))  for HTR rows (k = 4); top-1 similarity          (G in 5, 10, 20)
   hfb3_g10     same with the mean of the top-3 similarities (smoother, less dependent on a single near-copy anchor)
   hfs          anchor-similarity features: the head sees [x, 10 * s(x)] with s(x) = top-1 cosine similarity to each class's anchors (self excluded for anchors), incl. the graph nodes of the Laplacian term
+  hfc1         cross-type coupling d_HTR - d_RT13 (31/31 pairs with both judgments have opposite winners); hfcb10 = coupling + blend G=10
   hfq1         teacher loss: lambda * softplus(-sign(r_i - r_j) * (s_HTR(i) - s_HTR(j))) on random node pairs (HTR output only; the repository's ``rankq`` path with a q that has a constant column for the other types)
 
 Anchors are read from ``ctx.exp`` (references + utility + outer-test ideal images of the seed, exactly the anchors of ``aw8_all``), so an anchor-strict context (near-copy anchors removed) changes the variants' anchors too.
@@ -43,13 +44,31 @@ def similarity(ctx, paths, cls: str, topk: int = 1) -> torch.Tensor:
 
 def blend_learner(gamma: float, topk: int = 1, base: str = "lap3_k10_st4"):
     def learner(ctx, labelled, seed):
-        key = (tuple(labelled), seed, base); last = ctx.__dict__.get("_hf_base")   # the blend variants of one (label set, seed) share one fit of the base learner (deterministic, identical to refitting)
-        if last is None or last[0] != key: ctx.__dict__["_hf_base"] = last = (key, G.LEARNERS[base](ctx, labelled, seed))
-        fn = last[1]
+        fn = _base_fn(ctx, labelled, seed, base)   # the variants of one (label set, seed) share one fit of the base learner (deterministic, identical to refitting)
         def predict(test):
             d = np.asarray(fn(test), dtype=float); htr = test.k == 4
             gap = (similarity(ctx, test.img1, HTR, topk) - similarity(ctx, test.img2, HTR, topk)).numpy()
             return d + gamma * gap * htr
+        return predict
+    return learner
+
+
+def _base_fn(ctx, labelled, seed, base):
+    key = (tuple(labelled), seed, base); last = ctx.__dict__.get("_hf_base")
+    if last is None or last[0] != key: ctx.__dict__["_hf_base"] = last = (key, G.LEARNERS[base](ctx, labelled, seed))
+    return last[1]
+
+
+def coupled_learner(lam: float = 1.0, gamma: float = 0.0, base: str = "lap3_k10_st4"):
+    """Cross-type coupling: in the 31 pairs with a decisive HTR and a decisive RT13 judgment the winners are opposite in 31 of 31 (HTR-ness and RT13-ness are one axis there), so the HTR logit gap is replaced by
+    d_HTR - lam * d_RT13 (the RT13 output of the same head on the same two images); optional additional anchor-similarity blend ``gamma`` as in ``hfb``."""
+    import copy
+    def learner(ctx, labelled, seed):
+        fn = _base_fn(ctx, labelled, seed, base)
+        def predict(test):
+            d = np.asarray(fn(test), dtype=float); t3 = copy.copy(test); t3.k = np.full_like(test.k, 3); d3 = np.asarray(fn(t3), dtype=float); out = np.where(test.k == 4, d - lam * d3, d)
+            if gamma: out = out + gamma * (similarity(ctx, test.img1, HTR, 1) - similarity(ctx, test.img2, HTR, 1)).numpy() * (test.k == 4)
+            return out
         return predict
     return learner
 
@@ -77,5 +96,5 @@ def teacher_learner(lam: float = 1.0, lap: float = 3.0, steps_scale: float = 4.0
     return learner
 
 
-LEARNERS_HF = {"hfb_g5": blend_learner(5.0), "hfb_g10": blend_learner(10.0), "hfb_g20": blend_learner(20.0), "hfb3_g10": blend_learner(10.0, topk=3), "hfs": aug_learner(), "hfq1": teacher_learner(1.0)}
+LEARNERS_HF = {"hfb_g5": blend_learner(5.0), "hfb_g10": blend_learner(10.0), "hfb_g20": blend_learner(20.0), "hfb3_g10": blend_learner(10.0, topk=3), "hfs": aug_learner(), "hfq1": teacher_learner(1.0), "hfc1": coupled_learner(1.0), "hfcb10": coupled_learner(1.0, 10.0)}
 rt.REGISTRY.update(LEARNERS_HF)
