@@ -1,0 +1,11 @@
+{
+ "reference": "lap3_k10_st4",
+ "candidates": [
+  "rt_c2_lam10_rho0.001"
+ ],
+ "controls": [
+  "aw8_all_st2lr0.5",
+  "rt_c2_lam10_rho0.001_sh1",
+  "rt_c2_lam0"
+ ]
+}
