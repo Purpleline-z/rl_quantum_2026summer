@@ -11,6 +11,7 @@ Start with `NEW_DIRECTIONS_RESULTS.md` (results, verdicts, caveats). `OVERNIGHT_
 | `nd_select.py` | selection screens (`random`, `vopt_u`, ambiguity-weighted, mirror consistency, GP variance, raw-space and stochastic design, committee) x learners; cold start with `ND_INITIAL=random` |
 | `nd_analyze.py`, `nd_analyze_select.py`, `nd_make_report_tables.py` | paired gains with bootstrap intervals; `results/DEV_SCREENS.md` is generated |
 | `nd_confirm.py`, `nd_confirm_markdown.py`, `nd_confirm_type.py`, `nd_type_accuracy.py` | pre-registered tests and their generated tables |
+| `hf_*.py`, `HTR_FAILURES_RESULTS.md`, `PREREGISTRATION_HF.md` | HTR failure analysis (branch claude/htr-failures-analysis-*): per-judgment error analysis of `lap3_k10_st4`, label-consistency report, contact sheets, anchor-similarity variants and their strict-anchor test; results in `results/hf/` |
 | `literature/` | search-verified literature notes (`lit_*.md`) and `LITERATURE_TABLE.md` |
 | `results/` | all result JSON / CSV / tables (screen* = development seeds 2000-2019; confirm* = confirmatory seeds) |
 
