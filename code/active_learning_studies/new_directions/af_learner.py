@@ -201,3 +201,5 @@ for _b in (2.0, 5.0): LEARNERS[f"af_dlamfar{_b:g}"] = af_learner({"dlam": (_b, +
 LEARNERS["af_runcentre"] = af_learner({"runcentre": 1})
 # V6 multi-scale
 for _l in (1.0, 3.0): LEARNERS[f"af_far{_l:g}"] = af_learner({"far_edges": (_l, 30, 3)}); LEARNERS[f"af_far{_l:g}_shuf"] = af_learner({"far_edges": (_l, 30, 3)}, shuffle=True)
+# V2b wide pseudo anchors: tau = 4 hops and a low threshold, so that pseudo-anchors reach 6-7 hops from the typed anchors (tau 2 / thr 0.4 above reaches one hop only: 0.9 * exp(-2/2) < 0.4)
+for _l in (0.3, 1.0, 3.0): LEARNERS[f"af_pseudoW{_l:g}"] = af_learner({"pseudo": (_l, 8, 4.0, 0.12)}); LEARNERS[f"af_pseudoW{_l:g}_shuf"] = af_learner({"pseudo": (_l, 8, 4.0, 0.12)}, shuffle=True)
