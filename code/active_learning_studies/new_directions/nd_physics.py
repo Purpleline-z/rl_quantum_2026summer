@@ -37,6 +37,12 @@ def physics_table(ctx, name: str) -> dict:
     Z = torch.as_tensor(np.clip((X - mu) / sd, -5, 5), dtype=torch.float32); scale = R._mean_norm(R._blocks()["s4"], nodes) / float(Z[idx].norm(dim=1).mean()); return {p: Z[i] * scale for p, i in s["index"].items()}
 
 
+def physics_like_random(ctx, nodes) -> dict:
+    """Control with the dimension of ``pfa``: fixed Gaussian random projection of the SimCLR feature, z-scored with node statistics, clipped, scaled like a physics block."""
+    s = _load(); P_ = torch.stack([R._blocks()["s4"][p] for p in s["paths"]]) @ s["proj"]; idx = [s["index"][p] for p in nodes]; mu, sd = P_[idx].mean(0), P_[idx].std(0) + 1e-6
+    Z = torch.clamp((P_ - mu) / sd, -5, 5); scale = R._mean_norm(R._blocks()["s4"], nodes) / float(Z[idx].norm(dim=1).mean()); return {p: Z[i] * scale for p, i in s["index"].items()}
+
+
 def _concat(tables: list, ref_paths) -> dict:
     sc = R._mean_norm(R._blocks()["s4"], ref_paths) / len(tables) ** .5
     return {p: torch.cat([F.normalize(t[p].float(), dim=0) * sc for t in tables]) for p in tables[0]}
@@ -50,12 +56,13 @@ def ctx_rep_pf(ctx, name: str) -> dict:
     elif name in ("pfas", "pfbs", "pfcs"): out = _concat([ctx_rep_pf(ctx, name[:-1]), s4], nodes)
     elif name == "f16": out = R._scaled_single(s["f16"], sorted(s["f16"])) if False else s["f16"]
     elif name == "f16pfa": out = _concat([ctx_rep_pf(ctx, "pfa"), s["f16"]], nodes)
+    elif name == "rpp": out = physics_like_random(ctx, nodes)
     elif name == "prd": out = _concat([{p: v @ s["proj"] for p, v in s4.items()}, s4], nodes)
     else: raise KeyError(name)
     store[name] = out; return out
 
 
-PF_NAMES = {"pfa", "pfb", "pfc", "pfas", "pfbs", "pfcs", "f16", "f16pfa", "prd"}
+PF_NAMES = {"pfa", "pfb", "pfc", "pfas", "pfbs", "pfcs", "f16", "f16pfa", "prd", "rpp"}
 _orig_ctx_rep = R.ctx_rep
 
 
@@ -72,11 +79,22 @@ def q_physics(ctx, name: str, gd, temp: float = 20.0) -> torch.Tensor:
     cls = torch.stack([xn[[i for i, c in gd.source_class.items() if c == k]].mean(0) for k in G.ACTIVE]); return torch.softmax(xn @ F.normalize(cls, dim=1).T * temp, 1)
 
 
-def pq_learner(rep: str, rankq: float = 1.0, lap: float = 3.0, steps_scale: float = 4.0, shuffle: bool = False, qrep: str | None = None):
+def q_logreg(ctx, name: str, gd, C: float = 1.0) -> torch.Tensor:
+    """Anchor-matching signal 2: class posterior of every graph node from a regularised logistic regression (4 parameters per feature) trained on the typed ideal images that every aw8_all-family learner already uses as anchors
+    (references + utility + the seed's outer-test ideals; their class labels are owned by the lab; held-out pair images never coincide with ideals by content identity).  Features: ``name`` standardised on the allowed nodes."""
+    from sklearn.linear_model import LogisticRegression
+    t = ctx_rep_pf(ctx, name) if name in PF_NAMES else R.raw_rep(name); anchors = [(str(p), core.frozen.TYPE_TO_INDEX[c]) for tab in (ctx.exp.references, ctx.exp.utility_images, ctx.exp.test_images) for c, ps in tab.items() for p in ps if core.frozen.TYPE_TO_INDEX[c] in G.ACTIVE]
+    X = torch.stack([t[p].float() for p in gd.paths]); mu, sd = X.mean(0), X.std(0) + 1e-6; Xa = (torch.stack([t[p].float() for p, _ in anchors]) - mu) / sd; ya = np.array([c for _, c in anchors])
+    clf = LogisticRegression(C=C, max_iter=3000).fit(Xa.numpy(), ya); pr = clf.predict_proba(((X - mu) / sd).numpy()); out = np.full((len(X), len(G.ACTIVE)), 1e-6)
+    for j, c in enumerate(clf.classes_): out[:, list(G.ACTIVE).index(int(c))] = pr[:, j]
+    return torch.as_tensor(out / out.sum(1, keepdims=True), dtype=torch.float32)
+
+
+def pq_learner(rep: str, rankq: float = 1.0, lap: float = 3.0, steps_scale: float = 4.0, shuffle: bool = False, qrep: str | None = None, kind: str = "proto"):
     """lap3_k10_st4 plus a ranking term that pulls s_k(i) - s_k(j) of random node pairs towards sign(q_k(i) - q_k(j)), q from the physics (or other) prototype posterior; head and graph on SimCLR."""
     def learner(ctx, labelled, seed):
         gd = G.graph_for(ctx, 10, shuffle); cache = ctx.features.cache; featfn = core.identity_features(ctx); node_x = gd.x
-        q = q_physics(ctx, qrep or rep, gd); head = G.fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, node_x.shape[1], lap=lap, rankq=rankq, steps_scale=steps_scale, q=q)
+        q = (q_logreg if kind == "lr" else q_physics)(ctx, qrep or rep, gd); head = G.fit_mlp_graph(ctx, labelled, seed, gd, featfn, node_x, node_x.shape[1], lap=lap, rankq=rankq, steps_scale=steps_scale, q=q)
         return lambda test: core.head_d(head, featfn, test)
     return learner
 
@@ -98,3 +116,35 @@ LEARNERS["pf_q_pfa"] = pq_learner("pfa"); LEARNERS["pf_q_s4"] = pq_learner("s4")
 for _f in ("pfa", "pfb", "pfc"):
     for _k, (_h, _g) in {"h": (_f, "s4"), "hs": (f"{_f}s", "s4"), "g": ("s4", _f), "gs": ("s4", f"{_f}s"), "hgs": (f"{_f}s", f"{_f}s"), "hg": (_f, _f)}.items(): LEARNERS[f"pf_{_f}_{_k}_shuf"] = R.rep_learner(_h, graph=_g, shuffle=True)
 LEARNERS["pf_prd_hs_shuf"] = R.rep_learner("prd", graph="s4", shuffle=True)
+
+LEARNERS["pf_qlr_pfa"] = pq_learner("pfa", kind="lr"); LEARNERS["pf_qlr_s4"] = pq_learner("s4", kind="lr"); LEARNERS["pf_qlr_pfa_shuf"] = pq_learner("pfa", kind="lr", shuffle=True)
+
+
+# ------------------------------------------------------------------------------------------ anchor-matching plug-in (no retraining): logit gap + beta * [log q_k(img1) - log q_k(img2)]
+def _posterior_fn(ctx, kind: str, rep: str):
+    store = ctx.__dict__.setdefault("_pf_post", {})
+    if (kind, rep) in store: return store[(kind, rep)]
+    gd = G.graph_for(ctx, 10); t = ctx_rep_pf(ctx, rep) if rep in PF_NAMES else R.raw_rep(rep); X = torch.stack([t[p].float() for p in gd.paths]); mu, sd = X.mean(0), X.std(0) + 1e-6
+    if kind == "lr":
+        from sklearn.linear_model import LogisticRegression
+        anchors = [(str(p), core.frozen.TYPE_TO_INDEX[c]) for tab in (ctx.exp.references, ctx.exp.utility_images, ctx.exp.test_images) for c, ps in tab.items() for p in ps if core.frozen.TYPE_TO_INDEX[c] in G.ACTIVE]
+        Xa = (torch.stack([t[p].float() for p, _ in anchors]) - mu) / sd; ya = np.array([c for _, c in anchors]); clf = LogisticRegression(C=1.0, max_iter=3000).fit(Xa.numpy(), ya)
+        def post(paths):
+            pr = clf.predict_proba(((torch.stack([t[p].float() for p in paths]) - mu) / sd).numpy()); out = np.full((len(paths), len(G.ACTIVE)), 1e-6)
+            for j, c in enumerate(clf.classes_): out[:, list(G.ACTIVE).index(int(c))] = pr[:, j]
+            return out / out.sum(1, keepdims=True)
+    else:
+        xn = F.normalize(X - X.mean(0), dim=1); cls = F.normalize(torch.stack([xn[[i for i, c in gd.source_class.items() if c == k]].mean(0) for k in G.ACTIVE]), dim=1); m0 = X.mean(0)
+        def post(paths): return torch.softmax(F.normalize(torch.stack([t[p].float() for p in paths]) - m0, dim=1) @ cls.T * 20.0, 1).numpy()
+    store[(kind, rep)] = post; return post
+
+
+def delta_logq(ctx, test, src: str, shuffle_seed: int | None = None) -> np.ndarray:
+    """log q_k(img1) - log q_k(img2) for the type k of every test judgment; src = '<lr|proto>_<rep>' (rep in s4, pfa, pfb, pfc, rpp, ...).  shuffle_seed: control that permutes the values among the judgments of the same type."""
+    kind, rep = src.split("_", 1); post = _posterior_fn(ctx, kind, rep); p1, p2 = post([str(p) for p in test.img1]), post([str(p) for p in test.img2]); col = np.array([list(G.ACTIVE).index(int(k)) for k in test.k]); r = np.arange(len(col))
+    d = np.log(p1[r, col] + 1e-4) - np.log(p2[r, col] + 1e-4)
+    if shuffle_seed is not None:
+        rng = np.random.default_rng(shuffle_seed); d = d.copy()
+        for k in set(test.k.tolist()):
+            m = np.where(test.k == k)[0]; d[m] = d[rng.permutation(m)]
+    return d

@@ -10,6 +10,14 @@ import nd_core as core, nd_graph_learner as G, nd_representation as R, nd_physic
 REG = {**rt.REGISTRY, **R.LEARNERS, **NP.LEARNERS}
 
 
+def is_plug(name): return "+" in name
+
+
+def parse_plug(name):
+    """'<base>+<src>@<beta>' or '<base>+<src>@<beta>~shuf' (values permuted among the judgments of the same type)."""
+    base, rest = name.split("+", 1); shuf = rest.endswith("~shuf"); rest = rest[:-5] if shuf else rest; src, beta = rest.split("@"); return base, src, float(beta), shuf
+
+
 def seeds_of(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
@@ -23,7 +31,7 @@ def anchor_distance(sim, ctx, test):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--seeds", required=True); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1")
     ap.add_argument("--learners", required=True); ap.add_argument("--budgets", default="10,20,40,60"); ap.add_argument("--draws", type=int, default=3); ap.add_argument("--ctx", default="standard"); args = ap.parse_args(); torch.set_num_threads(1)
-    names = args.learners.split(","); missing = [n for n in names if REG.get(n) is None]; assert not missing, f"unknown learners {missing}"
+    names = args.learners.split(","); missing = [n for n in names if not is_plug(n) and REG.get(n) is None]; assert not missing, f"unknown learners {missing}"
     budgets = [int(b) for b in args.budgets.split(",")]; shard, n = (int(x) for x in args.shard.split("/")); args.out.mkdir(parents=True, exist_ok=True); cache = core.feature_cache(); sim = rt.Sim(cache)
     splits = ["blocked"] if args.ctx == "blocked" else args.splits.split(",")
     with tempfile.TemporaryDirectory() as scratch:
@@ -39,8 +47,14 @@ def main():
                 for budget in budgets:
                     for draw in range(args.draws):
                         labelled = core.random_labelled(ctx, budget, draw)
-                        for name in todo:
-                            d = np.asarray(REG[name](ctx, labelled, seed * 7 + draw)(test), dtype=float)
+                        base_d = {}
+                        for name in sorted(todo, key=is_plug):
+                            if is_plug(name):
+                                base, src, beta, shuf = parse_plug(name)
+                                if base not in base_d: base_d[base] = np.asarray(REG[base](ctx, labelled, seed * 7 + draw)(test), dtype=float)
+                                d = base_d[base] + beta * NP.delta_logq(ctx, test, src, shuffle_seed=(seed * 31 + draw * 7 + budget) if shuf else None)
+                            else:
+                                d = np.asarray(REG[name](ctx, labelled, seed * 7 + draw)(test), dtype=float); base_d[name] = d
                             rows.append(pd.DataFrame({"seed": seed, "split": split, "budget": budget, "draw": draw, "learner": name, "j": np.arange(len(d)), "d": d, "sign": test.sign, "weight": test.weight, "k": test.k, "anc_min": amin, "anc_max": amax}))
                 df = pd.concat(rows) if old is None else pd.concat([old] + rows); tmp = target.with_suffix(".tmp"); df.to_csv(tmp, index=False, compression="gzip"); tmp.rename(target); print(f"seed {seed} split {split} [{','.join(todo)}]: {time.monotonic() - t0:.0f}s", flush=True)
 

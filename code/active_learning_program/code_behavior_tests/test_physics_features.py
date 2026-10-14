@@ -80,3 +80,17 @@ def test_registered_learners_train_and_shuffle_control_differs_and_base_unchange
     lab = core.random_labelled(ctx, 10, 0); test = core.TestSet(ctx); d = {n: np.asarray(NP.LEARNERS[n](ctx, lab, 3)(test)) for n in ("pf_pfa_hs", "pf_pfa_gs", "pf_pfa_gs_shuf", "pf_q_pfa")}
     assert all(np.isfinite(v).all() and len(v) == len(test.k) for v in d.values()) and not np.allclose(d["pf_pfa_gs"], d["pf_pfa_gs_shuf"])
     assert np.allclose(R.LEARNERS["rp_base"](ctx, lab, 3)(test), G.LEARNERS["lap3_k10_st4"](ctx, lab, 3)(test), atol=1e-6)         # patched ctx_rep leaves the base representation untouched
+
+
+@pytest.mark.skipif(not READY, reason="physics cache not built")
+def test_anchor_matching_plugin_semantics_and_identity_safety():
+    import nd_graph_learner as G
+    import nd_physics as NP
+    import pf_run
+    with tempfile.TemporaryDirectory() as scratch: ctx = core.make_ctx(10601, "B", scratch, core.feature_cache())
+    test = core.TestSet(ctx); d = NP.delta_logq(ctx, test, "lr_pfa"); assert d.shape == (len(test.k),) and np.isfinite(d).all()
+    assert (np.sign(d) == test.sign).mean() > 0.6                                                                    # the ideal-image posterior alone carries preference information (zero-shot)
+    ds = NP.delta_logq(ctx, test, "lr_pfa", shuffle_seed=3); assert np.allclose(np.sort(d), np.sort(ds)) and not np.allclose(d, ds)    # shuffle control keeps the values, breaks the image link
+    for k in set(test.k.tolist()): m = test.k == k; assert np.allclose(np.sort(d[m]), np.sort(ds[m]))                 # ... within each type
+    assert pf_run.parse_plug("lap3_k10_st4+lr_pfa@0.25") == ("lap3_k10_st4", "lr_pfa", 0.25, False) and pf_run.parse_plug("lap3_k10_st4+lr_pfa@0.5~shuf")[3] is True
+    nodes = set(G.graph_for(ctx, 10).paths); held = {str(x) for g in list(ctx.validation) + list(ctx.test) for r in ctx.exp.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}; assert not held & nodes   # classifier statistics use allowed nodes only

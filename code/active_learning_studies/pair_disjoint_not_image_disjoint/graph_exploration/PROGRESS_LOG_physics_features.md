@@ -1,0 +1,6 @@
+# Progress log — physics-features study (branch `claude/physics-features-20261014`, times UTC, 2026-10-14)
+- 02:47 start; read COMMON_RULES, CONSOLIDATED_RESULTS, red-team summary/handoff (anchor-far / blocked-split definitions), graph-endpoint and temporal-graph summaries, nd_graph_learner, rt_* code.
+- 02:55 data audit: 18 of 154 ideal images (10 HTR, 8 RT13) are 16-bit 780x580 PNGs; every loader's `convert("L")` clips them at 255 → saturated discs, identical SimCLR features (cosine 0.9999).
+- 02:56–03:00 extractor `pf_extract.py` (horizon, specular spot, five band profiles, descriptor blocks), cache `results/pf/extract.pt` (1278 images, 90 s), blocks `blocks_v1.pt`; ideal-image validation `pf_ideal_cv.py`; `nd_physics.py` (physics head/graph representations, controls, learners), `pf_run.py` (per-judgment runner with anchor distance), `pf_tables.py`; seed block `PF_*` in `nd_core.py`; unit tests.
+- 03:00 development plan PF0 written; stage A (13 learners, seeds 10600–10607, splits A,B) started; stage B1 queued (`scripts_pf/queue_devB1.sh`).
+- 03:20 anchor-matching plug-in idea (logit gap + beta * [log q_k(img1) - log q_k(img2)], q from a logistic regression on the typed ideal images in physics / SimCLR / random-projection feature space) implemented as offline analysis `pf_plugin.py` and as runner learners `<base>+<src>@<beta>[~shuf]`.
