@@ -12,3 +12,4 @@ Clock = container UTC. Seeds: dev 11100–11119, confirmation 1 = 11130–11164,
 - 05:17 worker/container restart killed the background runs (files persisted); dev4 resumed, dev5 launched (type-mean aligned banks + Gaussian / permuted / augmented-real controls) at 05:20.
 - 12:45 (container clock; the container restarted twice, wall clock jumped 06:25 -> 12:29) PREREGISTRATION_SA1 frozen (commit 62648d287) and confirmation 1 launched: seeds 11130-11164, A/B, 8 learners (cached shared heads), then blocked.
 - confirmation 1 (A/B) finished: C1 gate AUC +0.0042/+0.0037 (Holm .003/.002), acc +0.0022/+0.0037 (n.s.) -> 2 of 4 Holm-significant, rule NOT met; C2 ens AUC +0.0026/+0.0030, far family strong; C3 fails. Confirmation 2 launched (11165-11199).
+- confirmations 1 and 2 finished (A/B and blocked); no candidate meets the success rule; documents written; tests 12 + 8 pass.
