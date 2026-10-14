@@ -1,4 +1,4 @@
-# Pre-registration SP1 (score propagation) — frozen 2026-10-14 ≈ 05:55, before any confirmation seed (11230–11299) was run
+# Pre-registration SP1 (score propagation) — frozen 2026-10-14 ≈ 05:38, before any confirmation seed (11230–11299) was run
 
 Development: seeds 11200–11219 (`PREREGISTRATION_SP0_development_plan.md` + amendment SP0b); code `new_directions/nd_propagate.py`, `sp_run.py`; analysis `sp_confirm.py`; spec `SP1_spec.json`; tests `code_behavior_tests/test_score_propagation.py`.
 
