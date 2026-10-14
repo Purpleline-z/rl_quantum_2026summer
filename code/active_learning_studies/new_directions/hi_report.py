@@ -44,6 +44,7 @@ NOT_REASSESSED = [("L10", "uniform lambda 10 beats lap3_k10", "not a stored lear
 
 def f3(x): return "n/a" if x is None or (isinstance(x, float) and np.isnan(x)) else f"{x:+.3f}"
 def ci(est, lo, hi): return f"{f3(est)} [{f3(lo)}, {f3(hi)}]"
+def ratio(a, b): return a / b if b else float("nan")
 def pf(p): return "n/a" if p is None or (isinstance(p, float) and np.isnan(p)) else (f"{p:.4f}" if p >= 1e-4 else "<1e-4")
 
 
@@ -85,11 +86,11 @@ def main():
     for r in main_conf.itertuples():
         cols.append(dict(comp=r.comp, comparison=LABEL[r.comp], split=r.split, metric=r.metric, estimate=r.est, group_lo=r.lo, group_hi=r.hi, group_se=r.se, seed_lo=r.seed_lo, seed_hi=r.seed_hi, seed_wilcoxon_p=r.seed_wilcoxon_p, group_perm_p=r.perm_p,
                          cluster_lo=getattr(r, "lo_c0.03", np.nan) if hasattr(r, "lo_c0.03") else np.nan))
-    mt = main_conf.copy(); mt["width_ratio_group_over_seed"] = (mt.hi - mt.lo) / (mt.seed_hi - mt.seed_lo); mt.to_csv(tab / "main_all.csv", index=False)
+    mt = main_conf.copy(); mt["width_ratio_group_over_seed"] = [ratio(r.hi - r.lo, r.seed_hi - r.seed_lo) for r in mt.itertuples()]; mt.to_csv(tab / "main_all.csv", index=False)
     lines = ["| comparison | split | metric | estimate | seed-level 95% CI | seed Wilcoxon p | group-level 95% CI | group randomisation p | cluster (c0.03) 95% CI | block (b42) 95% CI | group CI width / seed CI width |", "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in main_conf.itertuples():
         g = lambda k: getattr(r, k.replace(".", "_"), np.nan)
-        lines.append(f"| {r.comp} {LABEL[r.comp]} | {r.split} | {r.metric} | {f3(r.est)} | [{f3(r.seed_lo)}, {f3(r.seed_hi)}] | {pf(r.seed_wilcoxon_p)} | [{f3(r.lo)}, {f3(r.hi)}] | {pf(r.perm_p)} | [{f3(g('lo_c0.03'))}, {f3(g('hi_c0.03'))}] | [{f3(g('lo_b42'))}, {f3(g('hi_b42'))}] | {(r.hi - r.lo) / (r.seed_hi - r.seed_lo):.1f} |")
+        lines.append(f"| {r.comp} {LABEL[r.comp]} | {r.split} | {r.metric} | {f3(r.est)} | [{f3(r.seed_lo)}, {f3(r.seed_hi)}] | {pf(r.seed_wilcoxon_p)} | [{f3(r.lo)}, {f3(r.hi)}] | {pf(r.perm_p)} | [{f3(g('lo_c0.03'))}, {f3(g('hi_c0.03'))}] | [{f3(g('lo_b42'))}, {f3(g('hi_b42'))}] | {ratio(r.hi - r.lo, r.seed_hi - r.seed_lo):.1f} |")
     (tab / "main_table.md").write_text("Pooled confirmation 1 + 2 (70 seeds), standard endpoint, all judgments. Intervals are percentile 95% bootstrap intervals; p-values: seed-level Wilcoxon vs exact group-level randomisation test (unadjusted).\n\n" + "\n".join(lines) + "\n")
     # ---------------------------------------------------------------- Holm / assessment table
     f1 = main_conf[(main_conf.comp.isin(A.FAMILY1)) & (main_conf.stratum == "all") & (main_conf.metric.isin(["auc", "acc"])) & (main_conf.split.isin(["A", "B"]))].copy(); f1["holm_p"] = A.holm(f1.perm_p.to_numpy())
@@ -101,7 +102,7 @@ def main():
         d = dict(id=cid, claim=text, paper_status=orig, comparison=comp, kind=kind)
         if kind == "pooled":
             r = ass.loc[comp]; d.update(honest_label=r.label, auc_A=ci(r.auc_A, r.auc_A_lo, r.auc_A_hi), auc_B=ci(r.auc_B, r.auc_B_lo, r.auc_B_hi), acc_A=ci(r.acc_A, r.acc_A_lo, r.acc_A_hi), acc_B=ci(r.acc_B, r.acc_B_lo, r.acc_B_hi), holm_p_A=pf(r.auc_A_holm_p), holm_p_B=pf(r.auc_B_holm_p))
-            sw = [row(main_conf, comp, s, "auc") for s in ("A", "B")]; d["seed_wilcoxon_p_auc"] = " / ".join(pf(x.seed_wilcoxon_p) for x in sw); d["group_ci_vs_seed_ci_width"] = " / ".join(f"{(x.hi - x.lo) / (x.seed_hi - x.seed_lo):.1f}x" for x in sw)
+            sw = [row(main_conf, comp, s, "auc") for s in ("A", "B")]; d["seed_wilcoxon_p_auc"] = " / ".join(pf(x.seed_wilcoxon_p) for x in sw); d["group_ci_vs_seed_ci_width"] = " / ".join(f"{ratio(x.hi - x.lo, x.seed_hi - x.seed_lo):.1f}x" for x in sw)
             d["robust_cluster_c0.03"] = all(x["lo_c0.03"] > 0 for x in sw); d["robust_block_b42"] = all(x["lo_b42"] > 0 for x in sw)
             d["conf1_label"] = rep["conf1"].get(comp) if rep["conf1"] is not None else None; d["conf2_label"] = rep["conf2"].get(comp) if rep["conf2"] is not None else None; d["dev_label"] = rep["dev"].get(comp) if rep["dev"] is not None else None
             d["replicated"] = bool(d["conf1_label"] == d["conf2_label"] == r.label)
@@ -116,7 +117,7 @@ def main():
             for s, x in zip("AB", [row(main_conf, comp, s, "auc") for s in "AB"]): d[f"auc_{s}"] = ci(x.est, x.lo, x.hi)
         elif kind == "htr":
             ra = [row(strata_conf, comp, s, "acc", "htr") for s in "AB"] if strata_conf is not None else [None, None]; rl = [row(strata_conf, comp, s, "ll", "htr") for s in "AB"] if strata_conf is not None else [None, None]
-            if None in ra or None in rl: d["honest_label"] = "n/a"
+            if any(x is None for x in ra + rl): d["honest_label"] = "n/a"
             else:
                 ok = all(x.lo > 0 for x in ra); weak = all(x.est > 0 for x in ra); d.update(honest_label=("SUPPORTED (HTR accuracy, exploratory reading)" if ok else ("WEAKER" if weak else "UNSUPPORTED")), acc_A=ci(ra[0].est, ra[0].lo, ra[0].hi), acc_B=ci(ra[1].est, ra[1].lo, ra[1].hi), logloss_A=ci(rl[0].est, rl[0].lo, rl[0].hi), logloss_B=ci(rl[1].est, rl[1].lo, rl[1].hi))
         elif kind == "strata":
