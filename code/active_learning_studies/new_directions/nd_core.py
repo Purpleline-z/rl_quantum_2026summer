@@ -247,3 +247,9 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# ------------------------------------------------------------------------------------------ honest-inference study (branch claude/honest-inference-*): own seed blocks, separate lines
+# dev 11300-11319, confirmation 1 = 11330-11364, confirmation 2 = 11365-11399 (used only for the new per-judgment prediction runs; every earlier block is used)
+HI_DEV_SEEDS = tuple(range(11300, 11320)); HI_CONFIRM1 = tuple(range(11330, 11365)); HI_CONFIRM2 = tuple(range(11365, 11400)); HI_SEEDS_ALL = set(HI_DEV_SEEDS) | set(HI_CONFIRM1) | set(HI_CONFIRM2)
+assert not HI_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not HI_SEEDS_ALL & set(range(7000, 10000)) and len(HI_SEEDS_ALL) == 20 + 35 + 35 and not set(HI_CONFIRM1) & set(HI_CONFIRM2)
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | HI_SEEDS_ALL
