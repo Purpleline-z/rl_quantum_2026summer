@@ -55,7 +55,8 @@ def rods(typ: str, rng, azimuth_deg: float, gmax: float = 7.0, super_weight=None
     return [(gx, gy, w) for (gx, gy), w in seen.items() if w > 1e-3]
 
 
-TUNE = {"sy": 1.0, "sx": 1.0, "sup": 1.0, "spec": 1.0, "gain": 1.0, "bg": 1.0, "blur": 1.0, "kik": 1.0, "noise": 1.0, "rodw": 1.0}   # calibration multipliers (syn_calibrate.py)
+TUNE0 = {"sy": 1.0, "sx": 1.0, "sup": 1.0, "spec": 1.0, "gain": 1.0, "bg": 1.0, "blur": 1.0, "kik": 1.0, "noise": 1.0, "rodw": 1.0}   # uncalibrated (v0)
+TUNE = dict({'sy': 0.5, 'sx': 0.5, 'sup': 0.5, 'spec': 1.4, 'gain': 0.5, 'bg': 2.0, 'blur': 2.0, 'kik': 1.0, 'noise': 0.35, 'rodw': 0.5})   # calibrated multipliers (results/syn/calibration.json)
 
 
 def sample_params(rng, typ: str, style: str = "traj") -> dict:

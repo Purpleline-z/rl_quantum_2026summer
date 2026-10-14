@@ -113,6 +113,7 @@ def fit_syn(ctx, labelled, seed, spec):
             ids = np.where((labels == t) & keep)[0]
             if len(ids): pools[CLASS_OF[t]] = bank["feat"][ids].float()
         per = syn.get("per_step", 16); s = syn["share"]
+        if s <= 0: pools = {}                                         # nodes-only variant: no synthetic anchors
         for c in pools: n_real = len(refs[c]); wsyn[c] = (s / (1 - s)) * n_real / per
     for _ in range(steps):
         loss = G._bt_terms(head(xa)[index, typ], head(xb)[index, typ], masks, weight) / max(len(typ), 1)
