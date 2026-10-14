@@ -30,13 +30,13 @@ def posteriors(ctx, labelled, seed, post: str = "em", rho: float = 0.15, scale: 
     belief, table, pair = M.posterior_of_images(jud, prior, mode=mode, prior_scale=scale, rng=np.random.default_rng(seed * 13 + 1)); cached[key] = (jud, belief, pair, table); return cached[key]
 
 
-def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.0, aw=8.0, pa=0.0, lik=False, aux=0.0, post="em", rho=0.15, scale=1.0, pa_thr=0.0, pa_far=0.0):
+def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.0, aw=8.0, pa=0.0, lik=False, aux=0.0, post="em", rho=0.15, scale=1.0, pa_thr=0.0, pa_far=0.0, auxall=0.0):
     lr, steps = ctx.params_for(labelled); steps = int(round(steps * steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, True)
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
         weight, winner = torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float32), rows.Winner.to_numpy()
     else: xa = xb = torch.empty(0, dim); typ = torch.empty(0, dtype=torch.long); weight = torch.empty(0); winner = np.array([], dtype=object)
-    use_post = (pa > 0 or lik or aux > 0) and len(rows) > 0
+    use_post = (pa > 0 or lik or aux > 0 or auxall > 0) and len(rows) > 0
     if use_post:
         jud, belief, pair, table = posteriors(ctx, labelled, seed, post, rho, scale); rp = torch.as_tensor(M.row_probabilities(jud, pair, belief), dtype=torch.float32)
         px = featfn(jud.images); pb = torch.as_tensor(belief, dtype=torch.float32)[:, :4]                                   # soft type memberships of the judgment images (mass on "none" dropped)
@@ -48,6 +48,7 @@ def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.
             if ix: dist[[i for i, p in enumerate(jud.images) if p in gd.index]] = 1 - (gd.xn[ix] @ anc.T).max(1).values
             keep = keep * (dist > pa_far).float()
         pb = pb * keep[:, None]; conf = conf * keep
+        if auxall > 0: qall = _spread_posterior(ctx, labelled, seed, post, rho, scale, jud, belief)
     head.eval(); opt = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=ctx.exp.cfg.weight_decay); index = torch.arange(len(typ)); masks = {l: torch.as_tensor(winner == l) for l in core.frozen.LABELS}
     cols = {c: core.frozen.TYPE_TO_INDEX[c] for c in refs}; gen = torch.Generator().manual_seed(seed * 1000003 + 17); active = list(ACTIVE); names = list(refs)
     if use_post and lik:
@@ -74,8 +75,18 @@ def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.
             loss = loss + lap * (((si - sj) ** 2)).sum(1).mean()
         if use_post and aux > 0:
             lp = F.log_softmax(head(px)[:, active], 1); tgt = pb / pb.sum(1, keepdim=True).clamp_min(1e-9); ce = -(tgt * lp).sum(1); loss = loss + aux * (conf * ce).sum() / conf.sum().clamp_min(1e-6)
+        if use_post and auxall > 0:   # graph-wide auxiliary target: label spreading of typed anchors + soft judgment-image posteriors, cross-entropy on a batch of random graph nodes
+            ii = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen); lpa = F.log_softmax(head(node_x[ii])[:, active], 1); loss = loss + auxall * -(qall[ii] * lpa).sum(1).mean()
         opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); opt.step()
     return head.eval()
+
+
+def _spread_posterior(ctx, labelled, seed, post, rho, scale, jud, belief):
+    key = ("lt_spread", post, rho, scale, tuple(labelled), seed if post == "random" else 0); cached = ctx.__dict__.setdefault("_lt_cache", {})
+    if key not in cached:
+        gd = G.graph_for(ctx, 10, post == "shufprior"); extra = {gd.index[p]: belief[n] for n, p in enumerate(jud.images) if p in gd.index}
+        cached[key] = torch.as_tensor(M.spread(gd, M.source_matrix(gd, extra_nodes=extra, weight=1.0)), dtype=torch.float32)
+    return cached[key]
 
 
 def _lt_learner(**kw):
@@ -127,3 +138,6 @@ def _inf_learner(lam: float, post: str = "em", rho: float = 0.15):
 
 for _l in (0.5, 1.0, 2.0):
     for _p in ("em", "prior", "shufprior", "random"): LT_LEARNERS[f"lt_inf{_l:g}_{_p}"] = _inf_learner(_l, _p)
+for _w in (0.1, 0.5):
+    for _p in ("em", "prior", "random"): LT_LEARNERS[f"lt_auxall{_w:g}_{_p}"] = _lt_learner(auxall=_w, post=_p)
+LT_LEARNERS["lt_aux0.5_shufprior"] = _lt_learner(aux=0.5, post="shufprior")
