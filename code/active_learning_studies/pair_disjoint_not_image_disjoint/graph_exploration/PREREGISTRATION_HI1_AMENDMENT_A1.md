@@ -1,6 +1,6 @@
 # Amendment A1 to PREREGISTRATION_HI1 — p-value of the re-assessment rule
 
-Written 2026-10-14 ~04:25 UTC, after the development block (seeds 11300–11319, 40 cells) was complete and analysed in a debugging run, and BEFORE any confirmation cell (seeds 11330–11399) was analysed (confirmation 1 was still running; nothing of it had been opened; no group-level number of any confirmation seed exists).
+Written 2026-10-14 ~04:15 UTC (commit time is authoritative), after the development block (seeds 11300–11319, 40 cells) was complete and analysed in a debugging run, and BEFORE any confirmation cell (seeds 11330–11399) was analysed (confirmation 1 was still running; nothing of it had been opened; no group-level number of any confirmation seed exists).
 
 ## What was found on development data
 `hi_check_null.py` (output `results/hi/null_check_dev.txt`):
