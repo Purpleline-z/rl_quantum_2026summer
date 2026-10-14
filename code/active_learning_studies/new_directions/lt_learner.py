@@ -30,7 +30,7 @@ def posteriors(ctx, labelled, seed, post: str = "em", rho: float = 0.15, scale: 
     belief, table, pair = M.posterior_of_images(jud, prior, mode=mode, prior_scale=scale, rng=np.random.default_rng(seed * 13 + 1)); cached[key] = (jud, belief, pair, table); return cached[key]
 
 
-def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.0, aw=8.0, pa=0.0, lik=False, aux=0.0, post="em", rho=0.15, scale=1.0, pa_min=0.0):
+def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.0, aw=8.0, pa=0.0, lik=False, aux=0.0, post="em", rho=0.15, scale=1.0, pa_thr=0.0, pa_far=0.0):
     lr, steps = ctx.params_for(labelled); steps = int(round(steps * steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled); head = core.new_head(dim, seed); refs, bad = core.anchors(ctx, featfn, True)
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())
@@ -41,6 +41,13 @@ def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.
         jud, belief, pair, table = posteriors(ctx, labelled, seed, post, rho, scale); rp = torch.as_tensor(M.row_probabilities(jud, pair, belief), dtype=torch.float32)
         px = featfn(jud.images); pb = torch.as_tensor(belief, dtype=torch.float32)[:, :4]                                   # soft type memberships of the judgment images (mass on "none" dropped)
         conf = pb.sum(1)                                                                                                    # probability that the image is of one of the four types
+        keep = torch.ones(len(pb))
+        if pa_thr > 0: keep = keep * ((pb / pb.sum(1, keepdim=True).clamp_min(1e-9)).max(1).values >= pa_thr).float()      # pseudo-anchors only where the posterior is confident
+        if pa_far > 0:                                                                                                      # ... and only for images farther than pa_far (cosine distance) from every typed ideal image
+            anc = gd.xn[sorted(gd.source_class)]; ix = [gd.index[p] for p in jud.images if p in gd.index]; dist = torch.ones(len(pb))
+            if ix: dist[[i for i, p in enumerate(jud.images) if p in gd.index]] = 1 - (gd.xn[ix] @ anc.T).max(1).values
+            keep = keep * (dist > pa_far).float()
+        pb = pb * keep[:, None]; conf = conf * keep
     head.eval(); opt = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=ctx.exp.cfg.weight_decay); index = torch.arange(len(typ)); masks = {l: torch.as_tensor(winner == l) for l in core.frozen.LABELS}
     cols = {c: core.frozen.TYPE_TO_INDEX[c] for c in refs}; gen = torch.Generator().manual_seed(seed * 1000003 + 17); active = list(ACTIVE); names = list(refs)
     if use_post and lik:
@@ -56,7 +63,7 @@ def fit_lt(ctx, labelled, seed, gd, featfn, node_x, dim, lap=3.0, steps_scale=4.
             if use_post and pa > 0:
                 sp = head(px); vals = []
                 for ci, name in enumerate(names):
-                    col = cols[name]; u = pb[:, ci]; v = 1 - u
+                    col = cols[name]; u = pb[:, ci]; v = keep * (1 - u)
                     neg = torch.cat([sc[o][:, col] for o in names if o != name]); pos = sc[name][:, col]
                     if u.sum() > 1e-6: vals.append((u[:, None] * -F.logsigmoid(sp[:, col][:, None] - neg[None, :])).sum() / (u.sum() * len(neg)))
                     vals.append((v[:, None] * -F.logsigmoid(pos[None, :] - sp[:, col][:, None])).sum() / (v.sum().clamp_min(1e-6) * len(pos)))
@@ -84,4 +91,6 @@ for _w in (0.25, 1.0):
 for _p in ("em", "prior", "random", "shufprior"): LT_LEARNERS[f"lt_lik_{_p}"] = _lt_learner(lik=True, post=_p)
 for _w in (0.1, 0.5):
     for _p in ("em", "prior", "random"): LT_LEARNERS[f"lt_aux{_w:g}_{_p}"] = _lt_learner(aux=_w, post=_p)
+for _p in ("em", "prior"):
+    LT_LEARNERS[f"lt_pa0.5thr0.8_{_p}"] = _lt_learner(pa=0.5, pa_thr=0.8, post=_p); LT_LEARNERS[f"lt_pa0.5far_{_p}"] = _lt_learner(pa=0.5, pa_far=0.01, post=_p); LT_LEARNERS[f"lt_pa0.5far_thr0.8_{_p}"] = _lt_learner(pa=0.5, pa_far=0.01, pa_thr=0.8, post=_p)
 LT_LEARNERS["lt_pa1_lik_em"] = _lt_learner(pa=1.0, lik=True, post="em")
