@@ -14,7 +14,8 @@ BINS = [("<=0.001", -1, 0.001), ("0.001-0.01", 0.001, 0.01), ("0.01-0.03", 0.01,
 
 
 def load(a1, a1b):
-    df = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(str(Path(a1) / "seed*.csv.gz")))], ignore_index=True)
+    df = pd.concat([pd.read_csv(f) for d in a1.split(",") for f in sorted(glob.glob(str(Path(d) / "seed*.csv.gz")))], ignore_index=True)       # a1 may be a comma-separated list of directories (learners of different rounds)
+    df = df.drop_duplicates(["seed", "split", "budget", "draw", "learner", "j"])
     b = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(str(Path(a1b) / "seed*.csv")))], ignore_index=True)[["seed", "split", "j", "anc_all_min"]]
     return df.merge(b, on=["seed", "split", "j"], how="left")
 
