@@ -247,3 +247,8 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# transductive / forward-in-time study (branch claude/transductive-20261014): development 10500-10519, confirmation 1 = 10530-10564, confirmation 2 = 10565-10599 (the block 10500-10599 is this study's)
+TD_DEV_SEEDS = tuple(range(10500, 10520)); TD_CONFIRM1 = tuple(range(10530, 10565)); TD_CONFIRM2 = tuple(range(10565, 10600)); TD_SEEDS_ALL = set(TD_DEV_SEEDS) | set(TD_CONFIRM1) | set(TD_CONFIRM2)
+assert not TD_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(TD_SEEDS_ALL) == 20 + 2 * 35 and not set(TD_DEV_SEEDS) & set(TD_CONFIRM1) and not set(TD_CONFIRM1) & set(TD_CONFIRM2)
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | TD_SEEDS_ALL
