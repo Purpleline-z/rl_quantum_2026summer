@@ -55,8 +55,15 @@ def rods(typ: str, rng, azimuth_deg: float, gmax: float = 7.0, super_weight=None
     return [(gx, gy, w) for (gx, gy), w in seen.items() if w > 1e-3]
 
 
-TUNE0 = {"sy": 1.0, "sx": 1.0, "sup": 1.0, "spec": 1.0, "gain": 1.0, "bg": 1.0, "blur": 1.0, "kik": 1.0, "noise": 1.0, "rodw": 1.0}   # uncalibrated (v0)
-TUNE = dict({'sy': 0.5, 'sx': 0.5, 'sup': 0.5, 'spec': 1.4, 'gain': 0.5, 'bg': 2.0, 'blur': 2.0, 'kik': 1.0, 'noise': 0.35, 'rodw': 0.5})   # calibrated multipliers (results/syn/calibration.json)
+TUNE0 = {"sy": 1.0, "sx": 1.0, "sup": 1.0, "spec": 1.0, "gain": 1.0, "bg": 1.0, "blur": 1.0, "kik": 1.0, "noise": 1.0, "rodw": 1.0, "kikw": 1.0}   # uncalibrated (v0)
+TUNE = dict({'sy': 0.5, 'sx': 0.5, 'sup': 0.5, 'spec': 1.4, 'gain': 0.5, 'bg': 2.0, 'blur': 2.0, 'kik': 1.0, 'noise': 0.35, 'rodw': 0.5, 'kikw': 1.0})   # calibrated multipliers (results/syn/calibration.json)
+
+
+TUNE_T = {t: {} for t in ("1x1", "c6x2", "RT13", "HTR")}   # per-type extra multipliers (syn_calibrate_types.py); empty = global TUNE only
+
+
+def tune_of(typ: str) -> dict:
+    return {k: v * TUNE_T.get(typ, {}).get(k, 1.0) for k, v in TUNE.items()}
 
 
 def sample_params(rng, typ: str, style: str = "traj") -> dict:
@@ -69,7 +76,7 @@ def sample_params(rng, typ: str, style: str = "traj") -> dict:
     p["spec"] = rng.uniform(0.5, 4.0); p["spec_px"] = rng.uniform(4.0, 8.0); p["kikuchi"] = rng.uniform(0.0, 0.07) * (3.0 if typ == "HTR" else 1.0); p["kik_slope"] = rng.uniform(0.5, 1.1)
     p["noise_read"] = rng.uniform(0.5, 2.5); p["shot"] = rng.uniform(0.02, 0.12); p["dx"] = rng.normal(0, 3.0); p["dy"] = rng.normal(0, 3.0); p["sheen"] = rng.uniform(0.0, 0.4)
     p["rod_mod"] = rng.uniform(0.0, 0.3); p["rod_mod_phase"] = rng.uniform(0, 2 * np.pi)
-    p["sig_y_px"] *= TUNE["sy"]; p["sig_x"] *= TUNE["sx"]; p["gain"] *= TUNE["gain"]; p["bg"] *= TUNE["bg"]; p["blur"] *= TUNE["blur"]; p["spec"] *= TUNE["spec"]; p["kikuchi"] *= TUNE["kik"]; p["noise_read"] *= TUNE["noise"]; p["sup_scale"] = TUNE["sup"]; p["rod_scale"] = TUNE["rodw"]
+    tn = tune_of(typ); p["sig_y_px"] *= tn["sy"]; p["sig_x"] *= tn["sx"]; p["gain"] *= tn["gain"]; p["bg"] *= tn["bg"]; p["blur"] *= tn["blur"]; p["spec"] *= tn["spec"]; p["kikuchi"] *= tn["kik"]; p["noise_read"] *= tn["noise"]; p["sup_scale"] = tn["sup"]; p["rod_scale"] = tn["rodw"]; p["kik_w"] = tn.get("kikw", 1.0) * 3.5
     return p
 
 
@@ -98,7 +105,7 @@ def render(p: dict, rng, half: bool = True) -> np.ndarray:
     if p["kikuchi"] > 0:    # two phenomenological Kikuchi lines through the specular region (V shape)
         for sgn in (-1, 1):
             d = (Y - sgn * (Z - zs) * p["kik_slope"]) / np.sqrt(1 + p["kik_slope"] ** 2)
-            I += (p["kikuchi"] * np.exp(-0.5 * (d / 3.5) ** 2) * np.exp(-np.abs(Z - zs) / 160.0) * np.clip(Z / 12.0, 0, 1)).astype(np.float32)
+            I += (p["kikuchi"] * np.exp(-0.5 * (d / p.get("kik_w", 3.5)) ** 2) * np.exp(-np.abs(Z - zs) / 160.0) * np.clip(Z / 12.0, 0, 1)).astype(np.float32)
     if p["style"] == "ideal":   # direct beam + halo ring above the shadow edge (uncropped frames)
         zd = -zs; db = 3.0 * np.exp(-0.5 * ((Y / 5.0) ** 2 + ((Z - zd) / 7.0) ** 2)) + 0.05 * np.exp(-0.5 * ((np.sqrt(Y ** 2 + (Z - zd) ** 2) - 45.0) / 5.0) ** 2); I += db.astype(np.float32)
     I = gaussian_filter(I, p["blur"] / step)
