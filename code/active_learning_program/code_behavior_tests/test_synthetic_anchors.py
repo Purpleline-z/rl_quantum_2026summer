@@ -83,3 +83,29 @@ def test_weighted_anchor_loss_equals_the_plain_loss_for_unit_weights(ctx_a):
 def test_calibration_references_exclude_every_labelled_pair_group_image():
     import syn_calibrate
     src = Path(syn_calibrate.__file__).read_text(); assert "labelled_imgs" in src and "p not in labelled_imgs" in src
+
+
+@needs_cache
+def test_sixteen_bit_ideal_images_are_the_18_saturated_ones_and_drop16_removes_exactly_them():
+    import nd_synthetic as Y
+    from PIL import Image
+    ps = Y.is16_paths(); assert len(ps) == 18 and all(Image.open(p).mode.startswith("I;16") for p in ps) and sum("RT13" in p for p in ps) == 8 and sum("HTR" in p for p in ps) == 10
+
+
+@needs_cache
+def test_type_mean_alignment_sets_the_type_means_to_the_real_masked_ideal_means_and_gaussian_control_keeps_moments():
+    import syn_bank, syn_ideal_fix
+    from PIL import Image
+    if not (syn_bank.OUT / "bank_v1_typemean.pt").exists() or not (syn_bank.OUT / "bank_v1_tmgauss.pt").exists(): pytest.skip("aligned banks not built")
+    tm = torch.load(syn_bank.OUT / "bank_v1_typemean.pt", weights_only=False); gs = torch.load(syn_bank.OUT / "bank_v1_tmgauss.pt", weights_only=False); fx = syn_ideal_fix.load(); idx = {p: i for i, p in enumerate(fx["paths"])}
+    for t, key in zip(S.TYPES, ("1x1", "c6x2", "RT13", "HTR")):
+        ps = [p for p in fx["paths"] if f"STO_ideal_{key}/" in p and not Image.open(p).mode.startswith("I;16")]; target = fx["mask"][[idx[p] for p in ps]].float().mean(0)
+        m = torch.tensor([x == t for x in tm["typ"]]); assert torch.allclose(tm["feat"][m].mean(0), target, atol=1e-3)
+        mg = torch.tensor([x == t for x in gs["typ"]]); assert torch.allclose(gs["feat"][mg].mean(0), target, atol=0.15 * float(target.abs().mean() + 1e-6) + 0.05)   # sampled mean close to the target
+        assert abs(float(gs["feat"][mg].var(0).sum() / tm["feat"][m].var(0).sum()) - 1.0) < 0.2
+
+
+@needs_cache
+def test_gate_uses_only_image_features_and_marks_a_nonzero_share_far(ctx_a):
+    import nd_synthetic as Y
+    test = core.TestSet(ctx_a); dist = Y.anchor_distance_fn(ctx_a); far = np.minimum(dist(test.img1), dist(test.img2)) > 0.03; assert 0.02 < far.mean() < 0.8

@@ -15,11 +15,17 @@ for name, kw in {
     "ao_aug": dict(syn=dict(bank="augreal1", types=T4, share=0.999, nodes=0, per_step=16, replace=True)), "ao_aug_perm": dict(syn=dict(bank="augreal1", types=T4, share=0.999, nodes=0, per_step=16, replace=True, perm=True)),
     "ao_mix_v1": dict(syn=dict(bank="v1", types=T4, share=0.5, nodes=0, per_step=16)), "ao_real_mask": dict(ideal="mask"),
 }.items(): Y.register(name, **kw)
+for b in ("v1_mean", "v1_coral", "v1_typemean"):
+    Y.register(f"ao_syn_{b}", syn=dict(bank=b, types=T4, share=0.999, nodes=0, per_step=16, replace=True)); Y.register(f"ao_mix_{b}", syn=dict(bank=b, types=T4, share=0.5, nodes=0, per_step=16))
+for b in ("v1_tmgauss",):
+    Y.register(f"ao_syn_{b}", syn=dict(bank=b, types=T4, share=0.999, nodes=0, per_step=16, replace=True)); Y.register(f"ao_mix_{b}", syn=dict(bank=b, types=T4, share=0.5, nodes=0, per_step=16))
+Y.register("ao_mix_v1_tmperm", syn=dict(bank="v1_typemean", types=T4, share=0.5, nodes=0, per_step=16, perm=True)); Y.register("ao_mix_aug", syn=dict(bank="augreal1", types=T4, share=0.5, nodes=0, per_step=16))
 NAMES = ["ao_real", "ao_real_mask", "ao_syn_v1", "ao_syn_v1_T3", "ao_syn_v1_perm", "ao_syn_v2", "ao_aug", "ao_aug_perm", "ao_mix_v1"]
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--seeds", default="11100-11119"); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1"); a = ap.parse_args(); torch.set_num_threads(1)
+    ap = argparse.ArgumentParser(); ap.add_argument("--seeds", default="11100-11119"); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1"); ap.add_argument("--names", default=None); a = ap.parse_args()
+    names = a.names.split(",") if a.names else NAMES; torch.set_num_threads(1)
     shard, n = (int(x) for x in a.shard.split("/")); a.out.mkdir(parents=True, exist_ok=True); cache = core.feature_cache(); sim = rt.Sim(cache)
     with tempfile.TemporaryDirectory() as scratch:
         for seed in [s for i, s in enumerate(tg_run.seeds_of(a.seeds)) if i % n == shard]:
@@ -28,7 +34,7 @@ def main():
                 target = a.out / f"seed{seed}_{split}.json"
                 if target.exists(): continue
                 ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); far = tg_run.anchor_distance(sim, ctx, test) > tg_run.FAR; recs = []
-                for name in NAMES:
+                for name in names:
                     fn = G.LEARNERS["lap3_k10_st4"] if name == "ao_real" else Y.LEARNERS[name]; d = np.asarray(fn(ctx, [], seed * 7)(test), dtype=float)
                     recs.append({"seed": seed, "split": split, "budget": 0, "draw": 0, "learner": name, **core.metrics_from_d(d, test), **tg_run.stratum_metrics(d, test, far, None)})
                 target.write_text(json.dumps(recs)); print(seed, split, flush=True)

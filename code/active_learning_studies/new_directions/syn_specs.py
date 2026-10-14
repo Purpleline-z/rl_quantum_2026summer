@@ -28,3 +28,10 @@ base_spec = Y.make_spec("base"); mask_spec = Y.make_spec("mask", ideal="mask"); 
 Y.register_two("sy_ens_base2", base_spec, base_spec, "mean", seed_b_offset=7777)
 Y.register_two("sy_ens_mask", base_spec, mask_spec, "mean"); Y.register_two("sy_gate_mask", base_spec, mask_spec, "gate"); Y.register_two("sy_gate_maskd", base_spec, maskd_spec, "gate")
 Y.register_two("sy_gate_base2", base_spec, base_spec, "gate", seed_b_offset=7777)   # control of the gate: same gating with a second baseline head
+
+# development round 5: type-mean-aligned banks (real type centres + simulator variation) and their controls (Gaussian with the same per-type mean / covariance; permuted types; augmented real images)
+for name, kw in {
+    "sy_tm_a10": dict(syn=syn("v1_typemean", T4, 0.10)), "sy_tm_a25": dict(syn=syn("v1_typemean", T4, 0.25)), "sy_tm_a50": dict(syn=syn("v1_typemean", T4, 0.50)),
+    "sy_tm_a25_perm": dict(syn=syn("v1_typemean", T4, 0.25, perm=True)), "sy_tmg_a25": dict(syn=syn("v1_tmgauss", T4, 0.25)), "sy_tmg_a50": dict(syn=syn("v1_tmgauss", T4, 0.50)),
+    "sy_aug_a50": dict(syn=syn("augreal1", T4, 0.50)),
+}.items(): Y.register(name, **kw)
