@@ -86,6 +86,13 @@ def confirm(spec, df, blocked=None):
     far_metrics = spec.get("far_metrics", ["far_auc", "far_acc"]); ftests = {(c["name"], sp, m): summarize(per_seed_gain(df, c["name"], base, m, sp)) for c in cands for sp in splits for m in far_metrics}; fadj = holm({k: v["p"] for k, v in ftests.items()})
     out.append(f"\n#### Pre-registered far-stratum family: candidate - `{base}` on the anchor-far endpoint (Holm over {len(ftests)} tests)\n")
     out.append(md(pd.DataFrame([{"candidate": k[0], "split": k[1], "metric": k[2], "gain": v["gain"], "CI95": f"[{v['lo']:+.4f}, {v['hi']:+.4f}]", "p": v["p"], "p_holm": fadj[k], "n_seeds": v["n"]} for k, v in ftests.items()]), "{:+.4f}"))
+    crow = []
+    for c in cands:
+        for ctrl in [x for x in (c.get("control"), c.get("control2")) if x]:
+            for sp in splits:
+                for m in ("far_auc", "far_acc", "ll"):
+                    sm = summarize(per_seed_gain(df, c["name"], ctrl, m, sp)); crow.append({"candidate": c["name"], "control": ctrl, "split": sp, "metric": m, "cand - control": sm["gain"], "p (uncorrected)": sm["p"]})
+    out.append("\n#### Candidates against their controls on the anchor-far endpoint and log-loss (uncorrected, descriptive)\n"); out.append(md(pd.DataFrame(crow)))
     sec = spec.get("secondary_metrics", ["far_auc", "far_acc", "near_auc", "near_acc", "ll", "htr_acc"])
     rows = []
     for c in cands:
