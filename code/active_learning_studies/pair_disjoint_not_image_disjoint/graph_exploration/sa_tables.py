@@ -83,6 +83,9 @@ def confirm(spec, df, blocked=None):
         verdicts.append({"candidate": name, "all 4 gains > 0": pos, "Holm-significant (of 4)": nsig, "beats shuffled control (>0 and p<.05 in >=1 cell)": bool(beats), "SUCCESS": bool(pos and nsig >= 3 and beats)})
         out.append(f"\n#### Controls of `{name}` (uncorrected)\n"); out.append(md(pd.DataFrame(ctrl_rows)))
     out.append("\n#### Verdicts (success rule: all four gains positive, >= 3 Holm-significant, better than the shuffled-time control)\n"); out.append(md(pd.DataFrame(verdicts)))
+    far_metrics = spec.get("far_metrics", ["far_auc", "far_acc"]); ftests = {(c["name"], sp, m): summarize(per_seed_gain(df, c["name"], base, m, sp)) for c in cands for sp in splits for m in far_metrics}; fadj = holm({k: v["p"] for k, v in ftests.items()})
+    out.append(f"\n#### Pre-registered far-stratum family: candidate - `{base}` on the anchor-far endpoint (Holm over {len(ftests)} tests)\n")
+    out.append(md(pd.DataFrame([{"candidate": k[0], "split": k[1], "metric": k[2], "gain": v["gain"], "CI95": f"[{v['lo']:+.4f}, {v['hi']:+.4f}]", "p": v["p"], "p_holm": fadj[k], "n_seeds": v["n"]} for k, v in ftests.items()]), "{:+.4f}"))
     sec = spec.get("secondary_metrics", ["far_auc", "far_acc", "near_auc", "near_acc", "ll", "htr_acc"])
     rows = []
     for c in cands:

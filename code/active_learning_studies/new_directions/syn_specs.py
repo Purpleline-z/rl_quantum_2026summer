@@ -35,3 +35,6 @@ for name, kw in {
     "sy_tm_a25_perm": dict(syn=syn("v1_typemean", T4, 0.25, perm=True)), "sy_tmg_a25": dict(syn=syn("v1_tmgauss", T4, 0.25)), "sy_tmg_a50": dict(syn=syn("v1_tmgauss", T4, 0.50)),
     "sy_aug_a50": dict(syn=syn("augreal1", T4, 0.50)),
 }.items(): Y.register(name, **kw)
+
+# frozen candidates of PREREGISTRATION_SA1 (controls: equal-compute two-head controls, permuted / Gaussian synthetic anchors)
+for name, kw in {"sy_tm_a10_perm": dict(syn=syn("v1_typemean", T4, 0.10, perm=True)), "sy_tmg_a10": dict(syn=syn("v1_tmgauss", T4, 0.10))}.items(): Y.register(name, **kw)

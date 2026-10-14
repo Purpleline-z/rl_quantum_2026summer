@@ -1,0 +1,3 @@
+{"baseline": "lap3_k10_st4", "splits": ["A", "B"], "metrics": ["auc", "acc"], "far_metrics": ["far_auc", "far_acc"],
+ "candidates": [{"name": "sy_gate_mask", "control": "sy_gate_base2"}, {"name": "sy_ens_mask", "control": "sy_ens_base2"}, {"name": "sy_tm_a10", "control": "sy_tm_a10_perm", "control2": "sy_tmg_a10"}],
+ "secondary_metrics": ["far_auc", "far_acc", "near_auc", "near_acc", "ll", "htr_acc"], "blocked_metrics": ["auc", "acc", "far_auc", "far_acc", "inb_auc", "inb_acc", "ll"]}

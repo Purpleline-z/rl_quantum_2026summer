@@ -89,6 +89,13 @@ def make_spec(name, **kw):
 
 
 def fit_syn(ctx, labelled, seed, spec):
+    """Deterministic: identical (spec name, seed, labelled set) fits are shared inside one context (the two-head learners and the baseline reuse each other's heads)."""
+    cache = ctx.__dict__.setdefault("_syn_heads", {}); key = (spec["name"], seed, tuple(map(str, labelled)))
+    if key not in cache: cache[key] = _fit_syn(ctx, labelled, seed, spec)
+    return cache[key]
+
+
+def _fit_syn(ctx, labelled, seed, spec):
     syn = spec["syn"]; variant = spec["ideal"]; syn_nodes = {"bank": syn["bank"], "types": syn["types"], "nodes": syn["nodes"]} if syn and syn.get("nodes", 0) else None
     gvar = variant if spec["ideal_graph"] == "same" else spec["ideal_graph"]
     gd, node_x, edges = graph_for(ctx, gvar, syn_nodes, spec.get("shuf_graph", False)); dim = node_x.shape[1]; aw = 8.0
