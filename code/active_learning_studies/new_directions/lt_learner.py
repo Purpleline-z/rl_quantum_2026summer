@@ -94,3 +94,36 @@ for _w in (0.1, 0.5):
 for _p in ("em", "prior"):
     LT_LEARNERS[f"lt_pa0.5thr0.8_{_p}"] = _lt_learner(pa=0.5, pa_thr=0.8, post=_p); LT_LEARNERS[f"lt_pa0.5far_{_p}"] = _lt_learner(pa=0.5, pa_far=0.01, post=_p); LT_LEARNERS[f"lt_pa0.5far_thr0.8_{_p}"] = _lt_learner(pa=0.5, pa_far=0.01, pa_thr=0.8, post=_p)
 LT_LEARNERS["lt_pa1_lik_em"] = _lt_learner(pa=1.0, lik=True, post="em")
+for _p in ("em", "prior"): LT_LEARNERS[f"lt_aux1_{_p}"] = _lt_learner(aux=1.0, post=_p); LT_LEARNERS[f"lt_aux0.5_lik_{_p}"] = _lt_learner(aux=0.5, lik=True, post=_p)
+LT_LEARNERS["lt_aux0.1_em"] = LT_LEARNERS["lt_aux0.1_em"]
+
+
+# ------------------------------------------------------------------------------------------ inference-time use of the latent-type model ("extra input" realised without retraining)
+def _memo_head(ctx, labelled, seed):
+    cached = ctx.__dict__.setdefault("_lt_heads", {}); key = (tuple(labelled), seed)
+    if key not in cached:
+        gd = G.graph_for(ctx, 10); featfn = core.identity_features(ctx); cached[key] = fit_lt(ctx, labelled, seed, gd, featfn, gd.x, gd.x.shape[1])
+    return cached[key]
+
+
+def _inf_learner(lam: float, post: str = "em", rho: float = 0.15):
+    """d' = d + lam * log P(a is the decisive winner) / P(b is) under the confusion table T (EM-learned on the labelled judgments) and the graph-prior memberships of the two test images (attached to their k nearest
+    graph nodes).  post: em (table from EM), prior (table = the verbal pseudo-count table, no learning), shufprior (prior from the shuffled graph), random (test priors permuted among the test images)."""
+    def learner(ctx, labelled, seed):
+        head = _memo_head(ctx, labelled, seed); featfn = core.identity_features(ctx)
+        _, _, _, table = posteriors(ctx, labelled, seed, "em" if post in ("em", "random") else ("shufprior" if post == "shufprior" else "prior"), rho)
+        if post == "prior": table = M.init_table()
+        def predict(test):
+            d = core.head_d(head, featfn, test); gd = G.graph_for(ctx, 10, post == "shufprior"); cache = ctx.features.cache
+            pa = M.prior_from_q(M.node_prior(gd, [str(p) for p in test.img1], cache, gd.q().numpy()), rho=rho); pb = M.prior_from_q(M.node_prior(gd, [str(p) for p in test.img2], cache, gd.q().numpy()), rho=rho)
+            if post == "random":
+                rng = np.random.default_rng(seed * 17 + 3); pa, pb = pa[rng.permutation(len(pa))], pb[rng.permutation(len(pb))]
+            sa = pa[np.arange(len(pa)), test.k.copy() * 0 + np.array([M.COL[int(k)] for k in test.k])]; sb = pb[np.arange(len(pb)), np.array([M.COL[int(k)] for k in test.k])]
+            wa = sum(x * y * table[i, j, 0] for i, x in ((1, sa), (0, 1 - sa)) for j, y in ((1, sb), (0, 1 - sb))); wb = sum(x * y * table[i, j, 1] for i, x in ((1, sa), (0, 1 - sa)) for j, y in ((1, sb), (0, 1 - sb)))
+            return d + lam * np.log(np.clip(wa, 1e-9, None) / np.clip(wb, 1e-9, None))
+        return predict
+    return learner
+
+
+for _l in (0.5, 1.0, 2.0):
+    for _p in ("em", "prior", "shufprior", "random"): LT_LEARNERS[f"lt_inf{_l:g}_{_p}"] = _inf_learner(_l, _p)
