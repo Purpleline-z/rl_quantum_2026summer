@@ -48,6 +48,8 @@ class Geometry:
         if kind == "arccos":      # NNGP kernel of an infinitely wide one-hidden-layer ReLU net on unit-norm inputs (the head's own function class)
             th = torch.arccos(cos); return (torch.sin(th) + (math.pi - th) * cos) / math.pi
         if kind == "cos": return cos + 1.0
+        if kind == "mix":         # multi-scale mixture of two RBFs: c = (c1, c2, w) -> w * rbf(c1) + (1 - w) * rbf(c2)
+            c1, c2, w = c; d2 = (2 - 2 * cos).clamp_min(0); return w * torch.exp(-d2 / (2 * (c1 * self.median) ** 2)) + (1 - w) * torch.exp(-d2 / (2 * (c2 * self.median) ** 2))
         raise ValueError(kind)
 
     def knodes(self, kind, c) -> torch.Tensor:
@@ -211,14 +213,16 @@ def fit_gpg(ctx, labelled, seed: int, cfg: dict | None = None, geo: Geometry | N
     else:
         grid = [(kd, c, b) for kd in kinds for c in cfg["cs"] for b in cfg["betas"]]; scores = {}; kt = {}
         if sel in ("evidence", "evidence_cond"):
+            crit = {}
             for key in grid:
-                kt[key] = geo.ktilde(None, None, *key, xa=obs.x, xb=obs.x); tot = 0.0
+                kt[key] = geo.ktilde(None, None, *key, xa=obs.x, xb=obs.x)
                 for kk in ACTIVE:
-                    r = _fit_type(geo, obs, kk, *key, a0, Ktilde=kt[key]); tot += r["logev"] - (_fit_type(geo, obs, kk, *key, a0, Ktilde=kt[key], labelled=False)["logev"] if sel == "evidence_cond" else 0.0)
-                scores[key] = tot
-            key = max(scores, key=scores.get); info["config"] = key; info["crit"] = scores[key]
+                    r = _fit_type(geo, obs, kk, *key, a0, Ktilde=kt[key]); crit[(key, kk)] = r["logev"] - (_fit_type(geo, obs, kk, *key, a0, Ktilde=kt[key], labelled=False)["logev"] if sel == "evidence_cond" else 0.0)
+            if cfg.get("per_type_config"): best = {kk: max(grid, key=lambda key: crit[(key, kk)]) for kk in ACTIVE}
+            else: shared = max(grid, key=lambda key: sum(crit[(key, kk)] for kk in ACTIVE)); best = {kk: shared for kk in ACTIVE}
+            info["config"] = best[ACTIVE[0]] if not cfg.get("per_type_config") else {kk: best[kk] for kk in ACTIVE}
             for kk in ACTIVE:
-                cand = []
+                key = best[kk]; cand = []
                 for a in cfg["amps"]:
                     r = _fit_type(geo, obs, kk, *key, a, Ktilde=kt[key]); cand.append((r["logev"] - (_fit_type(geo, obs, kk, *key, a, Ktilde=kt[key], labelled=False)["logev"] if sel == "evidence_cond" else 0.0), r))
                 per_type[kk] = max(cand, key=lambda t: t[0])[1]

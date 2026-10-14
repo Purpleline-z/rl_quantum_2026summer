@@ -16,7 +16,12 @@ for _sel in ("fixed", "ev", "evc", "cv"):
     GP_SPECS[f"gp_{_sel}"] = dict(cfg=dict(select=_s), shuffle=False)
     GP_SPECS[f"gp_{_sel}_noG"] = dict(cfg=dict(select=_s, betas=(0.0,), beta=0.0), shuffle=False)          # kernel without the graph deformation
     GP_SPECS[f"gp_{_sel}_shuf"] = dict(cfg=dict(select=_s), shuffle=True)                                   # shuffled graph (node identities permuted)
+    GP_SPECS[f"gp_{_sel}_mix"] = dict(cfg=dict(select=_s, kind="mix", kinds=("mix",), cs=((0.1, 0.4, 0.5), (0.15, 0.7, 0.5), (0.1, 0.4, 0.8), (0.25, 0.7, 0.5))), shuffle=False)   # multi-scale RBF mixture
     GP_SPECS[f"gp_{_sel}_arccos"] = dict(cfg=dict(select=_s, kind="arccos", kinds=("arccos",), cs=(1.0,)), shuffle=False)   # NNGP kernel of the head's own function class
+
+
+GP_SPECS["gp_evt"] = dict(cfg=dict(select="evidence", per_type_config=True, cs=(0.1, 0.15, 0.25, 0.4, 0.7), betas=(0.0, 0.03, 0.1, 0.3, 1.0, 3.0), amps=(0.1, 0.3, 1.0, 3.0, 10.0, 30.0)), shuffle=False)   # per-type kernel shape by evidence
+GP_SPECS["gp_evct"] = dict(cfg=dict(select="evidence_cond", per_type_config=True, cs=(0.1, 0.15, 0.25, 0.4, 0.7), betas=(0.0, 0.03, 0.1, 0.3, 1.0, 3.0), amps=(0.1, 0.3, 1.0, 3.0, 10.0, 30.0)), shuffle=False)
 
 
 def seeds_of(text):
