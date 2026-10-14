@@ -247,3 +247,7 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+# CPU fine-tuning study (branch claude/finetune-cpu-20261014): development 10300-10319, confirmation 1 = 10330-10364, confirmation 2 = 10365-10399 (all earlier blocks, incl. 9000-9999, are used or reserved)
+FT_DEV_SEEDS = tuple(range(10300, 10320)); FT_CONFIRM1 = tuple(range(10330, 10365)); FT_CONFIRM2 = tuple(range(10365, 10400)); FT_SEEDS_ALL = set(FT_DEV_SEEDS) | set(FT_CONFIRM1) | set(FT_CONFIRM2)
+assert not FT_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(FT_SEEDS_ALL) == 20 + 2 * 35 and not set(FT_CONFIRM1) & set(FT_CONFIRM2) and min(FT_SEEDS_ALL) >= 10300
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | FT_SEEDS_ALL
