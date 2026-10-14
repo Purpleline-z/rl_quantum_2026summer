@@ -54,10 +54,15 @@ def analyze(blk: H.Block, name: str, comps, splits, metrics, strata, units=("uni
                                                                                                                         seed_lo=sl["seed_lo"], seed_hi=sl["seed_hi"], seed_wilcoxon_p=sl["seed_wilcoxon_p"], seed_sd=sl["seed_sd"], n_groups=len(np.unique(des.gidx[des.gidx >= 0])))
                     for u in units:
                         ug = unit_of(blk, u); Bu = B if u == "unit_g" else B_alt; boots = H.group_bootstrap(des, ug, B=Bu, seed=seed); lo, hi = H.ci(boots); p, se_rand = H.signflip_p(pc, ug, n=perm if u == "unit_g" else perm // 4, seed=seed)
-                        tag = "" if u == "unit_g" else "_" + u.replace("unit_", ""); row.update({f"lo{tag}": lo, f"hi{tag}": hi, f"se{tag}": float(np.nanstd(boots)), f"perm_p{tag}": p, f"rand_se{tag}": se_rand, f"n_units{tag}": len(np.unique(ug[np.unique(des.gidx[des.gidx >= 0])]))})
+                        tag = "" if u == "unit_g" else "_" + u.replace("unit_", ""); row.update({f"boot_p{tag}": boot_p(boots), f"lo{tag}": lo, f"hi{tag}": hi, f"se{tag}": float(np.nanstd(boots)), f"perm_p{tag}": p, f"rand_se{tag}": se_rand, f"n_units{tag}": len(np.unique(ug[np.unique(des.gidx[des.gidx >= 0])]))})
                     rows.append(row)
                     if verbose: print(f"{name} {cid} {split} {st} {m}: {time.monotonic() - t0:.1f}s", flush=True)
     return pd.DataFrame(rows)
+
+
+def boot_p(boots) -> float:
+    """Two-sided bootstrap p-value (amendment A1): 2 * min(P*(b <= 0), P*(b >= 0)) with the +1 correction; the p at which the percentile interval just excludes 0."""
+    b = np.asarray(boots, float); b = b[~np.isnan(b)]; return float(min(1.0, 2 * min((np.sum(b <= 0) + 1) / (len(b) + 1), (np.sum(b >= 0) + 1) / (len(b) + 1))))
 
 
 def holm(p) -> np.ndarray:
@@ -66,9 +71,10 @@ def holm(p) -> np.ndarray:
     return out
 
 
-def assess(df: pd.DataFrame, family=FAMILY1) -> pd.DataFrame:
-    """Apply the pre-registered rule to the 'all' / pooled rows: Holm over family F1 (AUC and accuracy x splits A, B); label per comparison."""
-    f1 = df[(df.comp.isin(family)) & (df.stratum == "all") & (df.metric.isin(["auc", "acc"])) & (df.split.isin(["A", "B"]))].copy(); f1["perm_p_holm"] = holm(f1.perm_p.to_numpy()); rows = []
+def assess(df: pd.DataFrame, family=FAMILY1, p_col: str = "boot_p") -> pd.DataFrame:
+    """Apply the pre-registered rule to the 'all' / pooled rows: Holm over family F1 (AUC and accuracy x splits A, B); label per comparison.
+    p_col = 'boot_p' (amendment A1, the rule in force) or 'perm_p' (the originally frozen exact swap-randomisation p, reported alongside)."""
+    f1 = df[(df.comp.isin(family)) & (df.stratum == "all") & (df.metric.isin(["auc", "acc"])) & (df.split.isin(["A", "B"]))].copy(); f1["perm_p_holm"] = holm(f1[p_col].to_numpy()); rows = []
     for cid, g in f1.groupby("comp", sort=False):
         a = {s: g[(g.split == s) & (g.metric == "auc")].iloc[0] for s in ("A", "B")}; c = {s: g[(g.split == s) & (g.metric == "acc")].iloc[0] for s in ("A", "B")}
         sup = all(a[s].lo > 0 and a[s].perm_p_holm < 0.05 and c[s].est > 0 for s in a); weaker = (not sup) and all(a[s].est > 0 for s in a)

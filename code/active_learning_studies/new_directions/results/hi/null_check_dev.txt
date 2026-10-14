@@ -1,0 +1,3 @@
+C3 split A: swap-null SD formula 0.00701  direct swaps 0.00741  half-split SE 0.00450  group-bootstrap SE 0.00402
+C5 split A: swap-null SD formula 0.00702  direct swaps 0.00673  half-split SE 0.00548  group-bootstrap SE 0.00512
+C1 split B: swap-null SD formula 0.00498  direct swaps 0.00479  half-split SE 0.00445  group-bootstrap SE 0.00451

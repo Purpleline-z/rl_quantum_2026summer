@@ -78,7 +78,7 @@ def main():
     main_conf = rd(a.analysis, "main_conf.csv"); strata_conf = rd(a.analysis, "strata_conf.csv"); blocked = rd(a.analysis, "blocked_conf.csv"); numbers: dict = {}
     if main_conf is None: raise SystemExit("main_conf.csv missing: run hi_pipeline.py first")
     # ---------------------------------------------------------------- assessment (frozen rule) pooled + replicates
-    ass = A.assess(main_conf).set_index("comp"); rep = {}
+    ass = A.assess(main_conf).set_index("comp"); ass0 = A.assess(main_conf, p_col="perm_p").set_index("comp"); rep = {}
     for nm in ("conf1", "conf2", "dev"):
         d = rd(a.analysis, f"main_{nm}.csv"); rep[nm] = A.assess(d).set_index("comp")["label"] if d is not None else None
     # ---------------------------------------------------------------- main table (every comparison x split x metric)
@@ -87,21 +87,21 @@ def main():
         cols.append(dict(comp=r.comp, comparison=LABEL[r.comp], split=r.split, metric=r.metric, estimate=r.est, group_lo=r.lo, group_hi=r.hi, group_se=r.se, seed_lo=r.seed_lo, seed_hi=r.seed_hi, seed_wilcoxon_p=r.seed_wilcoxon_p, group_perm_p=r.perm_p,
                          cluster_lo=getattr(r, "lo_c0.03", np.nan) if hasattr(r, "lo_c0.03") else np.nan))
     mt = main_conf.copy(); mt["width_ratio_group_over_seed"] = [ratio(r.hi - r.lo, r.seed_hi - r.seed_lo) for r in mt.itertuples()]; mt.to_csv(tab / "main_all.csv", index=False)
-    lines = ["| comparison | split | metric | estimate | seed-level 95% CI | seed Wilcoxon p | group-level 95% CI | group randomisation p | cluster (c0.03) 95% CI | block (b42) 95% CI | group CI width / seed CI width |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| comparison | split | metric | estimate | seed-level 95% CI | seed Wilcoxon p | group-level 95% CI | group bootstrap p | swap-randomisation p (conservative) | cluster (c0.03) 95% CI | block (b42) 95% CI | group CI width / seed CI width |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in main_conf.itertuples():
         g = lambda k: getattr(r, k.replace(".", "_"), np.nan)
-        lines.append(f"| {r.comp} {LABEL[r.comp]} | {r.split} | {r.metric} | {f3(r.est)} | [{f3(r.seed_lo)}, {f3(r.seed_hi)}] | {pf(r.seed_wilcoxon_p)} | [{f3(r.lo)}, {f3(r.hi)}] | {pf(r.perm_p)} | [{f3(g('lo_c0.03'))}, {f3(g('hi_c0.03'))}] | [{f3(g('lo_b42'))}, {f3(g('hi_b42'))}] | {ratio(r.hi - r.lo, r.seed_hi - r.seed_lo):.1f} |")
-    (tab / "main_table.md").write_text("Pooled confirmation 1 + 2 (70 seeds), standard endpoint, all judgments. Intervals are percentile 95% bootstrap intervals; p-values: seed-level Wilcoxon vs exact group-level randomisation test (unadjusted).\n\n" + "\n".join(lines) + "\n")
+        lines.append(f"| {r.comp} {LABEL[r.comp]} | {r.split} | {r.metric} | {f3(r.est)} | [{f3(r.seed_lo)}, {f3(r.seed_hi)}] | {pf(r.seed_wilcoxon_p)} | [{f3(r.lo)}, {f3(r.hi)}] | {pf(r.boot_p)} | {pf(r.perm_p)} | [{f3(g('lo_c0.03'))}, {f3(g('hi_c0.03'))}] | [{f3(g('lo_b42'))}, {f3(g('hi_b42'))}] | {ratio(r.hi - r.lo, r.seed_hi - r.seed_lo):.1f} |")
+    (tab / "main_table.md").write_text("Pooled confirmation 1 + 2 (70 seeds), standard endpoint, all judgments. Intervals are percentile 95% bootstrap intervals; p-values (unadjusted): seed-level Wilcoxon vs group-level bootstrap p (amendment A1) and the exact swap-randomisation p (conservative, see AMENDMENT_A1).\n\n" + "\n".join(lines) + "\n")
     # ---------------------------------------------------------------- Holm / assessment table
-    f1 = main_conf[(main_conf.comp.isin(A.FAMILY1)) & (main_conf.stratum == "all") & (main_conf.metric.isin(["auc", "acc"])) & (main_conf.split.isin(["A", "B"]))].copy(); f1["holm_p"] = A.holm(f1.perm_p.to_numpy())
-    f1[["comp", "split", "metric", "est", "lo", "hi", "perm_p", "holm_p", "seed_wilcoxon_p"]].to_csv(tab / "family1_holm.csv", index=False)
-    cal = main_conf[(main_conf.comp == "C10") & (main_conf.metric == "ll") & (main_conf.split.isin(["A", "B"]))].copy(); cal["holm_p_F2"] = A.holm(cal.perm_p.to_numpy()); cal.to_csv(tab / "family2_calibration.csv", index=False)
+    f1 = main_conf[(main_conf.comp.isin(A.FAMILY1)) & (main_conf.stratum == "all") & (main_conf.metric.isin(["auc", "acc"])) & (main_conf.split.isin(["A", "B"]))].copy(); f1["holm_p_boot"] = A.holm(f1.boot_p.to_numpy()); f1["holm_p_swap"] = A.holm(f1.perm_p.to_numpy())
+    f1[["comp", "split", "metric", "est", "lo", "hi", "boot_p", "holm_p_boot", "perm_p", "holm_p_swap", "seed_wilcoxon_p"]].to_csv(tab / "family1_holm.csv", index=False)
+    cal = main_conf[(main_conf.comp == "C10") & (main_conf.metric == "ll") & (main_conf.split.isin(["A", "B"]))].copy(); cal["holm_p_F2"] = A.holm(cal.boot_p.to_numpy()); cal["holm_p_F2_swap"] = A.holm(cal.perm_p.to_numpy()); cal.to_csv(tab / "family2_calibration.csv", index=False)
     # ---------------------------------------------------------------- corrected claims table
     rows = []
     for cid, text, orig, comp, kind in CLAIMS:
         d = dict(id=cid, claim=text, paper_status=orig, comparison=comp, kind=kind)
         if kind == "pooled":
-            r = ass.loc[comp]; d.update(honest_label=r.label, auc_A=ci(r.auc_A, r.auc_A_lo, r.auc_A_hi), auc_B=ci(r.auc_B, r.auc_B_lo, r.auc_B_hi), acc_A=ci(r.acc_A, r.acc_A_lo, r.acc_A_hi), acc_B=ci(r.acc_B, r.acc_B_lo, r.acc_B_hi), holm_p_A=pf(r.auc_A_holm_p), holm_p_B=pf(r.auc_B_holm_p))
+            r = ass.loc[comp]; d.update(honest_label=r.label, label_frozen_swap=ass0.loc[comp].label, auc_A=ci(r.auc_A, r.auc_A_lo, r.auc_A_hi), auc_B=ci(r.auc_B, r.auc_B_lo, r.auc_B_hi), acc_A=ci(r.acc_A, r.acc_A_lo, r.acc_A_hi), acc_B=ci(r.acc_B, r.acc_B_lo, r.acc_B_hi), holm_p_A=pf(r.auc_A_holm_p), holm_p_B=pf(r.auc_B_holm_p))
             sw = [row(main_conf, comp, s, "auc") for s in ("A", "B")]; d["seed_wilcoxon_p_auc"] = " / ".join(pf(x.seed_wilcoxon_p) for x in sw); d["group_ci_vs_seed_ci_width"] = " / ".join(f"{ratio(x.hi - x.lo, x.seed_hi - x.seed_lo):.1f}x" for x in sw)
             d["robust_cluster_c0.03"] = all(x["lo_c0.03"] > 0 for x in sw); d["robust_block_b42"] = all(x["lo_b42"] > 0 for x in sw)
             d["conf1_label"] = rep["conf1"].get(comp) if rep["conf1"] is not None else None; d["conf2_label"] = rep["conf2"].get(comp) if rep["conf2"] is not None else None; d["dev_label"] = rep["dev"].get(comp) if rep["dev"] is not None else None
@@ -132,10 +132,10 @@ def main():
                 r = row(blocked, comp, "blocked", "auc"); d.update(honest_label="gain kept (interval excludes 0)" if r.lo > 0 else "interval includes 0", blocked_auc=ci(r.est, r.lo, r.hi), blocked_acc=ci(*(lambda x: (x.est, x.lo, x.hi))(row(blocked, comp, "blocked", "acc"))))
         rows.append(d)
     ct = pd.DataFrame(rows); ct.to_csv(tab / "claims_corrected.csv", index=False)
-    L = ["| ID | claim | paper status | honest label (frozen rule) | ΔAUC A (group 95% CI) | ΔAUC B | Δacc A / B (point) | seed Wilcoxon p (A / B) | group Holm p (A / B) | robust: cluster / block | replicated (conf1, conf2) | anchor-near ΔAUC | anchor-far (>0.03) ΔAUC | time-blocked ΔAUC |", "|" + "|".join("---" for _ in range(14)) + "|"]
+    L = ["| ID | claim | paper status | honest label (rule A1) [label under the originally frozen swap-test rule] | ΔAUC A (group 95% CI) | ΔAUC B | Δacc A / B (point) | seed Wilcoxon p (A / B) | group Holm p, bootstrap (A / B) | robust: cluster / block | replicated (conf1, conf2) | anchor-near ΔAUC | anchor-far (>0.03) ΔAUC | time-blocked ΔAUC |", "|" + "|".join("---" for _ in range(14)) + "|"]
     for d in rows:
         if d["kind"] == "pooled":
-            L.append(f"| {d['id']} | {d['claim']} | {d['paper_status']} | **{d['honest_label']}** | {d['auc_A']} | {d['auc_B']} | {d['acc_A'].split(' ')[0]} / {d['acc_B'].split(' ')[0]} | {d['seed_wilcoxon_p_auc']} | {d['holm_p_A']} / {d['holm_p_B']} | {'yes' if d['robust_cluster_c0.03'] else 'no'} / {'yes' if d['robust_block_b42'] else 'no'} | {'yes' if d['replicated'] else 'no'} ({d['conf1_label']}, {d['conf2_label']}) | {d['auc_near']} | {d['auc_far03']} | {d['blocked_auc']} |")
+            L.append(f"| {d['id']} | {d['claim']} | {d['paper_status']} | **{d['honest_label']}** [{d['label_frozen_swap']}] | {d['auc_A']} | {d['auc_B']} | {d['acc_A'].split(' ')[0]} / {d['acc_B'].split(' ')[0]} | {d['seed_wilcoxon_p_auc']} | {d['holm_p_A']} / {d['holm_p_B']} | {'yes' if d['robust_cluster_c0.03'] else 'no'} / {'yes' if d['robust_block_b42'] else 'no'} | {'yes' if d['replicated'] else 'no'} ({d['conf1_label']}, {d['conf2_label']}) | {d['auc_near']} | {d['auc_far03']} | {d['blocked_auc']} |")
         elif d["kind"] == "control":
             L.append(f"| {d['id']} | {d['claim']} | {d['paper_status']} | **{d['honest_label']}** | {d['auc_A']} | {d['auc_B']} | {d['acc_A'].split(' ')[0]} / {d['acc_B'].split(' ')[0]} | | | | | | | |")
         elif d["kind"] == "calib":
@@ -147,7 +147,7 @@ def main():
         else:
             L.append(f"| {d['id']} | {d['claim']} | {d['paper_status']} | **{d['honest_label']}** | | | | | | | | | | {d.get('blocked_auc', 'n/a')} |")
     for cid, text, why in NOT_REASSESSED: L.append(f"| {cid} | {text} | (paper package) | not re-assessed | | | | | | | | | | reason: {why} |")
-    (tab / "claims_corrected.md").write_text("Corrected claims table (script-generated by hi_report.py from results/hi/analysis; pooled confirmation 1 + 2, 70 seeds, 168 groups). Label rule frozen in PREREGISTRATION_HI1.md: SUPPORTED = group-level AUC interval excludes 0 in splits A and B, accuracy gain positive in both, Holm-adjusted (F1, 40 tests) randomisation p < 0.05 in both; WEAKER = AUC gain positive in both splits but not SUPPORTED; UNSUPPORTED = AUC gain <= 0 in a split. ΔAUC cells: estimate [group-bootstrap 95% CI]. Near / far strata and time-blocked: exploratory, uncorrected.\n\n" + "\n".join(L) + "\n")
+    (tab / "claims_corrected.md").write_text("Corrected claims table (script-generated by hi_report.py from results/hi/analysis; pooled confirmation 1 + 2, 70 seeds, 168 groups). Label rule (PREREGISTRATION_HI1.md as amended by AMENDMENT_A1 before any confirmation cell was analysed): SUPPORTED = group-level AUC interval excludes 0 in splits A and B, accuracy gain positive in both, Holm-adjusted (F1, 40 tests) group-bootstrap p < 0.05 in both (square brackets: label if the originally frozen exact swap-randomisation p were used instead); WEAKER = AUC gain positive in both splits but not SUPPORTED; UNSUPPORTED = AUC gain <= 0 in a split. ΔAUC cells: estimate [group-bootstrap 95% CI]. Near / far strata and time-blocked: exploratory, uncorrected.\n\n" + "\n".join(L) + "\n")
     # label counts
     cnt = ct[ct.kind == "pooled"].honest_label.value_counts().to_dict(); numbers["label_counts"] = cnt
     # ---------------------------------------------------------------- strata table (all comparisons)
@@ -160,7 +160,7 @@ def main():
     # ---------------------------------------------------------------- blocked
     if blocked is not None:
         b = blocked[blocked.stratum == "all"].copy(); b["cell"] = [ci(r.est, r.lo, r.hi) for r in b.itertuples()]; piv = b.pivot_table(index="comp", columns="metric", values="cell", aggfunc="first").reset_index(); piv.insert(1, "comparison", piv.comp.map(LABEL)); piv["seed-level Wilcoxon p (AUC)"] = piv.comp.map(b[b.metric == "auc"].set_index("comp").seed_wilcoxon_p.map(pf))
-        piv["group randomisation p (AUC)"] = piv.comp.map(b[b.metric == "auc"].set_index("comp").perm_p.map(pf)); (tab / "blocked.md").write_text("Time-blocked contexts (seeds 11330-11399, one draw per budget), group bootstrap B = 4000, 95% CI. Gain = candidate - reference. Exploratory.\n\n" + md_table(piv) + "\n")
+        piv["group bootstrap p (AUC)"] = piv.comp.map(b[b.metric == "auc"].set_index("comp").boot_p.map(pf)); (tab / "blocked.md").write_text("Time-blocked contexts (seeds 11330-11399, one draw per budget), group bootstrap B = 4000, 95% CI. Gain = candidate - reference. Exploratory.\n\n" + md_table(piv) + "\n")
     # ---------------------------------------------------------------- SE schemes, coverage, group signs, variance
     for nm in ("conf",):
         se = rd(a.analysis, f"se_schemes_{nm}.csv")
