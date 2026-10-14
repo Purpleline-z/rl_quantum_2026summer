@@ -84,7 +84,9 @@ def exclusion_sets(ctx) -> dict:
         allp = sorted(ctx.features.cache); future = [p for p in allp if img_time(p) is not None and img_time(p) > fwd["cut_time"]]; fh = _hashes(future)
         out["ind"] = std | fh; out["trans_test"] = ((std | fh) - held) | outer | zone
         out["trans_fut"] = out["trans"]
-    else: out["ind"] = std; out["trans_test"] = out["trans"]; out["trans_fut"] = out["trans"]
+        for w, groups in (("FA", fwd["near"]), ("FB", fwd["far"])):   # causal transduction: only the frames that exist when the window is scored (time <= the time of the window's last group) are nodes
+            end = group_time(ctx, groups[-1]); late = _hashes([p for p in allp if img_time(p) is not None and img_time(p) > end]); out[f"trans_win_{w}"] = late | outer | zone
+    else: out["ind"] = std; out["trans_test"] = out["trans"]; out["trans_fut"] = out["trans"]; out["trans_win"] = out["trans"]
     ctx._td_excl = saved; ctx._td_sets = out; return out
 
 
@@ -134,7 +136,7 @@ def forward_tests(ctx):
 
 
 # ------------------------------------------------------------------------------------------ the learner
-def fit_td(ctx, labelled, seed, gd, lam: float = 3.0, steps_scale: float = 4.0, aw: float = 8.0, rowmult=None, extra=None, rankq: float = 0.0, q=None, lap_w=None):
+def fit_td(ctx, labelled, seed, gd, lam: float = 3.0, steps_scale: float = 4.0, aw: float = 8.0, rowmult=None, extra=None, rankq: float = 0.0, q=None, lap_w=None, cons: float = 0.0, cons_dropout: float = 0.3, focus_mask=None, focus_frac: float = 0.0):
     """``nd_graph_learner.fit_mlp_graph`` (lap3_k10_st4 with lam = 3, steps_scale = 4; identical sampling stream, tested) with: ``rowmult`` = per-judgment multiplier of the confidence weight (dict
     judgment -> factor, e.g. recency), ``extra`` = pseudo-labelled rows (xa, xb, type_idx, weight, winner), ``rankq``/``q`` = type-posterior ranking loss on random node pairs."""
     featfn = core.identity_features(ctx); node_x = gd.x; dim = gd.x.shape[1]
@@ -150,17 +152,26 @@ def fit_td(ctx, labelled, seed, gd, lam: float = 3.0, steps_scale: float = 4.0, 
         xa, xb = torch.cat([xa, extra[0]]), torch.cat([xb, extra[1]]); typ = torch.cat([typ, extra[2]]); weight = torch.cat([weight, extra[3]]); winner = np.concatenate([winner, extra[4]])
     head.eval(); opt = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=ctx.exp.cfg.weight_decay); index = torch.arange(len(typ)); masks = {l: torch.as_tensor(winner == l) for l in core.frozen.LABELS}
     cols = {c: core.frozen.TYPE_TO_INDEX[c] for c in refs}; gen = torch.Generator().manual_seed(seed * 1000003 + 17)
+    focus_edges = None; focus_nodes = None; n_f = 0
+    if focus_mask is not None and focus_frac > 0 and gd is not None:   # transductive focus: a share of the sampled edges / node pairs touches the images that are about to be scored
+        inc = focus_mask[gd.edges[:, 0]] | focus_mask[gd.edges[:, 1]]; focus_edges = gd.edges[inc]; focus_nodes = torch.where(focus_mask)[0]; n_f = int(round(EDGE_BATCH * focus_frac)) if len(focus_edges) else 0
     for _ in range(steps):
         loss = G._bt_terms(head(xa)[index, typ], head(xb)[index, typ], masks, weight) / max(n_real, 1)
         if len(refs) > 1: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
         if bad is not None and len(bad): loss = loss + ctx.exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
         if lam > 0 and gd is not None:
-            e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, ACTIVE], head(node_x[e[:, 1]])[:, ACTIVE]
+            e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH - n_f,), generator=gen)]
+            if n_f: e = torch.cat([e, focus_edges[torch.randint(len(focus_edges), (n_f,), generator=gen)]])
+            si, sj = head(node_x[e[:, 0]])[:, ACTIVE], head(node_x[e[:, 1]])[:, ACTIVE]
             loss = loss + lam * (((si - sj) ** 2) * tw).sum(1).mean()
         if rankq > 0 and q is not None:
             i, j = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen), torch.randint(len(node_x), (EDGE_BATCH,), generator=gen)
+            if n_f and focus_nodes is not None and len(focus_nodes): i = torch.cat([i[: EDGE_BATCH - n_f], focus_nodes[torch.randint(len(focus_nodes), (n_f,), generator=gen)]])
             si, sj = head(node_x[i])[:, ACTIVE], head(node_x[j])[:, ACTIVE]; dq = q[i] - q[j]; w = dq.abs(); w = w / (w.mean() + 1e-9)
             loss = loss + rankq * (w * F.softplus(-torch.sign(dq) * (si - sj))).mean()
+        if cons > 0:   # graph-free control (as nd_graph_learner.fit_mlp_graph): scores of random nodes must be stable under feature dropout
+            u = torch.randint(len(node_x), (EDGE_BATCH,), generator=gen); xu = node_x[u]; keep = (torch.rand(xu.shape, generator=gen) > cons_dropout).float() / (1 - cons_dropout)
+            loss = loss + cons * ((head(xu)[:, ACTIVE] - head(xu * keep)[:, ACTIVE]) ** 2).sum(1).mean()
         opt.zero_grad(); loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0); opt.step()
     return head.eval()
 
@@ -180,7 +191,7 @@ def propagate_scores(gd, head, alpha: float, steps: int = 20, shuffle_seed=None)
     return s
 
 
-def d_from_node_scores(gd, s, head, test, k_attach: int = 10, cache=None) -> np.ndarray:
+def d_from_node_scores(gd, s, head, test, k_attach: int = 10, cache=None, shuffle_seed=None) -> np.ndarray:
     """Logit gap of the own-type output for the test judgments from (propagated) node scores; an image that is not a node is attached: mean of the propagated scores of its ``k_attach`` nearest nodes
     mixed 50/50 with its own head score (only used by graph modes that exclude test images)."""
     def score(paths):
@@ -188,7 +199,9 @@ def d_from_node_scores(gd, s, head, test, k_attach: int = 10, cache=None) -> np.
         for i, p in enumerate(paths):
             if str(p) in gd.index: out[i] = s[gd.index[str(p)]]
         if ext:
-            nb = gd.neighbours_of([str(paths[i]) for i in ext], cache); own = torch.stack([cache[str(paths[i])] for i in ext]).float()
+            nb = gd.neighbours_of([str(paths[i]) for i in ext], cache)
+            if shuffle_seed is not None: nb = torch.as_tensor(np.random.default_rng(shuffle_seed * 31 + len(ext)).integers(0, len(gd.paths), nb.shape))   # control: random nodes instead of the nearest ones
+            own = torch.stack([cache[str(paths[i])] for i in ext]).float()
             with torch.no_grad(): own_s = head(own)
             out[ext] = 0.5 * own_s + 0.5 * s[nb].mean(1)
         return out

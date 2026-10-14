@@ -50,21 +50,23 @@ def main() -> None:
             started = time.monotonic()
             with tempfile.TemporaryDirectory() as scratch:
                 if args.mode == "forward": ctx = td.make_forward_ctx(seed, int(cut), scratch, cache); tests = td.forward_tests(ctx)
-                elif args.mode == "standard": ctx = core.make_ctx(seed, unit, scratch, cache); tests = {"T": core.TestSet(ctx)}
-                else: ctx = rb.make_blocked_ctx(seed, scratch, cache); tests = {"T": core.TestSet(ctx)}
+                else:
+                    ctx = core.make_ctx(seed, unit, scratch, cache) if args.mode == "standard" else rb.make_blocked_ctx(seed, scratch, cache); tests = {"T": core.TestSet(ctx)}
+                    tests["T"].group = [g for g in ctx.test for w in ctx.exp.groups[g].Winner if w in ("1", "2")]; assert len(tests["T"].group) == len(tests["T"].k)
                 far = {w: tg.anchor_distance(sim, ctx, t) for w, t in tests.items()}
                 for budget in steps:
                     labelled = ctx.initial + ctx.pool if args.mode == "forward" else core.random_labelled(ctx, budget, 0); ctx._td_heads = {}
                     for name in names:
                         if (str(budget), wins[0], name) in have and all((str(budget), w, name) in have for w in wins): continue
-                        pred = fns[name](ctx, labelled, seed * 7)
+                        pw = getattr(fns[name], "per_window", False) and args.mode == "forward"; pred = None
                         for w in wins:
+                            if pred is None or pw: ctx._window = w; pred = fns[name](ctx, labelled, seed * 7)
                             t = tests[w]; d = np.asarray(pred(t), dtype=float); fm = far[w] > tg.FAR
                             rec = {"seed": seed, "unit": str(budget), "split": unit if args.mode != "forward" else "F", "cut": cut, "window": w, "learner": name, "budget": budget, **core.metrics_from_d(d, t), **tg.stratum_metrics(d, t, fm),
                                    "n_labelled": len(set(labelled)), "d": [round(float(x), 4) for x in d]}
                             if args.mode == "forward": rec.update({"n_train": ctx.forward["n_train"], "n_train_kept": ctx.forward["n_train_kept"]})
                             done.append(rec)
-                    meta = {"seed": seed, "unit": "meta", "window": "meta", "learner": "meta", "windows": {w: {"group": list(getattr(tests[w], "group", [])), "anc_dist": [round(float(x), 4) for x in far[w]], "sign": tests[w].sign.tolist(), "k": tests[w].k.tolist()} for w in tests}}
+                    meta = {"seed": seed, "unit": "meta", "window": "meta", "learner": "meta", "windows": {w: {"group": list(getattr(tests[w], "group", [])), "anc_dist": [round(float(x), 4) for x in far[w]], "sign": tests[w].sign.tolist(), "k": tests[w].k.tolist(), "weight": [round(float(x), 4) for x in tests[w].weight]} for w in tests}}
                     if not any(r["unit"] == "meta" for r in done): done.append(meta)
                     target.write_text(json.dumps(done))
             print(f"{tag}: {len(names)} learners in {time.monotonic() - started:.0f}s", flush=True)
