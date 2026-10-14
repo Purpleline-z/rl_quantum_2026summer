@@ -1,0 +1,2 @@
+{"reference": "af_base", "comparator": "aw8_all_st2lr0.5", "far": 0.01, "margin": 0.002,
+ "candidates": [{"name": "af_pseudoW0.3", "control": "af_pseudoW0.3_shuf"}, {"name": "af_nbra1", "control": "af_nbra1_shuf"}, {"name": "af_mixaa0.3", "control": "af_mixaa0.3_perm"}]}
