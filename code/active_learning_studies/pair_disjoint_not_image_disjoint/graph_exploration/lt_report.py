@@ -100,6 +100,13 @@ def blocked_md(d):
     return md(rows, ["cand", "n_seeds", "auc", "auc_p", "acc", "acc_p"], ["arm − lap3_k10_st4", "seeds", "AUC gain [95% CI]", "AUC p", "acc gain [95% CI]", "acc p"])
 
 
+def bins_md(c):
+    long = T.load_long(RES / c); anc = rt.load_a1b(RES / f"a1b_{c}"); rows = []
+    for cand in ("lt_aux0.5_em", "lt_lik_em"):
+        t = rt.auc_by_stratum(long, anc, cand, BASE, [("<=0.001", -1, 0.001), ("0.001-0.01", 0.001, 0.01), ("0.01-0.03", 0.01, 0.03), (">0.03", 0.03, 9)], "anc_all_min"); t.insert(0, "cand", cand); rows.append(t)
+    t = pd.concat(rows); return md(t.to_dict("records"), ["cand", "split", "stratum", "n_judgments", "n_seeds", "auc_gain", "CI"], ["cand", "split", "distance to nearest typed anchor", "judgments (all seeds, budgets, 1 draw)", "seeds", "AUC gain", "95% CI"])
+
+
 def section(key):
     ready = lambda d: (RES / d).exists() and len(list((RES / d).glob("*.json"))) > 0
     if key == "diag": return diag_md()
@@ -116,6 +123,7 @@ def section(key):
         if kind == "gains": t, _ = verdict(c, f"a1b_{c}"); return gains_md(t)
         if kind == "controls": return controls_md(c)
         if kind == "graphfree": t, _ = gains(c, f"a1b_{c}", ["aw8_all_st2lr0.5"]); return gains_md(t)
+    if key in ("conf1_bins", "conf2_bins"): return bins_md(key[:5]) if ready(key[:5]) and (RES / f"a1b_{key[:5]}").exists() else "(not run)"
     if key == "pooled": return pooled_md() if ready("conf1") and ready("conf2") else "(not run)"
     raise KeyError(key)
 

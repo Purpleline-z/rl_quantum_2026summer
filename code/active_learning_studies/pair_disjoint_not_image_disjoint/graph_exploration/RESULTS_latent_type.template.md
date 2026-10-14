@@ -45,6 +45,9 @@ D4 (graph-wide auxiliary target; shuffled-prior control):
 ### 4.2 Gains over `lap3_k10_st4` (standard endpoint and anchor-far stratum; Holm over the family of 16)
 <!--TABLE:conf1_gains-->
 
+### 4.2b AUC gain by distance of the test judgment to the nearest typed ideal image (C1 and C3)
+<!--TABLE:conf1_bins-->
+
 ### 4.3 Candidate minus control (graph-prior-only; C1 also random / shuffled prior; uncorrected p)
 <!--TABLE:conf1_controls-->
 
@@ -61,6 +64,9 @@ D4 (graph-wide auxiliary target; shuffled-prior control):
 
 ### 5.2 Gains over `lap3_k10_st4`
 <!--TABLE:conf2_gains-->
+
+### 5.2b AUC gain by anchor distance
+<!--TABLE:conf2_bins-->
 
 ### 5.3 Candidate minus control
 <!--TABLE:conf2_controls-->
