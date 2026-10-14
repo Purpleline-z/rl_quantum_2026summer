@@ -120,6 +120,17 @@ class Design:
         return b
 
 
+    def contributions_by_cell(self):
+        """(cells with a defined metric, groups) rows: per-cell per-group contributions a_cg normalised within the cell (sum over g = the cell's gain); returns (cell_rows, gidx_rows, a_rows)."""
+        ok = np.where(np.isfinite(self.point()))[0]; out = []
+        for r in ok:
+            ids = self.gidx[r]; v = ids >= 0
+            if self.metric == "auc": Q = self.Q[r][np.ix_(v, v)]; a = 0.5 * (Q.sum(1) + Q.sum(0)) / self.R[r].sum()
+            else: a = self.num[r][v] / self.den[r][v].sum()
+            out.append((r, ids[v], a))
+        return out
+
+
 def unit_matrix(unit_of_group: np.ndarray, B: int, rng, units_subset=None) -> np.ndarray:
     """(B, n_groups) multiplicities: resample the units with replacement (units_subset: ids of the units that exist in this design), map to groups."""
     units = np.unique(unit_of_group) if units_subset is None else np.asarray(units_subset); U = len(units); pick = rng.integers(0, U, size=(B, U)); pos = {u: i for i, u in enumerate(units)}
