@@ -9,14 +9,14 @@ import nd_core as core, nd_physics as NP
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pair_disjoint_not_image_disjoint" / "graph_exploration")); import pf_tables as T  # noqa: E402
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("dirs", nargs="+"); ap.add_argument("--base", default="lap3_k10_st4"); ap.add_argument("--sources", default="lr_pfa,lr_pfb,lr_pfc,lr_s4,lr_rpp,proto_pfa,proto_s4"); ap.add_argument("--betas", default="0.25,0.5,1.0"); ap.add_argument("--shuf", default="lr_pfa")
+    ap = argparse.ArgumentParser(); ap.add_argument("dirs", nargs="+"); ap.add_argument("--base", default="lap3_k10_st4"); ap.add_argument("--sources", default="lr_pfa,lr_pfb,lr_pfc,lr_s4,lr_rpp,proto_pfa,proto_s4"); ap.add_argument("--betas", default="0.25,0.5,1.0"); ap.add_argument("--shuf", default="lr_pfa"); ap.add_argument("--ref", default=None)
     args = ap.parse_args(); torch.set_num_threads(1); cache = core.feature_cache(); sources = args.sources.split(","); betas = [float(b) for b in args.betas.split(",")]; frames = []
     with tempfile.TemporaryDirectory() as scratch:
         for d in args.dirs:
             for f in sorted(glob.glob(str(Path(d) / "seed*.csv.gz"))):
-                df = pd.read_csv(f); df = df[df.learner == args.base]
+                df0 = pd.read_csv(f); df = df0[df0.learner == args.base]
                 if df.empty: continue
-                seed, split = int(df.seed.iloc[0]), df.split.iloc[0]; ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); rows = [df]
+                seed, split = int(df.seed.iloc[0]), df.split.iloc[0]; ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); rows = [df] + ([df0[df0.learner == args.ref]] if args.ref else [])
                 for src in sources:
                     dl = NP.delta_logq(ctx, test, src); z = df.copy(); z["d"] = dl[z.j.to_numpy()]; z["learner"] = f"zs:{src}"; rows.append(z)
                     for beta in betas: e = df.copy(); e["d"] = e.d + beta * dl[e.j.to_numpy()]; e["learner"] = f"{args.base}+{src}@{beta:g}"; rows.append(e)
@@ -26,4 +26,4 @@ if __name__ == "__main__":
                         for (b, dr), idx in e.groupby(["budget", "draw"]).groups.items(): dls[e.index.get_indexer(idx)] = NP.delta_logq(ctx, test, src, shuffle_seed=seed * 31 + dr * 7 + b)[e.loc[idx, "j"].to_numpy()]
                         e["d"] = e.d + beta * dls; e["learner"] = f"{args.base}+{src}@{beta:g}~shuf"; rows.append(e)
                 allp = pd.concat(rows); frames.append(pd.DataFrame([{"seed": a[0], "split": a[1], "budget": a[2], "draw": a[3], "learner": a[4], **T._cell_metrics(gg)} for a, gg in allp.groupby(["seed", "split", "budget", "draw", "learner"])]))
-    fr = pd.concat(frames); print(T.to_md(T.dev_table(fr, args.base)))
+    fr = pd.concat(frames); print(T.to_md(T.dev_table(fr, args.ref or args.base)))

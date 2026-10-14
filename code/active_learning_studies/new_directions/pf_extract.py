@@ -25,9 +25,12 @@ def load_gray(path) -> tuple[np.ndarray, str]:
     return a, mode
 
 
-def shadow_edge(g: np.ndarray) -> int:
-    """Row of the sample horizon: strongest upward-to-downward brightening of the (outlier-robust) row level of the central columns, searched between 5 % and 70 % of the height."""
-    h, w = g.shape; lvl = np.median(g[:, int(.25 * w):int(.75 * w)], axis=1); lvl = ndi.gaussian_filter1d(lvl, 3); d = np.gradient(lvl); lo, hi = int(.05 * h), int(.70 * h)
+HORIZON_HI = 0.40      # search window of the horizon: 5 % ... HORIZON_HI of the height (v1 of the cache used 0.70, which mislocated the horizon at the specular band in ~7 % of the trajectory frames; v2 uses 0.40)
+
+
+def shadow_edge(g: np.ndarray, hi_frac: float | None = None) -> int:
+    """Row of the sample horizon: strongest upward-to-downward brightening of the (outlier-robust) row level of the central columns, searched between 5 % and ``hi_frac`` (default 40 %) of the height."""
+    h, w = g.shape; lvl = np.median(g[:, int(.25 * w):int(.75 * w)], axis=1); lvl = ndi.gaussian_filter1d(lvl, 3); d = np.gradient(lvl); lo, hi = int(.05 * h), int((hi_frac or HORIZON_HI) * h)
     return int(lo + np.argmax(d[lo:hi]))
 
 
@@ -62,8 +65,8 @@ def fold(q: np.ndarray, bin_px: int = BIN) -> np.ndarray:
     s = (q[HALF:] + q[HALF::-1]) / 2; n = HALF // bin_px; return s[:n * bin_px].reshape(n, bin_px).mean(1)
 
 
-def extract(path) -> dict:
-    g, mode = load_gray(path); h, w = g.shape; edge = shadow_edge(g); r, x0 = specular(g, edge); out = {"mode": mode, "edge": edge, "row": r, "col": x0}
+def extract(path, hi_frac: float | None = None) -> dict:
+    g, mode = load_gray(path); h, w = g.shape; edge = shadow_edge(g, hi_frac); r, x0 = specular(g, edge); out = {"mode": mode, "edge": edge, "row": r, "col": x0}
     out["lvl_above"] = float(g[:max(edge - 5, 1)].mean()); out["lvl_below"] = float(g[edge + 5:edge + 120].mean()); prof = {}
     for b, (a0, a1) in BANDS.items():
         lo, hi = max(r + a0, edge + 3), r + a1                       # rows must lie below the horizon

@@ -10,6 +10,14 @@ import nd_core as core, nd_graph_learner as G, nd_representation as R, nd_physic
 REG = {**rt.REGISTRY, **R.LEARNERS, **NP.LEARNERS}
 
 
+class _Reg(dict):
+    def get(self, k, default=None): return dict.get(self, k) or NP.resolve(k) or default
+    def __getitem__(self, k): return self.get(k)
+
+
+REG = _Reg(REG)
+
+
 def is_plug(name): return "+" in name
 
 
