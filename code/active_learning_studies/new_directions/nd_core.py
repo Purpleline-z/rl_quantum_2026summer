@@ -247,3 +247,8 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# ------------------------------------------------------------------------------------------ latent-type study (branch claude/latent-type-1014): own seed block, separate lines
+LT_DEV_SEEDS = tuple(range(10700, 10720)); LT_CONFIRM1 = tuple(range(10730, 10765)); LT_CONFIRM2 = tuple(range(10765, 10800)); LT_SEEDS_ALL = set(LT_DEV_SEEDS) | set(LT_CONFIRM1) | set(LT_CONFIRM2)
+assert not LT_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(LT_SEEDS_ALL) == 20 + 35 + 35 and not set(LT_CONFIRM1) & set(LT_CONFIRM2) and min(LT_SEEDS_ALL) >= 10700
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | LT_SEEDS_ALL
