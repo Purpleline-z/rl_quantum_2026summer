@@ -69,7 +69,24 @@ def dose_table(df, cand, ref):
     return pd.DataFrame(rows)
 
 
+def absolute_table(df, learners, bins=None):
+    """Absolute AUC / accuracy of each learner by distance to the nearest typed anchor (per-seed mean over budgets and draws, then mean over seeds) and the share of judgments."""
+    rows = []
+    for label, lo, hi in (bins or BINS) + [("all", -1, 9)]:
+        for split in "AB":
+            r = {"stratum": label, "split": split}; sub = df[(df.split == split) & (df.anc_all_min > lo) & (df.anc_all_min <= hi)]
+            r["share"] = len(sub[sub.learner == learners[0]]) / max(len(df[(df.split == split) & (df.learner == learners[0])]), 1)
+            r["judgments/test set"] = r["share"] * df[(df.split == split) & (df.learner == learners[0])].groupby(["seed", "budget", "draw"]).size().mean()
+            for l in learners:
+                for m in ("auc", "acc"):
+                    v = [metric_of(g, m) for _, g in sub[sub.learner == l].groupby(["seed", "budget", "draw"]) if len(g) > 1]
+                    r[f"{l} {m}"] = float(np.nanmean(v)) if v else np.nan
+            rows.append(r)
+    return pd.DataFrame(rows)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1]; opts = dict(a[2:].split("=", 1) for a in sys.argv[2:] if a.startswith("--") and "=" in a); dirs = [a for a in sys.argv[2:] if not a.startswith("--")]; df = load(dirs[0], dirs[1])
     if mode == "dev": print(to_md(dev_table(df, opts.get("ref", "af_base"), (float(opts.get("lo", 0.01)), float(opts.get("hi", 9))))))
+    if mode == "abs": print(to_md(absolute_table(df, opts["learners"].split(","))))
     if mode == "dose": print(to_md(dose_table(df, opts["cand"], opts.get("ref", "af_base"))))
