@@ -26,8 +26,10 @@ Expectation stated in advance (from development): `fs_lam10`, `hy_`, `ds_` are W
 ```
 bash scripts_sp/run_sp.sh conf1 lap3_k10_st4,aw8_all_st2lr0.5,rt_c2_lam10_rho0.001,fs_lam10,hy_lamr10_rhor0.1,ds_mu0.03_lam10,rt_c2_lam10_rho0.001_sh1,rt_c2_lam0,fs_lam10_sh1,fs_lam0,kn,ls,hy_lamr10_rhor0.1_sh1 11230-11264 3 A,B groups
 bash scripts_sp/run_sp.sh conf1_ctl lap3_k10_st4,ds_mu0.03_lam10_sh1 11230-11264 1 A,B groups
-bash scripts_sp/run_sp.sh conf1_blocked <same variants as conf1 + ds_sh1> 11230-11264 2 blocked groups
-bash scripts_sp/run_sp.sh conf1_cold <same> 11230-11264 1 A,B random
+bash scripts_sp/run_sp.sh conf1_blocked lap3_k10_st4,aw8_all_st2lr0.5,rt_c2_lam10_rho0.001,fs_lam10,hy_lamr10_rhor0.1,ds_mu0.03_lam10,rt_c2_lam10_rho0.001_sh1,rt_c2_lam0,kn,ls 11230-11264 2 blocked groups
+bash scripts_sp/run_sp.sh conf1_cold <same variants> 11230-11264 1 A,B random
 python3 sp_confirm.py --spec SP1_spec.json --dirs conf1 conf1_ctl --blocked conf1_blocked --cold conf1_cold
 ```
+Note on compute (added at ≈ 06:05, after the main run had started and before the secondary runs started): a confirmation cell costs ≈ 50 s, so the blocked and cold-start runs omit the shuffled / no-penalty controls of the three non-headline candidates (`fs_lam10_sh1`, `fs_lam0`, `hy_…_sh1`, `ds_…_sh1`); the headline route keeps its shuffled and no-penalty controls everywhere. Confirmation 2 is run only if time allows.
+
 Limits: same 168 labelled groups (re-split, not new data); ≈ 56–70 decisive test judgments per (seed, split), of which only ≈ 10 are HTR; the anchor-far stratum keeps ≈ 15 % of the judgments; the labelled data are 284 frames of three growth runs; the routed type and its scale were chosen on development seeds; winner's-curse: 4 candidates chosen among ≈ 45 learners tried.

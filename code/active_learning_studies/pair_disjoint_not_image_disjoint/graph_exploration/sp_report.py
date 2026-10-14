@@ -37,6 +37,8 @@ COLS = ["learner", "n_seeds", "auc_A", "auc_B", "acc_A", "acc_B", "score", "ll_A
 
 
 def table(name: str) -> str:
+    if name == "mech_dev": return (HERE / "sp_mechanism_dev.md").read_text()
+    if name == "mech_conf1": return (HERE / "sp_mechanism_conf1.md").read_text() if (HERE / "sp_mechanism_conf1.md").exists() else "(not run)"
     if name == "dev_counts":
         df = T.load(d("dev1", "dev2")); return T.md(df.groupby(["learner", "split"]).agg(seeds=("seed", "nunique"), cells=("auc", "size")).reset_index(), fmt=".0f")
     if name == "variants":
