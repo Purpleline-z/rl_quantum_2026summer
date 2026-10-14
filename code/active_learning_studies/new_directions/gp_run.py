@@ -28,8 +28,13 @@ _FIX2 = dict(select="fixed", c=0.25, beta=0.1, amp={0: 0.5, 2: 1.0, 3: 3.0, 4: 3
 GP_SPECS["gp_fix2"] = dict(cfg=_FIX2, shuffle=False)
 GP_SPECS["gp_fix2_noG"] = dict(cfg={**_FIX2, "beta": 0.0}, shuffle=False)
 GP_SPECS["gp_fix2_shuf"] = dict(cfg=_FIX2, shuffle=True)
+_FIX3 = dict(select="fixed", c=0.25, beta=0.1, aw=32.0, amp={0: 0.5, 2: 1.0, 3: 1.0, 4: 1.0})        # best trade-off of AUC and accuracy over both splits in the development grids (aw 32)
+GP_SPECS["gp_fix3"] = dict(cfg=_FIX3, shuffle=False)
+GP_SPECS["gp_fix3_noG"] = dict(cfg={**_FIX3, "beta": 0.0}, shuffle=False)
+GP_SPECS["gp_fix3_shuf"] = dict(cfg=_FIX3, shuffle=True)
 _CVT = dict(select="cv_type", cs=(0.15, 0.25, 0.4), betas=(0.03, 0.1, 0.3), amps=(0.3, 1.0, 3.0, 10.0))
 GP_SPECS["gp_cvt"] = dict(cfg=_CVT, shuffle=False)
+GP_SPECS["gp_cvt3"] = dict(cfg={**_CVT, "aw": 32.0, "amps": (0.3, 1.0, 3.0), "amp_prior": {0: 0.5, 2: 1.0, 3: 1.0, 4: 1.0}, "amp_rho": 0.05}, shuffle=False)    # learned (per-type length scale, graph strength, amplitude) by CV, with the gp_fix3 amplitude pattern as prior and aw = 32
 GP_SPECS["gp_cvt_p"] = dict(cfg={**_CVT, "amp_prior": {0: 0.5, 2: 1.0, 3: 3.0, 4: 3.0}, "amp_rho": 0.05}, shuffle=False)
 
 

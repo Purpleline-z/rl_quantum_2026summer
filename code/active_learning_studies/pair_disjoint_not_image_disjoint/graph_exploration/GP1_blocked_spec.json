@@ -1,0 +1,6 @@
+{"name": "GP1-blocked (pre-registered secondary family: time-blocked split)",
+ "reference": "lap3_k10_st4", "reference_cal": "lap3_k10_st4+Tcal",
+ "raw_candidates": ["gp_fix3|mean", "gp_cvt3|mean"], "cal_candidates": {"gp_fix3|mean+Tfix": "gp_fix3|mean", "gp_cvt3|mean+Tprior": "gp_cvt3|mean"},
+ "controls": ["gp_fix3_noG|mean", "gp_fix3_shuf|mean", "aw8_all_st2lr0.5"],
+ "margins": {"auc": 0.003, "acc": 0.01}, "alpha": 0.05, "need_sig": 2, "draws": [0, 1],
+ "gp_constants": {"gp_fix3": {"0": 0.886, "2": 0.515, "3": 0.358, "4": 0.421}, "gp_cvt3": {"0": 0.801, "2": 0.581, "3": 0.388, "4": 0.331}}}

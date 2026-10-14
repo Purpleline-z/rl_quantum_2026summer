@@ -10,9 +10,9 @@ from gp_run import seeds_of
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--seeds", required=True); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1")
-    ap.add_argument("--cs", default="0.25"); ap.add_argument("--betas", default="0.3"); ap.add_argument("--amps", default="3"); ap.add_argument("--kind", default="rbf"); ap.add_argument("--budgets", default="10,20,40,60"); ap.add_argument("--aw", type=float, default=8.0)
+    ap.add_argument("--cs", default="0.25"); ap.add_argument("--betas", default="0.3"); ap.add_argument("--amps", default="3"); ap.add_argument("--kind", default="rbf"); ap.add_argument("--budgets", default="10,20,40,60"); ap.add_argument("--aw", type=float, default=8.0); ap.add_argument("--gammas", default="0")
     args = ap.parse_args(); torch.set_num_threads(1); shard, n = (int(x) for x in args.shard.split("/")); args.out.mkdir(parents=True, exist_ok=True)
-    cs = [tuple(float(y) for y in x.split(":")) if ":" in x else float(x) for x in args.cs.split(",")]; betas = [float(x) for x in args.betas.split(",")]; amps = [tuple(float(y) for y in x.split(":")) if ":" in x else float(x) for x in args.amps.split(",")]; budgets = [int(b) for b in args.budgets.split(",")]
+    cs = [tuple(float(y) for y in x.split(":")) if ":" in x else float(x) for x in args.cs.split(",")]; betas = [float(x) for x in args.betas.split(",")]; gammas = [float(x) for x in args.gammas.split(",")]; amps = [tuple(float(y) for y in x.split(":")) if ":" in x else float(x) for x in args.amps.split(",")]; budgets = [int(b) for b in args.budgets.split(",")]
     cache = core.feature_cache(); sim = rt.Sim(cache)
     with tempfile.TemporaryDirectory() as scratch:
         for seed in [s for i, s in enumerate(seeds_of(args.seeds)) if i % n == shard]:
@@ -25,7 +25,8 @@ def main():
                     for c in cs:
                         for b in betas:
                             for a in amps:
-                                m = P.fit_gpg(ctx, labelled, seed, dict(select="fixed", kind=args.kind, c=c, beta=b, aw=args.aw, amp=(dict(zip(P.ACTIVE, a)) if isinstance(a, tuple) else {k: a for k in P.ACTIVE})), geo=geo).predict(test); res[(args.kind, c, b, a)] = (m["mu"].astype(np.float32), m["var"].astype(np.float32))
+                                for gm in gammas:
+                                    m = P.fit_gpg(ctx, labelled, seed, dict(select="fixed", kind=args.kind, c=c, beta=b, aw=args.aw, gamma=gm, amp=(dict(zip(P.ACTIVE, a)) if isinstance(a, tuple) else {k: a for k in P.ACTIVE})), geo=geo).predict(test); res[(args.kind, c, b, a) + ((gm,) if len(gammas) > 1 or gm else ())] = (m["mu"].astype(np.float32), m["var"].astype(np.float32))
                     recs[(budget, 0)] = {"test": C.test_arrays(test, geom), "grid": res}
                 C.save_cell(target, {"seed": seed, "split": split, "recs": recs}); print(f"seed {seed} split {split}: {time.monotonic() - t0:.0f}s", flush=True)
 

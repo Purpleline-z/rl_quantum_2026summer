@@ -123,7 +123,9 @@ def md(df, fmt="{:+.4f}"): return T.to_md(df, fmt)
 if __name__ == "__main__":
     OPTS = dict(a[2:].split("=", 1) for a in sys.argv if a.startswith("--") and "=" in a); sys.argv = [a for a in sys.argv if not (a.startswith("--") and "=" in a)]; mode = sys.argv[1]
     if mode == "dev":
-        cells = load_cells(sys.argv[2:]); gp_names = [n for n in cells[0]["learners"] if n.startswith("gp_")]; gc = fit_gp_constants(cells, gp_names); df, bins = frame(cells, gc); ps = per_seed(df, bins)
+        cells = load_cells(sys.argv[2:]); gp_names = [n for n in cells[0]["learners"] if n.startswith("gp_")]
+        gc = fit_gp_oof_constants(load_cells(OPTS["consts_from"].split(",")), gp_names) if OPTS.get("consts_from") else fit_gp_constants(cells, gp_names)
+        df, bins = frame(cells, gc); ps = per_seed(df, bins)
         ref = OPTS.get("ref", "lap3_k10_st4"); names = [v for v in ps.variant.unique() if v != ref]
         if OPTS.get("only"): names = [v for v in names if any(v.startswith(o) or v == o for o in OPTS["only"].split(","))]
         print(f"cells {len(cells)}, seeds {ps.seed.nunique()}; reference = {ref}\n"); print("#### levels (mean over seeds)\n"); print(md(level_table(ps, [ref, ref + "+Tcal"] + names), "{:.4f}"))
@@ -145,7 +147,10 @@ if __name__ == "__main__":
             ll = np.logaddexp(0, -g.z); llp = np.logaddexp(0, -g.zp); out.append({"anchor distance": lab[b], "n judgments": len(g), "mean predictive sd of f(a)-f(b)": g.sd.mean(), "median sd": g.sd.median(), "log-loss mean score": float((g.w * ll).sum() / g.w.sum()), "log-loss probit score": float((g.w * llp).sum() / g.w.sum()), "accuracy": float((g.w * (g.z > 0)).sum() / g.w.sum())})
         print(f"#### predictive sd by distance to the nearest typed anchor ({nm}; pooled judgments of all label sets)\n"); print(md(pd.DataFrame(out), "{:.4f}"))
         print("\nSpearman correlation of the predictive sd with the distance: anchor %.3f, nearest labelled image %.3f, graph density %.3f" % tuple(float(spearmanr(d.sd, d[c]).correlation) for c in ("anc", "lab", "dens")))
-        print("Spearman correlation of the sd with the absolute error-free margin |z|: %.3f; with the log-loss of the mean score: %.3f" % (float(spearmanr(d.sd, np.abs(d.z)).correlation), float(spearmanr(d.sd, np.logaddexp(0, -d.z)).correlation)))
+        print("Spearman correlation of the sd with the absolute margin |mu|: %.3f; with the log-loss of the mean score: %.3f" % (float(spearmanr(d.sd, np.abs(d.z)).correlation), float(spearmanr(d.sd, np.logaddexp(0, -d.z)).correlation)))
+        err = (d.z < 0).astype(int); au = lambda x: float(roc_auc_score(err, x)); sdz = d.sd / (np.abs(d.z) + 1e-9)
+        print("\nAUROC for detecting a wrong prediction (error = sign of the mean score disagrees with the judgment): predictive sd %.3f; distance to nearest anchor %.3f; distance to nearest labelled image %.3f; small margin (-|mu|) %.3f; sd / |mu| %.3f; (0.5 = uninformative)" % (au(d.sd), au(d.anc), au(d.lab), au(-np.abs(d.z)), au(sdz)))
+        far = d.anc > 0.03; print("within the anchor-far stratum (n = %d): sd %.3f; small margin %.3f; sd / |mu| %.3f" % (far.sum(), float(roc_auc_score(err[far], d.sd[far])), float(roc_auc_score(err[far], -np.abs(d.z[far]))), float(roc_auc_score(err[far], sdz[far]))))
     if mode == "grid":
         # fixed-hyperparameter grids on the development seeds: raw metrics and metrics after per-type temperatures fitted (test-oracle, diagnostic) on the same cells
         dirs = sys.argv[2:]; rows = []
@@ -168,3 +173,35 @@ if __name__ == "__main__":
                 r, q = np.nanmean(np.array(raw), 0), np.nanmean(np.array(cal), 0)
                 rows.append({"grid": tag, "setting (kind, c, beta, amp)": str(key), "auc": r[0], "acc": r[1], "ll": r[2], "far_auc": r[3], "auc_Tcal": q[0], "ll_Tcal": q[1], "far_auc_Tcal": q[2], **{f"T{k}": consts[k] for k in consts}})
         df = pd.DataFrame(rows).sort_values(OPTS.get("sort", "auc"), ascending=False); print(md(df.head(int(OPTS.get("top", 15))), "{:.4f}"))
+    if mode == "confirm":
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); gc = {nm: {int(k): v for k, v in c.items()} for nm, c in spec["gp_constants"].items() if isinstance(c, dict)}
+        df, bins = frame(cells, gc, draws=spec.get("draws")); ps = per_seed(df, bins); ref, refc = spec["reference"], spec["reference_cal"]; raw_c = spec["raw_candidates"]; cal_c = spec["cal_candidates"]; controls = spec.get("controls", [])
+        print(f"## {spec['name']}: {ps.seed.nunique()} seeds, splits {sorted(ps.split.unique())}; reference `{ref}`, calibrated reference `{refc}`\n"); show = [ref, refc] + raw_c + list(cal_c) + controls
+        print("### levels (mean over seeds)\n"); print(md(level_table(ps, show), "{:.4f}"))
+        tests = {}; tab = {}
+        for c in raw_c:
+            t = paired(ps, c, ref); tab[(c, "raw")] = t
+            for _, r in t.iterrows():
+                for m in ("auc", "acc"): tests[(c, r.split, m)] = r[m + "_p"]
+        for c in cal_c:
+            t = paired(ps, c, refc); tab[(c, "cal")] = t
+            for _, r in t.iterrows(): tests[(c, r.split, "ll")] = r["ll_p"]
+        adj = T.holm(tests); print(f"\n### primary tests (Wilcoxon over seeds; Holm over the family of {len(tests)}; gain positive = better)\n"); rows = []
+        for (c, kind), t in tab.items():
+            for _, r in t.iterrows():
+                for m in (("auc", "acc") if kind == "raw" else ("ll",)): rows.append({"candidate": c, "against": ref if kind == "raw" else refc, "split": r.split, "metric": m, "gain": r[m], "ci_lo": r[m + "_lo"], "ci_hi": r[m + "_hi"], "share_seeds_better": r[m + "_share+"], "p": r[m + "_p"], "holm_p": adj[(c, r.split, m)]})
+        print(md(pd.DataFrame(rows))); print("\n### verdicts\n"); verdict = []
+        for c in raw_c:
+            t = tab[(c, "raw")].set_index("split"); sp = list(t.index); twin = [k for k, v in cal_c.items() if v == c]
+            a_pos = all(t.loc[s, m] > 0 for s in sp for m in ("auc", "acc")); a_sig = sum(adj[(c, s, m)] < spec["alpha"] and t.loc[s, m] > 0 for s in sp for m in ("auc", "acc")); branch_a = bool(a_pos and a_sig >= spec["need_sig"])
+            ni = all(t.loc[s, "auc_lo"] >= -spec["margins"]["auc"] and t.loc[s, "acc_lo"] >= -spec["margins"]["acc"] for s in sp)      # lower 95% (two-sided) bootstrap bound of the paired difference inside the margin
+            ll_ok = bool(twin) and all(adj[(twin[0], s, "ll")] < spec["alpha"] and tab[(twin[0], "cal")].set_index("split").loc[s, "ll"] > 0 for s in sp); branch_b = bool(ni and ll_ok)
+            verdict.append({"candidate": c, "A: AUC and acc both splits > 0": a_pos, "A: Holm-significant (of 4)": a_sig, "A met": branch_a, "B: non-inferior (AUC > -%g, acc > -%g, lower CI)" % (spec["margins"]["auc"], spec["margins"]["acc"]): ni, "B: calibrated twin beats calibrated reference on log-loss (Holm, both splits)": ll_ok, "B met": branch_b, "SUCCESS": branch_a or branch_b})
+        print(md(pd.DataFrame(verdict)))
+        print("\n### controls and secondary (descriptive, uncorrected): candidate minus comparator, positive = candidate better\n"); rows = []
+        for c in raw_c + list(cal_c):
+            for comp in controls + [ref, refc]:
+                if comp == c: continue
+                t = paired(ps, c, comp, ("auc", "acc", "ll", "far_auc", "far_ll", "near_auc", "ece"))
+                for _, r in t.iterrows(): rows.append({"candidate": c, "comparator": comp, "split": r.split, **{m: r.get(m, np.nan) for m in ("auc", "acc", "ll", "far_auc", "far_ll", "near_auc", "ece")}, "auc_p": r.get("auc_p", np.nan), "far_auc_p": r.get("far_auc_p", np.nan)})
+        print(md(pd.DataFrame(rows)))

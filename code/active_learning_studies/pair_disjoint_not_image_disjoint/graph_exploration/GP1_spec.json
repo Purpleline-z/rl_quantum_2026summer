@@ -1,0 +1,49 @@
+{
+ "name": "GP1 (pre-registered confirmation: graph-kernel Gaussian process vs lap3_k10_st4)",
+ "reference": "lap3_k10_st4",
+ "reference_cal": "lap3_k10_st4+Tcal",
+ "raw_candidates": [
+  "gp_fix3|mean",
+  "gp_cvt3|mean"
+ ],
+ "cal_candidates": {
+  "gp_fix3|mean+Tfix": "gp_fix3|mean",
+  "gp_cvt3|mean+Tprior": "gp_cvt3|mean"
+ },
+ "controls": [
+  "gp_fix3_noG|mean",
+  "gp_fix3_shuf|mean",
+  "aw8_all_st2lr0.5"
+ ],
+ "labels": {
+  "gp_fix3|mean": "C1 GP, hand-set hyperparameters",
+  "gp_fix3|mean+Tfix": "C2 = C1 with per-type temperatures (development constants)",
+  "gp_cvt3|mean": "C3 GP, hyperparameters learned in budget by CV",
+  "gp_cvt3|mean+Tprior": "C4 = C3 with within-run per-type temperatures centred on development constants"
+ },
+ "margins": {
+  "auc": 0.003,
+  "acc": 0.01
+ },
+ "alpha": 0.05,
+ "need_sig": 3,
+ "draws": [
+  0,
+  1
+ ],
+ "gp_constants": {
+  "gp_fix3": {
+   "0": 0.886,
+   "2": 0.515,
+   "3": 0.358,
+   "4": 0.421
+  },
+  "gp_cvt3": {
+   "0": 0.801,
+   "2": 0.581,
+   "3": 0.388,
+   "4": 0.331
+  }
+ },
+ "gp_constants_source": "fit_prior (calibration study's function) on the out-of-fold logits of the labelled judgments of development runs dev4 (gp_fix3, draws 1-2) and dev5 (gp_cvt3, draws 1-2), seeds 11000-11019; no test label"
+}

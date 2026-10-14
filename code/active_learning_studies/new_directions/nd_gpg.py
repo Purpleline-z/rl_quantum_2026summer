@@ -42,12 +42,31 @@ class Geometry:
         """Centred, L2-normalised features of arbitrary images (identical to the node rows for nodes)."""
         x = torch.stack([self.cache[p] for p in paths]).to(DT) - self.gd.mu.to(DT); return x / x.norm(dim=1, keepdim=True).clamp_min(1e-12)
 
+    def qmean(self, paths) -> torch.Tensor:
+        """Graph-propagated type posterior q(x) (label spreading of the ideal images' classes over the node graph, as in the graph study; ACTIVE order) for arbitrary images: node rows, or the mean over the
+        k nearest nodes for images that are not nodes."""
+        q = self.gd.q().to(DT); out = torch.empty(len(paths), q.shape[1], dtype=DT); ext = [i for i, p in enumerate(paths) if str(p) not in self.gd.index]; nod = [i for i, p in enumerate(paths) if str(p) in self.gd.index]
+        if nod: out[nod] = q[[self.gd.index[str(paths[i])] for i in nod]]
+        if ext: nb = self.gd.neighbours_of([paths[i] for i in ext], self.cache); out[ext] = q[nb].mean(1)
+        return out
+
+    def _diffusion(self, gamma):
+        if not hasattr(self, "_g"): self._g = {}
+        if gamma not in self._g: self._g[gamma] = torch.linalg.inv(torch.eye(self.n, dtype=DT) + gamma * self.L)
+        return self._g[gamma]
+
+    def _attach(self, x, k: int = 10) -> torch.Tensor:
+        sim = x @ self.xn.T; idx = sim.topk(k, dim=1).indices; W = torch.zeros(len(x), self.n, dtype=DT); W.scatter_(1, idx, 1.0 / k); return W
+
     def kern(self, xa, xb, kind: str, c: float) -> torch.Tensor:
         cos = (xa @ xb.T).clamp(-1, 1)
         if kind == "rbf": return torch.exp(-(2 - 2 * cos).clamp_min(0) / (2 * (c * self.median) ** 2))
         if kind == "arccos":      # NNGP kernel of an infinitely wide one-hidden-layer ReLU net on unit-norm inputs (the head's own function class)
             th = torch.arccos(cos); return (torch.sin(th) + (math.pi - th) * cos) / math.pi
         if kind == "cos": return cos + 1.0
+        if kind == "gdiff":       # c = (c_rbf, gamma, w): w * rbf(c_rbf) + (1 - w) * (W_a G W_b^T), G = (I + gamma L)^-1 the graph (diffusion) kernel on the nodes, W = average over the 10 nearest nodes (out-of-sample attach)
+            c_r, gamma, w = c; d2 = (2 - 2 * cos).clamp_min(0); G_ = self._diffusion(gamma)
+            return w * torch.exp(-d2 / (2 * (c_r * self.median) ** 2)) + (1 - w) * (self._attach(xa) @ G_ @ self._attach(xb).T)
         if kind == "mix":         # multi-scale mixture of two RBFs: c = (c1, c2, w) -> w * rbf(c1) + (1 - w) * rbf(c2)
             c1, c2, w = c; d2 = (2 - 2 * cos).clamp_min(0); return w * torch.exp(-d2 / (2 * (c1 * self.median) ** 2)) + (1 - w) * torch.exp(-d2 / (2 * (c2 * self.median) ** 2))
         raise ValueError(kind)
@@ -105,14 +124,15 @@ class Terms:
         return val, g, H
 
 
-def solve_laplace(A: torch.Tensor, terms: Terms, iters: int = 25, tol: float = 1e-7, alpha0=None):
+def solve_laplace(A: torch.Tensor, terms: Terms, iters: int = 25, tol: float = 1e-7, alpha0=None, mean=None):
     """MAP in the dual: f = A alpha, J(alpha) = 1/2 alpha^T A alpha + J_data(A alpha); Newton steps delta = -(I + H A)^-1 (alpha + g) with backtracking.  Returns (alpha, f, H, J, log_evidence)."""
     m = A.shape[0]; alpha = torch.zeros(m, dtype=DT) if alpha0 is None else alpha0.clone(); I = torch.eye(m, dtype=DT)
-    f = A @ alpha; val, g, H = terms.value_grad_hess(f); J = 0.5 * alpha @ f + val
+    m0 = torch.zeros(m, dtype=DT) if mean is None else mean
+    f = m0 + A @ alpha; val, g, H = terms.value_grad_hess(f); J = 0.5 * alpha @ (A @ alpha) + val
     for _ in range(iters):
         delta = -torch.linalg.solve(I + H @ A, alpha + g); step = 1.0
         for _ in range(12):
-            a2 = alpha + step * delta; f2 = A @ a2; v2, g2, H2 = terms.value_grad_hess(f2); J2 = 0.5 * a2 @ f2 + v2
+            a2 = alpha + step * delta; f2 = m0 + A @ a2; v2, g2, H2 = terms.value_grad_hess(f2); J2 = 0.5 * a2 @ (A @ a2) + v2
             if J2 <= J + 1e-12: break
             step *= 0.5
         else: break
@@ -140,7 +160,7 @@ class Observations:
         for c, ps in ctx.exp.references.items():
             allp = list(ps) + (list(ctx.exp.utility_images.get(c, [])) + list(ctx.exp.test_images.get(c, [])) if all_ideal else []); self.cls[c] = np.array([add(p) for p in allp], dtype=int)
         self.bad = np.array([add(p) for p in ctx.exp.bad_paths], dtype=int) if ctx.exp.bad_paths else np.empty(0, int); self.paths = paths; self.m = len(paths); self.aw = aw
-        self.col = {c: core.frozen.TYPE_TO_INDEX[c] for c in self.cls}; self.x = geo.phi(paths)
+        self.col = {c: core.frozen.TYPE_TO_INDEX[c] for c in self.cls}; self.x = geo.phi(paths); self._q = None
 
     def terms(self, kk: int, mask=None, bad_w: float = 0.10, n_lab=None, labelled: bool = True) -> Terms:
         sel = (self.k == kk) if mask is None else ((self.k == kk) & mask); n_lab = (self.n_lab if mask is None else max(int(mask.sum()), 1)) if n_lab is None else n_lab
@@ -161,6 +181,10 @@ class Observations:
         bad_idx = torch.as_tensor(self.bad); bad_wt = bad_w * n_lab / (max(len(self.bad), 1) * 5.0)
         return Terms(mk(i, int) if i else torch.empty(0, dtype=torch.long), mk(j, int) if j else torch.empty(0, dtype=torch.long), mk(code, int) if code else torch.empty(0, dtype=torch.long), mk(w, float) if w else torch.empty(0, dtype=DT), anchors, bad_idx, bad_wt, self.m)
 
+    def qmean_at_S(self) -> torch.Tensor:
+        if self._q is None: self._q = self.geo.qmean(self.paths)
+        return self._q
+
     def decisive_ll(self, F: dict, mask) -> float:
         sel = np.flatnonzero(mask & np.isin(self.win, ["1", "2"]))
         if len(sel) == 0: return float("nan")
@@ -178,13 +202,16 @@ class GPModel:
 
     def predict(self, test) -> dict:
         geo, obs = self.geo, self.obs; paths = sorted({str(p) for p in list(test.img1) + list(test.img2)}); index = {p: i for i, p in enumerate(paths)}; xt = geo.phi(paths)
-        ia = np.array([index[str(p)] for p in test.img1]); ib = np.array([index[str(p)] for p in test.img2]); mu = np.zeros(len(test.k)); var = np.zeros(len(test.k)); cache = {}; I = torch.eye(obs.m, dtype=DT)
+        ia = np.array([index[str(p)] for p in test.img1]); ib = np.array([index[str(p)] for p in test.img2]); mu = np.zeros(len(test.k)); var = np.zeros(len(test.k)); cache = {}; I = torch.eye(obs.m, dtype=DT); qt = None
         for kk in ACTIVE:
             m = np.flatnonzero(test.k == kk)
             if len(m) == 0 or kk not in self.per_type: continue
             st = self.per_type[kk]; key = (st["kind"], st["c"], st["beta"])
             if key not in cache: cache[key] = (geo.ktilde(None, None, *key, xa=xt, xb=obs.x), geo.ktilde(None, None, *key, xa=xt, xb=xt))
             Kts, Ktt = cache[key]; a = st["amp"]; Ats = a * Kts; fmean = Ats @ st["alpha"]; As = a * st["Ktilde"]
+            if st.get("gamma"):
+                if qt is None: qt = geo.qmean(paths)
+                fmean = fmean + st["gamma"] * (qt[:, ACTIVE.index(kk)] - 1.0 / len(ACTIVE))
             post = a * Ktt - Ats @ torch.linalg.solve(I + st["H"] @ As, st["H"] @ Ats.T)                         # posterior covariance of f at the test images
             ra, rb = torch.as_tensor(ia[m]), torch.as_tensor(ib[m]); mu[m] = (fmean[ra] - fmean[rb]).numpy(); var[m] = (post[ra, ra] + post[rb, rb] - 2 * post[ra, rb]).clamp_min(0).numpy()
         return {"mu": mu, "var": var}
@@ -196,9 +223,11 @@ def prob_score(mu, var, mode: str = "probit"):
 
 
 # ------------------------------------------------------------------------------------------ fitting with hyperparameter selection
-def _fit_type(geo, obs, kk, kind, c, beta, amp, mask=None, Ktilde=None, alpha0=None, labelled=True):
+def _fit_type(geo, obs, kk, kind, c, beta, amp, mask=None, Ktilde=None, alpha0=None, labelled=True, gamma=0.0):
     Kt = geo.ktilde(None, None, kind, c, beta, xa=obs.x, xb=obs.x) if Ktilde is None else Ktilde; Kt = Kt + JITTER * torch.eye(obs.m, dtype=DT); A = amp * Kt
-    alpha, f, H, J, logev = solve_laplace(A, obs.terms(kk, mask, labelled=labelled), alpha0=alpha0); return dict(kind=kind, c=c, beta=beta, amp=amp, alpha=alpha, f=f, H=H, J=J, logev=logev, Ktilde=Kt)
+    mean = None if not gamma else gamma * (obs.qmean_at_S()[:, ACTIVE.index(kk)] - 1.0 / len(ACTIVE))
+    alpha, f, H, J, logev = solve_laplace(A, obs.terms(kk, mask, labelled=labelled), alpha0=alpha0, mean=mean)
+    return dict(kind=kind, c=c, beta=beta, amp=amp, alpha=alpha, f=f, H=H, J=J, logev=logev, Ktilde=Kt, gamma=gamma)
 
 
 def fit_gpg(ctx, labelled, seed: int, cfg: dict | None = None, geo: Geometry | None = None, shuffle: bool = False):
@@ -209,7 +238,8 @@ def fit_gpg(ctx, labelled, seed: int, cfg: dict | None = None, geo: Geometry | N
     cfg = {**DEFAULT, **(cfg or {})}; geo = geo or geometry_for(ctx, shuffle); obs = Observations(geo, ctx, labelled, cfg["aw"]); t0 = time.monotonic(); per_type = {}; info = {"select": cfg["select"]}
     kinds = cfg["kinds"] or (cfg["kind"],); a0 = cfg.get("a0", 3.0); sel = cfg["select"]
     if sel == "fixed":
-        for kk in ACTIVE: per_type[kk] = _fit_type(geo, obs, kk, cfg["kind"], cfg["c"], cfg["beta"], cfg["amp"][kk])
+        gam = cfg.get("gamma", 0.0); gam = gam if isinstance(gam, dict) else {kk: gam for kk in ACTIVE}
+        for kk in ACTIVE: per_type[kk] = _fit_type(geo, obs, kk, cfg["kind"], cfg["c"], cfg["beta"], cfg["amp"][kk], gamma=gam[kk])
     else:
         grid = [(kd, c, b) for kd in kinds for c in cfg["cs"] for b in cfg["betas"]]; scores = {}; kt = {}
         if sel in ("evidence", "evidence_cond"):
