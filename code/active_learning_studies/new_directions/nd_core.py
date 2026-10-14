@@ -247,3 +247,8 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# ------------------------------------------------------------------------------------------ cross-run transfer study (branch claude/cross-run-*): development 10900-10919, confirmation 1 = 10930-10964, confirmation 2 = 10965-10999
+CR_DEV_SEEDS = tuple(range(10900, 10920)); CR_CONFIRM1 = tuple(range(10930, 10965)); CR_CONFIRM2 = tuple(range(10965, 11000)); CR_SEEDS_ALL = set(CR_DEV_SEEDS) | set(CR_CONFIRM1) | set(CR_CONFIRM2)
+assert len(CR_SEEDS_ALL) == 20 + 35 + 35 and not CR_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not set(CR_CONFIRM1) & set(CR_CONFIRM2) and not set(CR_DEV_SEEDS) & (set(CR_CONFIRM1) | set(CR_CONFIRM2))
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | CR_SEEDS_ALL
