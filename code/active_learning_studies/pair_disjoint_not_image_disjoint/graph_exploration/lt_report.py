@@ -18,7 +18,7 @@ def fmt(v, p=False):
 
 def md(rows, cols, heads=None):
     heads = heads or cols; out = ["| " + " | ".join(heads) + " |", "|" + "---|" * len(cols)]
-    for r in rows: out.append("| " + " | ".join(str(r[c]) if isinstance(r[c], str) or not isinstance(r[c], float) else fmt(r[c], c.endswith(("_p", "_holm", "share"))) for c in cols) + " |")
+    for r in rows: out.append("| " + " | ".join(str(r[c]) if isinstance(r[c], str) or not isinstance(r[c], float) else fmt(r[c], c.endswith(("_p", " p", "_holm", "share"))) for c in cols) + " |")
     return "\n".join(out)
 
 
