@@ -25,7 +25,7 @@ def main():
             for kind in args.kinds.split(","):
                 for run in args.runs.split(","):
                     target = args.out / f"seed{seed}_{kind}_{run}.json"; done = json.loads(target.read_text()) if target.exists() else []; have = {(r["learner"], r["budget"]) for r in done if "learner" in r}
-                    skip = lambda nm, b: (nm == "cr_src" and b != 0) or (nm.startswith(("cr_pool", "cr_iw")) and b == 0)   # b = 0 of pooled / weighted learners is the source-only head
+                    skip = lambda nm, b: ((nm.startswith(("cr_src", "cr_ind_src", "cr_nolap_src", "cr_anchor0", "cr_align_src"))) and b != 0) or (nm.startswith("cr_lapR") and not nm.endswith("_pool") and b != 0) or (nm.startswith("cr_lapR") and nm.endswith("_pool") and b == 0) or (nm.startswith(("cr_pool", "cr_iw", "cr_align_pool")) and b == 0)   # b = 0 of pooled / weighted learners is the source-only head
                     need = [(nm, b) for nm in names for b in budgets if not skip(nm, b)]
                     if all(x in have for x in need): continue
                     t0 = time.monotonic()
@@ -37,7 +37,7 @@ def main():
                     for b in budgets:
                         for nm in names:
                             if (nm, b) in have or skip(nm, b): continue
-                            d = C.d_of(ctx, runner.head(nm, b), fold.test)
+                            d = C.d_of(ctx, runner.head(nm, b), fold.test, runner.align[0] if nm.startswith("cr_align_") else None)
                             done.append({"seed": seed, "split": kind, "run": run, "budget": b, "selector": "random", "draw": 0, "learner": nm, **core.metrics_from_d(d, fold.test), **rg_run.subset_metrics(d, fold.test, far, "far"),
                                          **rg_run.subset_metrics(d, fold.test, ~far, "near"), "d": [round(float(x), 4) for x in d]})
                         target.write_text(json.dumps(done))

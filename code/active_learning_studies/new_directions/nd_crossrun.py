@@ -41,6 +41,7 @@ RUNS = ("RR220204A", "RR220206A", "RR220411A")
 BUDGETS = (0, 5, 10, 20, 40)
 TEST_FRACTION = 0.30
 ACTIVE = G.ACTIVE
+SCHEDULE_LR_CAP = 0.001   # the repository schedule uses lr 0.003 only for its 60-judgment entry; source-containing label sets here are far larger and the dev check (dev_srcsched) showed lr 0.001 is +0.007 AUC / +0.012 accuracy better for the source-only head
 EDGE_BATCH = G.EDGE_BATCH
 
 
@@ -93,12 +94,12 @@ def _flat(head):
 
 
 def train_head(ctx, gd, seed: int, src: list, tgt: list, *, lap: float = 3.0, steps_scale: float = 4.0, tgt_weight: float = 1.0, src_weights=None, init=None, l2: float = 0.0, ref=None,
-               prior_idx=None, prior_target=None, prior_w: float = 0.0, lr=None, steps=None, aw: float = 8.0):
+               prior_idx=None, prior_target=None, prior_w: float = 0.0, lr=None, steps=None, aw: float = 8.0, featfn=None, node_shift=None, lap_extra: float = 0.0, lap_extra_nodes=None):
     """The ``lap3_k10_st4`` head fit with transfer switches.  src / tgt: judgment lists; ``init``: a head to start from (copy); ``l2`` x sum (theta - theta_ref)^2 with ``ref`` the reference head;
     ``prior_idx`` / ``prior_target`` / ``prior_w``: squared distance of the scores of nodes ``prior_idx`` to ``prior_target`` (function-space shrinkage); ``src_weights`` per source judgment (sorted order)."""
-    featfn = core.identity_features(ctx); node_x = gd.x; dim = node_x.shape[1]; n = len(set(src)) + len(set(tgt))
+    featfn = featfn or core.identity_features(ctx); node_x = gd.x if node_shift is None else gd.x + node_shift; dim = node_x.shape[1]; n = len(set(src)) + len(set(tgt))
     if lr is None or steps is None: lr0, steps0 = _sched(ctx, n)
-    lr = lr0 if lr is None else lr; steps = int(round(steps0 * steps_scale)) if steps is None else steps
+    lr0 = min(lr0, SCHEDULE_LR_CAP); lr = lr0 if lr is None else lr; steps = int(round(steps0 * steps_scale)) if steps is None else steps
     rs = ju_study.rows_of(ctx.exp, src); rt_ = ju_study.rows_of(ctx.exp, tgt)
     if len(rs) and len(rt_): rows = __import__("pandas").concat([rs, rt_], ignore_index=True)
     else: rows = rs if len(rs) else rt_
@@ -120,7 +121,9 @@ def train_head(ctx, gd, seed: int, src: list, tgt: list, *, lap: float = 3.0, st
         if len(refs) > 1: loss = loss + aw * G._anchor_loss({nm: head(f) for nm, f in refs.items()}, cols, None)
         if bad is not None and len(bad): loss = loss + ctx.exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
         if lap > 0 and gd is not None:
-            e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]; loss = loss + lap * ((si - sj) ** 2).sum(1).mean()
+            e = gd.edges[torch.randint(gd.n_edges, (EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]; sq = ((si - sj) ** 2).sum(1)
+            if lap_extra > 0 and lap_extra_nodes is not None: sq = sq * (1.0 + lap_extra * (lap_extra_nodes[e[:, 0]] | lap_extra_nodes[e[:, 1]]).float())   # edges touching the held-out run's frames get the extra weight
+            loss = loss + lap * sq.mean()
         if ref_vec is not None: loss = loss + l2 * ((_flat(head) - ref_vec) ** 2).sum()
         if prior_w > 0 and prior_idx is not None:
             u = torch.randint(len(prior_idx), (EDGE_BATCH,), generator=gen); sel = prior_idx[u]; loss = loss + prior_w * ((head(node_x[sel])[:, active] - prior_target[u]) ** 2).sum(1).mean()
@@ -153,15 +156,15 @@ def proximity_weights(gd, fold: Fold, src: list, tau: float = 1.0, k: int = 5, c
     s = np.array([0.5 * (pr[info[j]["img1"]] + pr[info[j]["img2"]]) for j in uniq]); z = (s - s.mean()) / (s.std() + 1e-9); w = np.clip(np.exp(tau * z), *clip); return w / w.mean()
 
 
-def d_of(ctx, head, test) -> np.ndarray:
-    return np.asarray(core.head_d(head, core.identity_features(ctx), test), dtype=float)
+def d_of(ctx, head, test, featfn=None) -> np.ndarray:
+    return np.asarray(core.head_d(head, featfn or core.identity_features(ctx), test), dtype=float)
 
 
 class Runner:
     """All learners of one fold; the source head and the graphs are computed once."""
     def __init__(self, fold: Fold):
         self.f, self.ctx = fold, fold.ctx; self.gd = G.graph_for(self.ctx, 10, False); self.gd_shuf = G.graph_for(self.ctx, 10, True); self.seed = fold.ctx.seed * 7 + RUNS.index(fold.run); self._src = None; self._prior = {}
-        self.run_nodes = frame_index(self.gd, fold)
+        self.run_nodes = frame_index(self.gd, fold); self._gd_ind = None; self._align = None
 
     @property
     def src_head(self):
@@ -179,6 +182,8 @@ class Runner:
     def head(self, name: str, b: int):
         f, ctx, tgt = self.f, self.ctx, self.f.target(b); seed = self.seed + 101 * b
         if name == "cr_src": return self.src_head
+        if name.startswith("cr_srcst"): return train_head(ctx, self.gd, seed, f.source, [], steps_scale=float(name[len("cr_srcst"):]))   # source-only step-count check (x of 100 steps x 4)
+        if name.startswith("cr_srclr"): return train_head(ctx, self.gd, seed, f.source, [], lr=float(name[len("cr_srclr"):]), steps=400)   # source-only schedule check (lr; 400 steps)
         if name == "cr_tgt": return train_head(ctx, self.gd, seed, [], tgt)
         if name == "cr_pool": return train_head(ctx, self.gd, seed, f.source, tgt)
         if name.startswith("cr_poolw"): return train_head(ctx, self.gd, seed, f.source, tgt, tgt_weight=float(name[len("cr_poolw"):]))
@@ -190,4 +195,40 @@ class Runner:
             if b == 0: return self.src_head
             kind = "gprop_shuf" if name.endswith("_shuf") else ("gprop" if name.startswith("cr_gprop") else "own"); base = name.replace("_shuf", ""); w = float(base[len("cr_gprop" if base.startswith("cr_gprop") else "cr_prior"):] or 1.0)
             return train_head(ctx, self.gd, seed, [], tgt, init=self.src_head, prior_idx=self.run_nodes, prior_target=self._prior_target(kind), prior_w=w, steps_scale=2.0)
+        if name == "cr_ind_src": return train_head(ctx, self.gd_ind, self.seed, f.source, [])
+        if name.startswith("cr_lapR"):   # cr_lapR<w> (source only) / cr_lapR<w>_pool: Laplacian weight (1 + w) on edges touching R's frames
+            isr = torch.zeros(len(self.gd.paths), dtype=torch.bool); isr[self.run_nodes] = True; sub = name[len("cr_lapR"):]; pool = sub.endswith("_pool"); w = float(sub.replace("_pool", ""))
+            if pool and b == 0: return train_head(ctx, self.gd, self.seed, f.source, [], lap_extra=w, lap_extra_nodes=isr)
+            return train_head(ctx, self.gd, seed if pool else self.seed, f.source, tgt if pool else [], lap_extra=w, lap_extra_nodes=isr)
+        if name == "cr_nolap_src": return train_head(ctx, self.gd, self.seed, f.source, [], lap=0.0)
+        if name == "cr_anchor0": return train_head(ctx, self.gd, self.seed, [], [], lap=0.0)
+        if name.startswith("cr_align_"):
+            ff, ns, _ = self.align; sub = name[len("cr_align_"):]
+            if sub == "src" or b == 0: return train_head(ctx, self.gd, self.seed, f.source, [], featfn=ff, node_shift=ns)
+            if sub == "pool": return train_head(ctx, self.gd, seed, f.source, tgt, featfn=ff, node_shift=ns)
+            if sub == "tgt": return train_head(ctx, self.gd, seed, [], tgt, featfn=ff, node_shift=ns)
+            raise ValueError(name)
         raise ValueError(name)
+
+
+    # ---- decomposition / unsupervised-adaptation helpers
+    @property
+    def gd_ind(self):
+        """graph WITHOUT the held-out run's frames (inductive: the new run's frames are not available as unlabelled nodes)."""
+        if self._gd_ind is None:
+            import ge_heads
+            self._gd_ind = ge_heads.make_graph(self.ctx, 10, drop_paths=self.f.frames)
+        return self._gd_ind
+
+    @property
+    def align(self):
+        """(featfn, node_shift) with the run's features shifted by mean(source frames) - mean(run frames) (means over frames that are not test images)."""
+        if self._align is None:
+            ctx, f = self.ctx, self.f; cache = ctx.features.cache; test_imgs = {str(x) for g in f.test_groups for x in f.gi[g]}
+            run_paths = [p for p in cache if (H.meta(p) or {}).get("run") == f.run]; other = [p for p in cache if H.meta(p) is not None and H.meta(p)["run"] != f.run and p not in test_imgs]
+            mu_r = torch.stack([cache[p].float() for p in run_paths if p not in test_imgs]).mean(0); mu_s = torch.stack([cache[p].float() for p in other]).mean(0); shift = mu_s - mu_r; inrun = set(run_paths)
+            base = core.identity_features(ctx)
+            def featfn(paths):
+                x = base(paths); add = torch.stack([shift if str(p) in inrun else torch.zeros_like(shift) for p in paths]) if len(paths) else x; return x + add
+            ns = torch.zeros_like(self.gd.x); ns[self.run_nodes] = shift; self._align = (featfn, ns, float(shift.norm()))
+        return self._align
