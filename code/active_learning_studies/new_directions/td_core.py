@@ -92,12 +92,24 @@ def exclusion_sets(ctx) -> dict:
 
 def td_graph(ctx, mode: str, k: int = 10, shuffle: bool = False) -> "G.GraphData":
     """kNN graph of the node set of ``mode`` (cached).  ``shuffle``: the repository's control (node identities of the adjacency permuted; topology and degrees kept)."""
-    cache = ctx.__dict__.setdefault("_td_graphs", {}); key = (mode, k, shuffle)
+    cache = ctx.__dict__.setdefault("_td_graphs", {}); key = (mode, k, shuffle, getattr(ctx, "_window", None) if (mode == "trans_win" or str(mode).startswith("trans_win")) else None)
     if key not in cache:
+        if shuffle == "test": cache[key] = test_node_shuffled(ctx, td_graph(ctx, mode, k, False)); return cache[key]
         sets = exclusion_sets(ctx); ctx._td_excl = sets[mode]
         try: cache[key] = G.GraphData(ctx, k, shuffle=ctx.seed if shuffle else None)
         finally: ctx._td_excl = None
     return cache[key]
+
+
+def test_node_shuffled(ctx, gd):
+    """Targeted control (``tshuf``): only the identities of the held-out (validation / test) images that are nodes of ``gd`` are permuted among themselves in the adjacency,
+    everything else (the rest of the graph, degrees) is intact.  Each test node then carries the neighbourhood of another test node; with no test node in the graph (inductive modes) it is a no-op."""
+    import copy
+    paths = heldout_paths(ctx)   # forward: the images of both windows; standard / blocked: validation + test groups
+    idx = np.array([gd.index[p] for p in paths if p in gd.index], dtype=np.int64); g2 = copy.copy(gd)
+    if len(idx) < 2: return g2
+    perm = np.arange(len(gd.paths)); perm[idx] = np.random.default_rng(ctx.seed * 7919 + 23).permutation(idx); a = gd.adj[torch.as_tensor(perm)][:, torch.as_tensor(perm)]
+    rows, cols = torch.nonzero(a, as_tuple=True); g2.adj = a; g2.edges = torch.stack([rows, cols], 1)[rows < cols]; g2.n_edges = len(g2.edges); g2._q = None; return g2
 
 
 # ------------------------------------------------------------------------------------------ forward-in-time contexts

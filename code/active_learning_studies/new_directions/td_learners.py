@@ -82,7 +82,7 @@ def pseudo_rows(ctx, head, gd, labelled, seed, n_per_type: int, margin: float):
 
 
 def get(name: str):
-    parts = name.split(":"); kind = parts[0]; shuf = parts[-1] == "shuf"; parts = [p for p in parts if p != "shuf"]
+    parts = name.split(":"); kind = parts[0]; shuf = True if parts[-1] == "shuf" else "test" if parts[-1] == "tshuf" else False; parts = [p for p in parts if p not in ("shuf", "tshuf")]
     featfn = lambda ctx: core.identity_features(ctx)
     if name == "G0": return lambda ctx, labelled, seed: G.LEARNERS["aw8_all_st2lr0.5"](ctx, labelled, seed)
     if kind in ("BASE", "STD"):
