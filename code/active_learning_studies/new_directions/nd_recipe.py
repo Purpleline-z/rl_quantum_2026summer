@@ -59,8 +59,8 @@ def _anchor_loss(scores: dict, cols: dict, form: str) -> torch.Tensor:
     return torch.stack(values).mean()
 
 
-def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: int, spec: Spec, teacher: torch.Tensor | None = None):
-    lr, steps = ctx.params_for(labelled); lr, steps = lr * spec.lr_scale, int(round(steps * spec.steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled)
+def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: int, spec: Spec, teacher: torch.Tensor | None = None, lr_steps: tuple | None = None):
+    lr, steps = ctx.params_for(labelled) if lr_steps is None else lr_steps; lr, steps = lr * spec.lr_scale, int(round(steps * spec.steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled)
     head = make_head(dim, seed, spec.hidden, spec.depth, spec.dropout); refs, bad = core.anchors(ctx, featfn, True)
     if len(rows):
         xa, xb = featfn(list(rows.resolved_img1)), featfn(list(rows.resolved_img2)); typ = torch.as_tensor(rows.type_idx.to_numpy())

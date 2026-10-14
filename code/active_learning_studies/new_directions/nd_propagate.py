@@ -2,13 +2,13 @@
 
 FREE SCORES.  Every graph node i gets a free score vector f(i) in R^4 (one score per active type 0/2/3/4).  The scores minimise a convex objective
 
-    L(F) =  1/n * sum_rows BT-terms(f_t(a) - f_t(b))                      Bradley-Terry likelihood of the labelled judgments (the repository's terms: winner, tie |d|, not_apply relu)
+    L(F) =  1/n * sum_rows BT-terms(f_t(a) - f_t(b))                      Bradley-Terry likelihood of the labelled judgments (the repository's terms: winner, tie |d| smoothed, not_apply relu smoothed)
           + aw * mean_(p,o) mean_(i in anchors(p), j in anchors(o)) -log sigma(f_p(i) - f_p(j))   the reference-anchor ranking terms (all ideal images, as in aw8_all)
           + bad_w * mean relu(f(bad) + 1)
           + lam * mean_edges ||f(i) - f(j)||^2                              graph Laplacian penalty over ALL nodes
           + rho * mean_nodes ||f(i)||^2                                     ridge (gauge / shrinkage)
 
-solved with L-BFGS (the problem is convex per type; the tie term |d| is smoothed).  No parametric head.  Images that are not nodes (held-out test images) receive the kernel-weighted average of the scores of their
+solved by damped Newton with the exact dense Hessian (separable per type column, convex; tie and relu terms smoothed: relu = softplus(10 x)/10).  No parametric head.  Images that are not nodes (held-out test images) receive the kernel-weighted average of the scores of their
 ``kt`` nearest nodes (cosine on mean-centred, normalised SimCLR features; weights softmax(sim / tau)).  Anchors / labelled-row images / bad images that are not graph nodes (the 28 outer-test ideal images, which the graph excludes
 by design, or content twins of held-out images) are appended as extra nodes with kNN edges into the graph (``extra=True``); held-out test images are never nodes.
 
@@ -49,7 +49,11 @@ class PropData:
         bad_paths = [str(p) for p in e.bad_paths]
         row_imgs = set()
         for j in list(ctx.initial) + list(ctx.pool): row_imgs |= {str(ctx.info[j]["img1"]), str(ctx.info[j]["img2"])}
-        wanted = sorted({p for ps in anchor_paths.values() for p in ps} | set(bad_paths) | row_imgs)
+        held = {str(x) for g in list(ctx.validation) + list(ctx.test) for r in e.groups[g].itertuples() for x in (r.resolved_img1, r.resolved_img2)}
+        held_h = set(G.content_hashes(sorted(held)).values()) if held else set()
+        cand = sorted({p for ps in anchor_paths.values() for p in ps} | set(bad_paths)); hc = G.content_hashes(cand) if cand else {}
+        cand = [p for p in cand if p in row_imgs or hc[p] not in held_h]     # a typed/bad image whose content equals a held-out pair-group image never becomes a node (labelled content twins may: they are labelled data)
+        wanted = sorted(set(cand) | row_imgs)
         self.extra_paths = [p for p in wanted if p not in gd.index] if extra else [p for p in wanted if p not in gd.index and p in row_imgs]   # row images must exist as nodes
         self.index = dict(gd.index); self.index.update({p: N + i for i, p in enumerate(self.extra_paths)}); self.N = N; self.M = N + len(self.extra_paths)
         self.feat = torch.cat([gd.x] + ([torch.stack([cache[p] for p in self.extra_paths]).float()] if self.extra_paths else []))        # raw features of all nodes (head input)
@@ -90,13 +94,21 @@ def rows_of(pd_: PropData, labelled) -> Rows:
                 torch.as_tensor(rows.confidence_weight.to_numpy(), dtype=torch.float64), len(rows))
 
 
+BETA = 10.0
+
+
+def _sp(x: torch.Tensor) -> torch.Tensor:
+    """smoothed relu (softplus with sharpness BETA): keeps the problem twice differentiable so that Newton converges quadratically"""
+    return F.softplus(BETA * x) / BETA
+
+
 def objective(S: torch.Tensor, R: torch.Tensor | None, pd_: PropData, rows: Rows, aw: float, bad_w: float, lam: float, rho: float, pen_total: bool = False) -> torch.Tensor:
     """S = total scores (M x 4); penalties act on R if given (hybrid) else on S."""
     P = S if R is None else R
     loss = torch.zeros((), dtype=S.dtype)
     if rows.n:
         a, b = S[rows.ia, rows.col], S[rows.ib, rows.col]; d = a - b
-        terms = -F.logsigmoid(d) * rows.win1 - F.logsigmoid(-d) * rows.win2 + torch.sqrt(d * d + 1e-4) * rows.tie + (F.relu(a) + F.relu(b)) * rows.na
+        terms = -F.logsigmoid(d) * rows.win1 - F.logsigmoid(-d) * rows.win2 + torch.sqrt(d * d + 1e-4) * rows.tie + (_sp(a) + _sp(b)) * rows.na
         loss = loss + (terms * rows.w).sum() / rows.n
     if aw > 0:
         vals = []
@@ -104,22 +116,78 @@ def objective(S: torch.Tensor, R: torch.Tensor | None, pd_: PropData, rows: Rows
             for o, io in pd_.anchor_idx.items():
                 if o != p: vals.append(F.softplus(-(S[ip, p][:, None] - S[io, p][None, :])).mean())
         loss = loss + aw * torch.stack(vals).mean()
-    if bad_w > 0 and len(pd_.bad_idx): loss = loss + bad_w * F.relu(S[pd_.bad_idx] + 1.0).mean()
+    if bad_w > 0 and len(pd_.bad_idx): loss = loss + bad_w * _sp(S[pd_.bad_idx] + 1.0).mean()
     if lam > 0:
         Q = S if pen_total else P; e = pd_.edges; loss = loss + lam * ((Q[e[:, 0]] - Q[e[:, 1]]) ** 2).sum(1).mean()
     if rho > 0: loss = loss + rho * (P ** 2).sum(1).mean()
     return loss
 
 
-def solve(pd_: PropData, rows: Rows, aw: float = 8.0, bad_w: float = 0.1, lam: float = 30.0, rho: float = 0.01, H: torch.Tensor | None = None, pen_total: bool = False,
-          max_iter: int = 300) -> torch.Tensor:
-    """Free scores F (M x 4) (or residuals R when H, the detached head scores of all M nodes, is given).  L-BFGS in float64."""
+def solve_lbfgs(pd_: PropData, rows: Rows, aw: float = 8.0, bad_w: float = 0.1, lam: float = 30.0, rho: float = 0.01, H: torch.Tensor | None = None, pen_total: bool = False,
+                max_iter: int = 300) -> torch.Tensor:
+    """Reference solver (slow: the Laplacian makes the problem ill-conditioned, 300 L-BFGS iterations stop ~0.01 above the optimum); kept for tests."""
     X = torch.zeros(pd_.M, len(ACTIVE), dtype=torch.float64, requires_grad=True)
     Hd = None if H is None else H.double()
     opt = torch.optim.LBFGS([X], lr=1.0, max_iter=max_iter, tolerance_grad=1e-8, tolerance_change=1e-12, history_size=30, line_search_fn="strong_wolfe")
     def closure():
         opt.zero_grad(); S = X if Hd is None else Hd + X; loss = objective(S, None if Hd is None else X, pd_, rows, aw, bad_w, lam, rho, pen_total); loss.backward(); return loss
     opt.step(closure); return X.detach()
+
+
+def _dense_laplacian(pd_: PropData) -> torch.Tensor:
+    if getattr(pd_, "_L", None) is None:
+        e = pd_.edges; L = torch.zeros(pd_.M, pd_.M, dtype=torch.float64); one = torch.ones(len(e), dtype=torch.float64)
+        L.index_put_((e[:, 0], e[:, 0]), one, accumulate=True); L.index_put_((e[:, 1], e[:, 1]), one, accumulate=True); L.index_put_((e[:, 0], e[:, 1]), -one, accumulate=True); L.index_put_((e[:, 1], e[:, 0]), -one, accumulate=True)
+        pd_._L = L
+    return pd_._L
+
+
+def _add_pairs(Hm: torch.Tensor, u: torch.Tensor, v: torch.Tensor, k: torch.Tensor) -> None:
+    Hm.index_put_((u, u), k, accumulate=True); Hm.index_put_((v, v), k, accumulate=True); Hm.index_put_((u, v), -k, accumulate=True); Hm.index_put_((v, u), -k, accumulate=True)
+
+
+def solve(pd_: PropData, rows: Rows, aw: float = 8.0, bad_w: float = 0.1, lam: float = 30.0, rho: float = 0.01, H: torch.Tensor | None = None, pen_total: bool = False,
+          max_iter: int = 40, tol: float = 1e-7) -> torch.Tensor:
+    """Free scores F (M x 4) (residuals R when H, the detached head scores of all M nodes, is given), by damped Newton with the exact (dense, Cholesky) Hessian.  The objective is separable over the four type columns
+    (rows, anchors, bad images, Laplacian and ridge all act column-wise), so each column is a convex problem of size M; the not_apply / bad hinge terms have zero curvature (the Laplacian + ridge keep the Hessian PD)."""
+    M, E = pd_.M, len(pd_.edges); n_cols = len(ACTIVE); X = torch.zeros(M, n_cols, dtype=torch.float64); Hd = None if H is None else H.double()
+    L = _dense_laplacian(pd_); H0 = (2.0 * lam / E) * L + (2.0 * rho / M) * torch.eye(M, dtype=torch.float64)
+    n_pairs = sum(1 for p in pd_.anchor_idx for o in pd_.anchor_idx if o != p)
+    def loss_and_grad(Xv):
+        Z = Xv.clone().requires_grad_(True); S = Z if Hd is None else Hd + Z; l = objective(S, None if Hd is None else Z, pd_, rows, aw, bad_w, lam, rho, pen_total); l.backward(); return float(l), Z.grad.detach()
+    loss, g = loss_and_grad(X)
+    for _ in range(max_iter):
+        if float(g.abs().max()) < tol: break
+        S = X if Hd is None else Hd + X; step = torch.zeros_like(X)
+        for c in range(n_cols):
+            Hm = H0.clone(); f = S[:, c]
+            if rows.n:
+                m = rows.col == c
+                if m.any():
+                    u, v = rows.ia[m], rows.ib[m]; d = f[u] - f[v]; sg = torch.sigmoid(d) * torch.sigmoid(-d)
+                    k = rows.w[m] / rows.n * (sg * (rows.win1[m] + rows.win2[m]) + 1e-4 / (d * d + 1e-4) ** 1.5 * rows.tie[m]); _add_pairs(Hm, u, v, k)
+            if rows.n:   # smoothed not_apply hinge on both images
+                m = rows.col == c
+                if m.any() and bool(rows.na[m].any()):
+                    for side in (rows.ia[m], rows.ib[m]):
+                        x = f[side]; k = rows.w[m] / rows.n * rows.na[m] * BETA * torch.sigmoid(BETA * x) * torch.sigmoid(-BETA * x); Hm.index_put_((side, side), k, accumulate=True)
+            if bad_w > 0 and len(pd_.bad_idx):
+                x = f[pd_.bad_idx] + 1.0; k = bad_w / (len(pd_.bad_idx) * n_cols) * BETA * torch.sigmoid(BETA * x) * torch.sigmoid(-BETA * x); Hm.index_put_((pd_.bad_idx, pd_.bad_idx), k, accumulate=True)
+            if aw > 0 and c in pd_.anchor_idx:
+                ic = pd_.anchor_idx[c]
+                for o, io in pd_.anchor_idx.items():
+                    if o == c: continue
+                    u = ic[:, None].expand(len(ic), len(io)).reshape(-1); v = io[None, :].expand(len(ic), len(io)).reshape(-1); d = f[u] - f[v]
+                    _add_pairs(Hm, u, v, aw / n_pairs / (len(ic) * len(io)) * torch.sigmoid(d) * torch.sigmoid(-d))
+            step[:, c] = -torch.cholesky_solve(g[:, c:c + 1], torch.linalg.cholesky(Hm))[:, 0]
+        t, gs = 1.0, float((g * step).sum())
+        while True:
+            new_loss, new_g = loss_and_grad(X + t * step)
+            if new_loss <= loss + 1e-4 * t * gs or t < 1e-4: break
+            t *= 0.5
+        if loss - new_loss < 1e-12 and t < 1e-4: break
+        X = X + t * step; loss, g = new_loss, new_g
+    return X
 
 
 # ------------------------------------------------------------------------------------------ prediction at non-node images
