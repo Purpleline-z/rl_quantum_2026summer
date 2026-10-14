@@ -1,0 +1,14 @@
+{
+ "blocks": {
+  "dev": [
+   "results/hi/dev"
+  ]
+ },
+ "B": 10000,
+ "B_alt": 4000,
+ "only": [
+  "main",
+  "strata",
+  "extra"
+ ]
+}
