@@ -12,7 +12,7 @@ import numpy as np, pandas as pd, torch
 import nd_core as core, nd_graph_learner as G, nd_graph_mechanism as GM, rt_core as rt
 
 LEARNERS_DEFAULT = "baseline,aw8,aw8_all,aw8_all_st2lr0.5,lap3_k10,lap3_k10_st4,lap3_k10_st4_shuf,lap3_k10_st4_rt13off,gmc_t_no_rt13"
-BLOCKED_DEFAULT = "baseline,aw8_all,aw8_all_st2lr0.5,lap3_k10,lap3_k10_st4,lap3_k10_st4_shuf"
+BLOCKED_DEFAULT = "baseline,aw8_all,aw8_all_st2lr0.5,lap3_k10,lap3_k10_st4,lap3_k10_st4_shuf,gmc_t_no_rt13"
 
 
 def registry():
