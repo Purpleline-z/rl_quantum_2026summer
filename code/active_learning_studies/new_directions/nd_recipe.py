@@ -39,6 +39,7 @@ class Spec:
     mix: float = 0.0; mix_alpha: float = 0.4; cw_pow: float = 1.0
     anchor_form: str = "logistic"; type_lr: tuple = (); betas: tuple = (0.9, 0.999); cosine: bool = False; clip: float | None = 1.0; full_graph: bool = False
     shuffle: bool = False
+    distill: float = 0.0     # weight of the pair-difference distillation of a teacher's node scores (needs ``teacher`` in fit_recipe); 0 = off
 
 
 def make_head(dim: int, seed: int, hidden: int, depth: int, dropout: float) -> nn.Module:
@@ -58,7 +59,7 @@ def _anchor_loss(scores: dict, cols: dict, form: str) -> torch.Tensor:
     return torch.stack(values).mean()
 
 
-def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: int, spec: Spec):
+def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: int, spec: Spec, teacher: torch.Tensor | None = None):
     lr, steps = ctx.params_for(labelled); lr, steps = lr * spec.lr_scale, int(round(steps * spec.steps_scale)); rows = ju_study.rows_of(ctx.exp, labelled)
     head = make_head(dim, seed, spec.hidden, spec.depth, spec.dropout); refs, bad = core.anchors(ctx, featfn, True)
     if len(rows):
@@ -75,6 +76,7 @@ def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: 
     opt = torch.optim.AdamW(params, lr=lr, weight_decay=wd, betas=spec.betas)
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda t: 0.5 * (1 + math.cos(math.pi * t / steps))) if spec.cosine else None
     cols = {c: core.frozen.TYPE_TO_INDEX[c] for c in refs}; gen = torch.Generator().manual_seed(seed * 1000003 + 17); active = list(ACTIVE)
+    gen2 = torch.Generator().manual_seed(seed * 1000033 + 5) if (teacher is not None and spec.distill > 0) else None
     tw = torch.ones(len(ACTIVE)); last = [m for m in head.modules() if isinstance(m, nn.Linear)][-1]
     row_scale = None
     if spec.type_lr:
@@ -111,6 +113,10 @@ def fit_recipe(ctx, labelled, seed: int, gd, featfn, node_x: torch.Tensor, dim: 
             else:
                 e = gd.edges[torch.randint(gd.n_edges, (G.EDGE_BATCH,), generator=gen)]; si, sj = head(node_x[e[:, 0]])[:, active], head(node_x[e[:, 1]])[:, active]
             loss = loss + spec.lap * (((si - sj) ** 2) * tw).sum(1).mean()
+        if gen2 is not None:   # distillation of a teacher's (offset-free) pair differences of node scores: random node pairs + graph edges
+            gi, gj = torch.randint(len(teacher), (G.EDGE_BATCH,), generator=gen2), torch.randint(len(teacher), (G.EDGE_BATCH,), generator=gen2); ee = gd.edges[torch.randint(gd.n_edges, (G.EDGE_BATCH,), generator=gen2)]
+            ii, jj = torch.cat([gi, ee[:, 0]]), torch.cat([gj, ee[:, 1]]); si, sj = head(node_x[ii])[:, active], head(node_x[jj])[:, active]
+            loss = loss + spec.distill * (((si - sj) - (teacher[ii] - teacher[jj])) ** 2).sum(1).mean()
         opt.zero_grad(); loss.backward()
         if spec.clip is not None: torch.nn.utils.clip_grad_norm_(params, spec.clip)
         if row_scale is not None: before = [last.weight.detach().clone(), last.bias.detach().clone()]
