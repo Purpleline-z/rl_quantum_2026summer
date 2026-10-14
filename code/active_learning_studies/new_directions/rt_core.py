@@ -63,3 +63,10 @@ def novelty_table(sim: Sim, ctx, labelled, test, graph_nodes) -> pd.DataFrame:
     for tag, refs in (("train", train), ("node", graph_nodes)):
         na, nb = 1 - sim.max_sim(a, refs), 1 - sim.max_sim(b, refs); out[f"nov_{tag}_min"] = np.minimum(na, nb); out[f"nov_{tag}_max"] = np.maximum(na, nb)
     return pd.DataFrame(out)
+
+
+try:    # anchor-far study learners (branch claude/anchor-far-*): registered after everything above exists (af_learner imports this module)
+    import af_learner as _af
+    REGISTRY.update(_af.LEARNERS)
+except ImportError:
+    pass

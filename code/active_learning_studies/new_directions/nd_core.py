@@ -247,3 +247,9 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+
+# --- anchor-far study (claude/anchor-far-*): development 10800-10819, confirmation 1 = 10830-10864, confirmation 2 = 10865-10899 (10300-11399 are blocks of parallel studies)
+AF_DEV_SEEDS = tuple(range(10800, 10820)); AF_CONFIRM1 = tuple(range(10830, 10865)); AF_CONFIRM2 = tuple(range(10865, 10900)); AF_SEEDS_ALL = set(AF_DEV_SEEDS) | set(AF_CONFIRM1) | set(AF_CONFIRM2)
+assert len(AF_SEEDS_ALL) == 90 and not AF_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AF_SEEDS_ALL
