@@ -81,6 +81,11 @@ assert not CAL_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(CAL_SEEDS_ALL) == 
 assert not CAL_SEEDS_ALL & (set(range(8000, 8200)) | set(range(8400, 8800)) | set(range(8885, 9000)))
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | CAL_SEEDS_ALL
 
+# synthetic-anchor study (branch claude/synthetic-anchors-*): development 11100-11119, confirmation 1 = 11130-11164, confirmation 2 = 11165-11199 (spare 11120-11129, 11200-11299 are this study's own follow-ups only)
+SA_DEV_SEEDS = tuple(range(11100, 11120)); SA_CONFIRM1 = tuple(range(11130, 11165)); SA_CONFIRM2 = tuple(range(11165, 11200)); SA_SEEDS_ALL = set(SA_DEV_SEEDS) | set(SA_CONFIRM1) | set(SA_CONFIRM2)
+assert not SA_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and len(SA_SEEDS_ALL) == 20 + 35 + 35
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | SA_SEEDS_ALL
+
 
 ALL_CACHE = HERE / "results" / "feature_cache_all.pt"
 
