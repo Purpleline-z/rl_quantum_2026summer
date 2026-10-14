@@ -35,6 +35,7 @@ def variants_of(rec, gp_consts=None) -> dict:
             if gp_consts and name in gp_consts:
                 out[name + "|probit+Tgp"] = apply_t(out[name + "|probit"], test, gp_consts[name]); out[name + "|mean+Tfix"] = apply_t(mu, test, gp_consts[name])      # fixed development constants
                 if r.get("oof") is not None: out[name + "|mean+Tprior"] = apply_t(mu, test, C.fit_type_t(r["oof"], 8.0, gp_consts[name]))                       # within-run (cross-fitted) ridge towards the development constants
+    if "lap3_k10_st4+Tcal" in out and "gp_fix3|mean+Tfix" in out: out["E"] = 0.5 * (out["lap3_k10_st4+Tcal"] + out["gp_fix3|mean+Tfix"])      # ensemble E of GP2: mean of the calibrated reference and the calibrated GP C2
     return out
 
 
@@ -204,4 +205,67 @@ if __name__ == "__main__":
                 if comp == c: continue
                 t = paired(ps, c, comp, ("auc", "acc", "ll", "far_auc", "far_ll", "near_auc", "ece"))
                 for _, r in t.iterrows(): rows.append({"candidate": c, "comparator": comp, "split": r.split, **{m: r.get(m, np.nan) for m in ("auc", "acc", "ll", "far_auc", "far_ll", "near_auc", "ece")}, "auc_p": r.get("auc_p", np.nan), "far_auc_p": r.get("far_auc_p", np.nan)})
+        print(md(pd.DataFrame(rows)))
+    if mode == "strata":
+        # AUC inside each anchor-distance bin (1 - cos to the nearest typed anchor of the nearer image: <= 0.001, 0.001-0.01, 0.01-0.03, > 0.03), per-seed means over label sets, paired difference to the reference
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); gc = {nm: {int(k): v for k, v in c.items()} for nm, c in spec["gp_constants"].items() if isinstance(c, dict)}
+        df, bins = frame(cells, gc, draws=spec.get("draws")); names = [spec["reference"], spec["reference_cal"]] + spec["raw_candidates"] + list(spec["cal_candidates"]) + spec.get("controls", [])
+        g = df[df.variant.isin(names)].groupby(["seed", "split", "variant"])[["a1_auc", "a2_auc", "a3_auc", "a4_auc"]].mean().reset_index(); lab = {"a1_auc": "<=0.001", "a2_auc": "0.001-0.01", "a3_auc": "0.01-0.03", "a4_auc": ">0.03"}; rows = []
+        for sp, gg in g.groupby("split"):
+            for v in names:
+                r = {"split": sp, "learner": v}
+                for c in lab:
+                    a = gg[gg.variant == v].set_index("seed")[c]; b = gg[gg.variant == spec["reference"]].set_index("seed")[c]; common = a.index.intersection(b.index); r[lab[c] + " AUC"] = float(a.mean())
+                    if v != spec["reference"]:
+                        d = (a[common] - b[common]).dropna(); r[lab[c] + " diff"] = float(d.mean()) if len(d) else np.nan
+                rows.append(r)
+        print(f"#### AUC by distance to the nearest typed anchor (mean over seeds; `diff` = learner minus `{spec['reference']}`)\n"); print(md(pd.DataFrame(rows), "{:+.4f}"))
+    if mode == "bytype":
+        # accuracy and log-loss per reconstruction type: reference vs candidates (levels, mean over seeds) and paired difference to the reference
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); gc = {nm: {int(k): v for k, v in c.items()} for nm, c in spec["gp_constants"].items() if isinstance(c, dict)}
+        df, bins = frame(cells, gc, draws=spec.get("draws")); ps = per_seed(df, bins); ref = spec["reference"]; names = [ref, spec["reference_cal"]] + spec["raw_candidates"] + list(spec["cal_candidates"]) + spec.get("controls", []); rows = []
+        for sp, g in ps.groupby("split"):
+            for v in names:
+                a = g[g.variant == v].set_index("seed"); b = g[g.variant == ref].set_index("seed")
+                if not len(a): continue
+                r = {"split": sp, "learner": v}
+                for tp in ("t1x1", "tc6x2", "t13", "htr"):
+                    r[f"{tp} acc"] = a[f"{tp}_acc"].mean(); r[f"{tp} ll"] = a[f"{tp}_ll"].mean()
+                    if v != ref: r[f"{tp} dacc"] = float((a[f"{tp}_acc"] - b[f"{tp}_acc"]).mean())
+                rows.append(r)
+        print(f"#### accuracy and log-loss per type (mean over seeds; `dacc` = accuracy minus `{ref}`)\n"); print(md(pd.DataFrame(rows), "{:+.4f}"))
+    if mode == "combo":
+        # EXPLORATORY (not pre-registered): mean of the calibrated GP (C2) and the calibrated reference logits; compared with each of the two
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); gc = {nm: {int(k): v for k, v in c.items()} for nm, c in spec["gp_constants"].items() if isinstance(c, dict)}
+        def vf(rec, _):
+            out = variants_of(rec, gc); a, b = out["lap3_k10_st4+Tcal"], out["gp_fix3|mean+Tfix"]; out["combo: mean(C2, calibrated ref)"] = 0.5 * (a + b); return out
+        rows, bins = [], {}
+        for cell in cells:
+            for (budget, draw), rec in cell["recs"].items():
+                if spec.get("draws") and draw not in spec["draws"]: continue
+                for name, d in vf(rec, None).items():
+                    if name not in ("lap3_k10_st4", "lap3_k10_st4+Tcal", "gp_fix3|mean+Tfix", "combo: mean(C2, calibrated ref)"): continue
+                    sc = scores(d, rec["test"]); b = {k: sc.pop(k) for k in ("bin_w", "bin_conf", "bin_acc")}; rows.append({"seed": cell["seed"], "split": cell["split"], "budget": budget, "draw": draw, "variant": name, **sc})
+                    key = (cell["seed"], cell["split"], name); acc = bins.setdefault(key, [np.zeros(C.N_BINS)] * 3); bins[key] = [x + b[k] for x, k in zip(acc, ("bin_w", "bin_conf", "bin_acc"))]
+        ps = per_seed(pd.DataFrame(rows), bins); print("#### exploratory combination (levels)\n"); print(md(level_table(ps, list(ps.variant.unique())), "{:.4f}"))
+        for comp in ("lap3_k10_st4+Tcal", "gp_fix3|mean+Tfix", "lap3_k10_st4"):
+            t = paired(ps, "combo: mean(C2, calibrated ref)", comp, ("auc", "acc", "ll", "far_auc", "far_ll"))
+            print(f"\ncombination minus `{comp}`:\n"); print(md(t[[c for c in t.columns if c in ("split", "n_seeds", "auc", "auc_p", "acc", "acc_p", "ll", "ll_p", "far_auc", "far_ll")]]))
+
+    if mode == "ensemble":
+        # pre-registered test of GP2: ensemble E = mean(lap3_k10_st4+Tcal, gp_fix3|mean+Tfix) against the calibrated reference (and descriptive comparisons); tests defined in the spec
+        spec = json.loads(Path(sys.argv[2]).read_text()); cells = load_cells(sys.argv[3:]); gc = {nm: {int(k): v for k, v in c.items()} for nm, c in spec["gp_constants"].items() if isinstance(c, dict)}
+        df, bins = frame(cells, gc, draws=spec.get("draws")); ps = per_seed(df, bins); cand, ref = spec["candidate"], spec["against"]; tests = {}; tab = paired(ps, cand, ref)
+        for _, r in tab.iterrows():
+            for m in spec["metrics"]: tests[(r.split, m)] = r[m + "_p"]
+        adj = T.holm(tests); print(f"## {spec['name']}: {ps.seed.nunique()} seeds\n"); print("### levels\n"); print(md(level_table(ps, [spec["reference"], ref, "gp_fix3|mean+Tfix", cand]), "{:.4f}"))
+        print(f"\n### primary tests: `{cand}` minus `{ref}` (Wilcoxon over seeds; Holm over {len(tests)}; positive = better)\n"); rows = []
+        for _, r in tab.iterrows():
+            for m in spec["metrics"]: rows.append({"split": r.split, "metric": m, "gain": r[m], "ci_lo": r[m + "_lo"], "ci_hi": r[m + "_hi"], "share_seeds_better": r[m + "_share+"], "p": r[m + "_p"], "holm_p": adj[(r.split, m)]})
+        print(md(pd.DataFrame(rows))); sp = list(tab.split); pos = all(tab.set_index("split").loc[x, m] > 0 for x in sp for m in spec["metrics"]); sig = sum(adj[(x, m)] < spec["alpha"] and tab.set_index("split").loc[x, m] > 0 for x in sp for m in spec["metrics"])
+        accok = all(tab.set_index("split").loc[x, "acc_lo"] >= -spec["acc_margin"] for x in sp); print(f"\nall gains positive: {pos}; Holm-significant: {sig} of {len(tests)} (need {spec['need_sig']}); accuracy lower CI bound >= -{spec['acc_margin']} in both splits: {accok}; **SUCCESS: {bool(pos and sig >= spec['need_sig'] and accok)}**")
+        print("\n### descriptive: against the other comparators (positive = ensemble better)\n"); rows = []
+        for comp in spec["also"]:
+            t = paired(ps, cand, comp, ("auc", "acc", "ll", "far_auc", "far_ll", "ece"))
+            for _, r in t.iterrows(): rows.append({"comparator": comp, "split": r.split, **{m: r.get(m, np.nan) for m in ("auc", "acc", "ll", "far_auc", "far_ll", "ece")}})
         print(md(pd.DataFrame(rows)))
