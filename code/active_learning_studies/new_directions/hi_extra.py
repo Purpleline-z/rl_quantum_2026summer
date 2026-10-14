@@ -56,7 +56,7 @@ def variance_components(blk: H.Block, cand: str, ref: str, split: str, metric: s
     if len(df) > max_rows: df = df.sample(max_rows, random_state=seed)
     df["one"] = 1; vc = {"unit": "0 + C(unit)", "group": "0 + C(g)", "seed": "0 + C(seed)", "cell": "0 + C(cell)"}
     fit = smf.mixedlm("y ~ 1", df, groups="one", vc_formula=vc, re_formula="0").fit(reml=True, method="lbfgs"); names = list(fit.model.exog_vc.names); v = dict(zip(names, np.asarray(fit.vcomp))); v["residual"] = float(fit.scale); tot = sum(v.values())
-    return {"intercept": float(fit.fe_params["Intercept"]), "n_rows": len(df), **{f"var_{k}": float(x) for k, x in v.items()}, **{f"share_{k}": float(x / tot) for k, x in v.items()}}
+    return {"intercept": float(fit.fe_params["Intercept"]), "n_rows": len(df), "converged": bool(fit.converged), **{f"var_{k}": float(x) for k, x in v.items()}, **{f"share_{k}": float(x / tot) for k, x in v.items()}}
 
 
 def power_table(res: pd.DataFrame, n_groups_total: int = 168) -> pd.DataFrame:
