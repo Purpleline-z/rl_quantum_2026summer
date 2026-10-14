@@ -61,3 +61,16 @@ seed 11354 split B: 164s (54 judgments, 23 groups)
 Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
 Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
 Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+seed 11358 split A: 171s (69 judgments, 31 groups)
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=4.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+seed 11358 split B: 167s (50 judgments, 24 groups)
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=5.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+seed 11362 split A: 174s (68 judgments, 32 groups)
+Excluding 108 Twinned(2 x 1) pairwise rows (include_twinned=False).
+Validated 521 rows / 168 pairs. Pretrain=10, candidate=158, pairwise image overlap=5.
+Loaded SimCLR encoder fully (0 missing, 0 unexpected keys).
+seed 11362 split B: 168s (66 judgments, 27 groups)
