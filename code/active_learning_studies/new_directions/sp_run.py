@@ -8,6 +8,8 @@ Variant kinds (names -> nd_propagate.parse_name):
   <head name>      any learner of nd_graph_learner / nd_recipe (``lap3_k10_st4`` and ``aw8_all_st2lr0.5`` use the cell's cached head fit)
   fs / kn / ls     free scores / nearest-scored-node baseline / label spreading of the anchors (no head)
   hy               hybrid (a): detached head scores H of ``lap3_k10_st4`` + free residual R   (lamr, rhor, penS, kt, tau)
+  rt / bl          per-type fusion: HTR judgments use c*d_free (rt_c2_<fs tokens>) or d_head + w*d_free (bl_w2_<fs tokens>); all other types keep the head
+  st               stacking: d_head + w*d_free with w chosen by in-budget grouped cross-validation (st_<fs tokens>)
   ds               hybrid (b): ``lap3_k10_st4`` head + pair-difference distillation (weight mu) of the free-score model given by the remaining tokens (lam, aw, rho, ...) on unlabelled nodes
 One JSON per (seed, split): {"meta": {anc_min, k, sign, weight}, "records": [...]} exactly as rc_run.py (per-judgment scores ``d`` are stored); resumable.
 """
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import tempfile
 import time
 from dataclasses import replace
@@ -51,7 +54,8 @@ class Cell:
         return self._head
 
     def head_scores(self, feats: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad(): return self.head()[0](feats)[:, list(P.ACTIVE)]
+        head = self.head()[0]
+        with torch.no_grad(): return head(feats)[:, list(P.ACTIVE)]
 
     def teacher(self, name_tokens: str):
         if name_tokens not in self._fs:
@@ -95,6 +99,10 @@ def predict(cell: Cell, name: str, registry: dict) -> np.ndarray:
         cache = ctx.features.cache; f = lambda paths: torch.stack([cache[str(x)] for x in paths]).float()
         offset = (cell.head_scores(f(test.img1)), cell.head_scores(f(test.img2)))
         return P.predict_d(pd_, test, R_, int(p["kt"]), p["tau"], offset=offset)
+    if kind in ("rt", "bl"):   # per-type fusion: HTR judgments (type index 4) use c * d_free (route) or d_head + w * d_free (blend); every other type keeps the head's score
+        pr = P.parse_name(name); rest = "_".join(t for t in name.split("_")[1:] if not re.match(r"^[cw][0-9.]+$", t)); head, featfn = cell.head(); dh = core.head_d(head, featfn, test)
+        df = P.fit_variant(ctx, labelled, "fs_" + rest)(test); htr = test.k == 4
+        return np.where(htr, pr["c"] * df, dh) if kind == "rt" else dh + np.where(htr, pr["w"] * df, 0.0)
     if kind == "st":
         tokens = name[3:]; w = stack_weight(cell, tokens); cell.extra[name] = {"stack_w": w}; head, featfn = cell.head()
         return core.head_d(head, featfn, test) + w * P.fit_variant(ctx, labelled, "fs_" + tokens)(test)
