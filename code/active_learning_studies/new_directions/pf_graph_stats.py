@@ -14,7 +14,9 @@ def stats(ctx, graph: str, base_gd, sim):
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(); ap.add_argument("--seed", type=int, default=10600); args = ap.parse_args(); cache = core.feature_cache()
+    ap = argparse.ArgumentParser(); ap.add_argument("--seed", type=int, default=10600); ap.add_argument("--out", default=None); args = ap.parse_args(); cache = core.feature_cache()
     with tempfile.TemporaryDirectory() as s:
         ctx = core.make_ctx(args.seed, "A", s, cache); base = G.graph_for(ctx, 10); import pandas as pd
-        rows = [stats(ctx, g, base, None) for g in ("s4", "pfa", "pfb", "pfc", "pfas", "rpp")]; df = pd.DataFrame(rows); print(df.round(3).to_string(index=False))
+        rows = [stats(ctx, g, base, None) for g in ("s4", "pfa2", "pfb2", "pfc2", "pfa2s", "pfc2s", "rpp")]; df = pd.DataFrame(rows)
+        md = ["| " + " | ".join(df.columns) + " |", "|" + "---|" * len(df.columns)] + ["| " + " | ".join(f"{v:.3f}" if isinstance(v, float) else str(v) for v in r) + " |" for r in df.itertuples(index=False)]; print("\n".join(md))
+        if args.out: open(args.out, "w").write("\n".join(md) + "\n")
