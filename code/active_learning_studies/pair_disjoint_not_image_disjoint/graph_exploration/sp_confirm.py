@@ -58,6 +58,23 @@ def verdicts(tab: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+BINS = ((-1, 9, "all judgments"), (-1, 0.001, "near (<=0.001)"), (0.001, 0.03, "0.001-0.03"), (0.03, 9, "far (>0.03)"))
+
+
+def interpolation_share(dfd: pd.DataFrame, ref: str, ctl: str, fs: str) -> pd.DataFrame:
+    """How much of the head's gain over the tuned graph-free head does the pure non-parametric model recover?  share = (fs - ctl) / (ref - ctl) in AUC (ratio of the seed means of the gains over the reference), bootstrap over seeds."""
+    rows = []
+    for split in ("A", "B"):
+        for lo, hi, name in BINS:
+            a = T.strata_gain(dfd, ctl, ref, split, lo, hi, "auc"); b = T.strata_gain(dfd, fs, ref, split, lo, hi, "auc"); both = pd.concat([a, b], axis=1, keys=["ctl", "fs"]).dropna()
+            if len(both) < 5: continue
+            x = both.to_numpy(); full = (x[:, 1].mean() - x[:, 0].mean()) / (-x[:, 0].mean()); rng = np.random.default_rng(0); idx = rng.integers(0, len(x), (2000, len(x)))
+            bs = (x[idx, 1].mean(1) - x[idx, 0].mean(1)) / (-x[idx, 0].mean(1))
+            rows.append({"split": split, "stratum": name, "n_seeds": len(x), "head - graph-free (AUC)": -x[:, 0].mean(), "head - free scores (AUC)": -x[:, 1].mean(), "share of the head's gain recovered by free scores": full,
+                         "lo": float(np.percentile(bs, 2.5)), "hi": float(np.percentile(bs, 97.5))})
+    return pd.DataFrame(rows)
+
+
 def run(spec: dict, dirs, blocked=None, cold=None) -> str:
     ref, cands, controls = spec["reference"], spec["candidates"], spec.get("controls", []); df = T.load(dirs); out = []
     out.append("Seeds per learner/split:\n\n" + T.md(df.groupby(["learner", "split"]).agg(seeds=("seed", "nunique"), cells=("auc", "size")).reset_index(), fmt=".0f") + "\n")
@@ -74,6 +91,8 @@ def run(spec: dict, dirs, blocked=None, cold=None) -> str:
     out.append("### Per-type effects (gain over the reference per type, uncorrected, descriptive)\n\n" + T.md(T.types_table(df, ref, cands)) + "\n")
     dfd = T.load(dirs, keep_d=True)
     out.append("### Anchor strata (AUC and accuracy gain by the distance of the nearer test image to the nearest typed anchor; descriptive)\n\n" + T.md(T.strata_table(dfd, ref, cands + [c for c in controls if c != ref])) + "\n")
+    ctl = next((c for c in controls if c.startswith("aw8_all")), None); fsn = next((c for c in cands if c.startswith("fs_")), None)
+    if ctl and fsn: out.append("### How much of the head's gain over the tuned graph-free head is interpolation? (AUC, by anchor stratum; ratio of means, bootstrap over seeds; unstable where the denominator is near 0)\n\n" + T.md(interpolation_share(dfd, ref, ctl, fsn)) + "\n")
     if blocked:
         db = T.load(blocked); tb = family(db, ref, cands, ("auc", "acc"), splits=("blocked",)); out.append(f"### Family `blocked` (time-blocked split, secondary, Holm over {len(tb)})\n\n{T.md(tb)}\n")
         if controls: out.append("Controls on the blocked split:\n\n" + T.md(family(db, ref, controls, ("auc", "acc"), splits=("blocked",))) + "\n")
