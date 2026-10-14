@@ -28,10 +28,10 @@ LATTICES = {"1x1": [((1, 0), (0, 1))], "c6x2": [((3, 1), (3, -1))], "RT13": [((3
 TYPES = ("1x1", "c6x2", "RT13", "HTR")
 
 
-def rods(typ: str, rng, azimuth_deg: float, gmax: float = 7.0, super_weight=None, domain_alpha: float = 1.0):
+def rods(typ: str, rng, azimuth_deg: float, gmax: float = 7.0, super_weight=None, domain_alpha: float = 1.0, sup_scale: float = 1.0):
     """List of (Gx, Gy, weight) of the visible rods in the beam frame (x along the beam, y lateral)."""
     out = []; phi = np.deg2rad(azimuth_deg)
-    sw = super_weight if super_weight is not None else {"1x1": 0.0, "c6x2": rng.uniform(0.04, 0.4), "RT13": rng.uniform(0.03, 0.35), "HTR": rng.uniform(0.0, 0.2)}[typ]
+    sw = sup_scale * (super_weight if super_weight is not None else {"1x1": 0.0, "c6x2": rng.uniform(0.04, 0.4), "RT13": rng.uniform(0.03, 0.35), "HTR": rng.uniform(0.0, 0.2)}[typ])
     sets = []
     for S in LATTICES[typ]:
         Sm = np.array(S, float); B = 2 * np.pi / A_LATTICE * np.linalg.inv(Sm).T
@@ -55,6 +55,9 @@ def rods(typ: str, rng, azimuth_deg: float, gmax: float = 7.0, super_weight=None
     return [(gx, gy, w) for (gx, gy), w in seen.items() if w > 1e-3]
 
 
+TUNE = {"sy": 1.0, "sx": 1.0, "sup": 1.0, "spec": 1.0, "gain": 1.0, "bg": 1.0, "blur": 1.0, "kik": 1.0, "noise": 1.0, "rodw": 1.0}   # calibration multipliers (syn_calibrate.py)
+
+
 def sample_params(rng, typ: str, style: str = "traj") -> dict:
     """Domain-randomised parameters; ``style``: 'traj' (trajectory-frame crop: shadow region dark, no direct beam) or 'ideal' (uncropped, direct beam + halo visible)."""
     p = dict(typ=typ, style=style)
@@ -65,6 +68,7 @@ def sample_params(rng, typ: str, style: str = "traj") -> dict:
     p["spec"] = rng.uniform(0.5, 4.0); p["spec_px"] = rng.uniform(4.0, 8.0); p["kikuchi"] = rng.uniform(0.0, 0.07) * (3.0 if typ == "HTR" else 1.0); p["kik_slope"] = rng.uniform(0.5, 1.1)
     p["noise_read"] = rng.uniform(0.5, 2.5); p["shot"] = rng.uniform(0.02, 0.12); p["dx"] = rng.normal(0, 3.0); p["dy"] = rng.normal(0, 3.0); p["sheen"] = rng.uniform(0.0, 0.4)
     p["rod_mod"] = rng.uniform(0.0, 0.3); p["rod_mod_phase"] = rng.uniform(0, 2 * np.pi)
+    p["sig_y_px"] *= TUNE["sy"]; p["sig_x"] *= TUNE["sx"]; p["gain"] *= TUNE["gain"]; p["bg"] *= TUNE["bg"]; p["blur"] *= TUNE["blur"]; p["spec"] *= TUNE["spec"]; p["kikuchi"] *= TUNE["kik"]; p["noise_read"] *= TUNE["noise"]; p["sup_scale"] = TUNE["sup"]; p["rod_scale"] = TUNE["rodw"]
     return p
 
 
@@ -81,9 +85,9 @@ def render(p: dict, rng, half: bool = True) -> np.ndarray:
     sy = p["sig_y_px"] * K0 / L_PX; sx = p["sig_x"]
     I = np.zeros((H, W), np.float32)
     dKz = kfz + K0 * np.sin(th)
-    for gx, gy, w in rods(p["typ"], rng, p["azimuth"], super_weight=p["super_weight"], domain_alpha=p["domain_alpha"]):
+    for gx, gy, w in rods(p["typ"], rng, p["azimuth"], super_weight=p["super_weight"], domain_alpha=p["domain_alpha"], sup_scale=p.get("sup_scale", 1.0)):
         if gx - 4 * sx > dKx.max() or gx + 4 * sx < dKx.min(): continue
-        I += (w * np.exp(-0.5 * ((dKx - gx) / sx) ** 2 - 0.5 * ((dKy - gy) / sy) ** 2)).astype(np.float32)
+        I += (w * p.get("rod_scale", 1.0) * np.exp(-0.5 * ((dKx - gx) / sx) ** 2 - 0.5 * ((dKy - gy) / sy) ** 2)).astype(np.float32)
     I *= (1 + p["rod_mod"] * np.cos(dKz * A_LATTICE * 1.0 + p["rod_mod_phase"])).astype(np.float32) / (1 + p["rod_mod"])      # 3-D modulation along the rods (spots along the streaks)
     I *= np.clip(Z / 12.0, 0, 1) ** 1.5                                             # shadow edge: the sample blocks everything below the horizon (screen: above the edge)
     zs = (L_PX * np.tan(th)); spec = p["spec"] * np.exp(-0.5 * ((Y / p["spec_px"]) ** 2 + ((Z - zs) / (p["spec_px"] * 1.4)) ** 2))

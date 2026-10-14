@@ -35,7 +35,7 @@ def load_bank(tag: str) -> dict:
 @lru_cache(maxsize=1)
 def ideal_fixed() -> dict:
     import syn_ideal_fix
-    d = syn_ideal_fix.load(); return {"paths": d["paths"], "fix16": d["fix16"], "mask": d["mask"], "index": {p: i for i, p in enumerate(d["paths"])}}
+    d = syn_ideal_fix.load(); return {"paths": d["paths"], "fix16": d["fix16"], "mask": d["mask"], "mask_keep16": d["mask_keep16"], "index": {p: i for i, p in enumerate(d["paths"])}}
 
 
 def patched_cache(ctx, variant: str) -> dict:
@@ -49,14 +49,14 @@ def patched_cache(ctx, variant: str) -> dict:
     return store[key]
 
 
-def graph_for(ctx, variant, syn_nodes):
+def graph_for(ctx, variant, syn_nodes, shuf=False):
     """GraphData of the context (features of the ideal images possibly replaced) + optional synthetic nodes; returns (gd, node_x, edges)."""
-    store = ctx.__dict__.setdefault("_syn", {}); key = ("graph", variant, None if syn_nodes is None else (syn_nodes["bank"], tuple(syn_nodes["types"]), syn_nodes["nodes"]))
+    store = ctx.__dict__.setdefault("_syn", {}); key = ("graph", variant, shuf, None if syn_nodes is None else (syn_nodes["bank"], tuple(syn_nodes["types"]), syn_nodes["nodes"]))
     if key in store: return store[key]
-    if variant is None: gd = G.graph_for(ctx, 10, False)
+    if variant is None: gd = G.graph_for(ctx, 10, shuf)
     else:
         old = ctx.features.cache; ctx.features.cache = patched_cache(ctx, variant)
-        try: gd = G.GraphData(ctx, 10)
+        try: gd = G.GraphData(ctx, 10, shuffle=ctx.seed if shuf else None)
         finally: ctx.features.cache = old
     node_x, edges = gd.x, gd.edges
     if syn_nodes is not None:
@@ -79,12 +79,13 @@ def _anchor_loss_w(scores, cols, weights):
 
 
 def make_spec(name, **kw):
-    s = dict(name=name, ideal=None, syn=None, lam=3.0, steps=4.0); s.update(kw); return s
+    s = dict(name=name, ideal=None, ideal_graph="same", shuf_graph=False, extra=None, syn=None, lam=3.0, steps=4.0); s.update(kw); return s
 
 
 def fit_syn(ctx, labelled, seed, spec):
     syn = spec["syn"]; variant = spec["ideal"]; syn_nodes = {"bank": syn["bank"], "types": syn["types"], "nodes": syn["nodes"]} if syn and syn.get("nodes", 0) else None
-    gd, node_x, edges = graph_for(ctx, variant, syn_nodes); dim = node_x.shape[1]; aw = 8.0
+    gvar = variant if spec["ideal_graph"] == "same" else spec["ideal_graph"]
+    gd, node_x, edges = graph_for(ctx, gvar, syn_nodes, spec.get("shuf_graph", False)); dim = node_x.shape[1]; aw = 8.0
     old = ctx.features.cache
     if variant is not None: ctx.features.cache = patched_cache(ctx, variant)
     try:
@@ -97,7 +98,11 @@ def fit_syn(ctx, labelled, seed, spec):
     finally: ctx.features.cache = old
     cols = {c: core.frozen.TYPE_TO_INDEX[c] for c in refs}; head.eval(); opt = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=ctx.exp.cfg.weight_decay); index = torch.arange(len(typ)); masks = {l: torch.as_tensor(winner == l) for l in core.frozen.LABELS}
     gen = torch.Generator().manual_seed(seed * 1000003 + 17); gens = torch.Generator().manual_seed(seed * 1000003 + 41)
-    pools = {}; wsyn = {}
+    pools = {}; wsyn = {}; extra_fixed = {}
+    if spec["extra"]:   # additional anchors = the SAME real ideal images with other preprocessing (e.g. direct beam masked), all used every step with total weight share/(1-share) of the real anchors of the class
+        fx = ideal_fixed(); var = spec["extra"]["variant"]; ex_share = spec["extra"]["share"]
+        for c, ps in [(c, list(ctx.exp.references.get(c, [])) + list(ctx.exp.utility_images.get(c, [])) + list(ctx.exp.test_images.get(c, []))) for c in refs]:
+            extra_fixed[c] = (torch.stack([fx[var][fx["index"][str(p)]] for p in ps]).float(), (ex_share / (1 - ex_share)) * 1.0)
     if syn:
         bank = load_bank(syn["bank"]); typs = np.array(bank["typ"]); sty = np.array(bank["style"]); labels = typs.copy()
         if syn.get("style"): keep = sty == syn["style"]
@@ -112,13 +117,14 @@ def fit_syn(ctx, labelled, seed, spec):
     for _ in range(steps):
         loss = G._bt_terms(head(xa)[index, typ], head(xb)[index, typ], masks, weight) / max(len(typ), 1)
         if len(refs) > 1:
-            if not pools: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
+            if not pools and not extra_fixed: loss = loss + aw * G._anchor_loss({n: head(f) for n, f in refs.items()}, cols, None)
             else:
                 scores, ws = {}, {}
                 for n, f in refs.items():
+                    w = torch.ones(len(f))
+                    if n in extra_fixed: f = torch.cat([f, extra_fixed[n][0]]); w = torch.cat([w, torch.full((len(extra_fixed[n][0]),), extra_fixed[n][1])])
                     if n in pools:
-                        pick = torch.randint(len(pools[n]), (per,), generator=gens); f = torch.cat([f, pools[n][pick]]); w = torch.cat([torch.ones(len(refs[n])), torch.full((per,), wsyn[n])])
-                    else: w = torch.ones(len(f))
+                        pick = torch.randint(len(pools[n]), (per,), generator=gens); f = torch.cat([f, pools[n][pick]]); w = torch.cat([w, torch.full((per,), wsyn[n])])
                     scores[n], ws[n] = head(f), w
                 loss = loss + aw * _anchor_loss_w(scores, cols, ws)
         if bad is not None and len(bad): loss = loss + ctx.exp.cfg.bad_anchor_weight * F.relu(head(bad) + 1.0).mean()
@@ -143,3 +149,8 @@ def register(name, **kw):
 
 register("sy_base_check")                       # == lap3_k10_st4
 register("sy_fix16", ideal="fix16"); register("sy_mask", ideal="mask")
+register("sy_mask_shuf", ideal="mask", shuf_graph=True)                      # control: same masked features, graph node identities permuted
+register("sy_mask16", ideal="mask_keep16")                                   # direct beam masked in the 8-bit ideal images, the 16-bit PNGs keep their loader features
+register("sy_maskanc", ideal="mask", ideal_graph=None)                       # masked ideal images as ANCHORS only (graph nodes keep the loader features)
+register("sy_both50", extra=dict(variant="mask", share=0.5))                 # original anchors + masked copies of the same ideal images (weight share 0.5)
+register("sy_both33", extra=dict(variant="mask", share=1 / 3))

@@ -8,6 +8,7 @@ Findings behind it (script-generated table: ``python3 syn_ideal_fix.py --report`
 Variants of the ideal-image features (path -> 512-d feature), cached in results/syn/ideal_fixed.pt:
   fix16      16-bit PNGs rescaled by 255/65535 instead of clipped (the other images unchanged)
   mask       fix16 + rows above the shadow edge (135/492 of the height) set to 0 in EVERY ideal image
+  mask_keep16  rows above the shadow edge set to 0 in the 8-bit ideal images; the 16-bit PNGs keep their loader (clipped) features
 """
 import argparse, sys
 from pathlib import Path
@@ -33,6 +34,7 @@ def build():
         if name == "fix16":   # only the 16-bit files change
             keep = torch.stack([cache[p].float() for p in paths]); is16 = torch.tensor([Image.open(p).mode.startswith("I;16") for p in paths]); feats = torch.where(is16[:, None], feats, keep)
         out[name] = feats
+    keep = torch.stack([cache[p].float() for p in paths]); is16 = torch.tensor([Image.open(p).mode.startswith("I;16") for p in paths]); out["mask_keep16"] = torch.where(is16[:, None], keep, out["mask"])
     OUT.mkdir(parents=True, exist_ok=True); torch.save(out, FILE); return out
 
 
