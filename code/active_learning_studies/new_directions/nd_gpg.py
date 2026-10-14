@@ -239,6 +239,26 @@ def fit_gpg(ctx, labelled, seed: int, cfg: dict | None = None, geo: Geometry | N
             scores = {key: cv_loss(key, a0) for key in grid}; key = min(scores, key=scores.get); info["config"] = key
             ampscore = {a: cv_loss(key, a) for a in cfg["amps"]}; a = min(ampscore, key=ampscore.get); info["amp"] = a; info["crit"] = ampscore[a]
             per_type = {kk: _fit_type(geo, obs, kk, *key, a, Ktilde=kt[key]) for kk in ACTIVE}
+        elif sel == "cv_type":        # per-type kernel shape and amplitude by grouped 3-fold CV of the type's own decisive log-loss (optional ridge of log amplitude towards cfg['amp_prior'][type])
+            folds = grouped_folds(obs.rows, 3, seed); best = {}; prior = cfg.get("amp_prior"); rho = cfg.get("amp_rho", 0.0)
+            for key in grid:
+                Kt = kt.setdefault(key, geo.ktilde(None, None, *key, xa=obs.x, xb=obs.x))
+                for a in cfg["amps"]:
+                    losses = {kk: [] for kk in ACTIVE}
+                    for fo in range(3):
+                        train = folds != fo
+                        if train.sum() < 5 or (~train).sum() == 0: continue
+                        for kk in ACTIVE:
+                            F = {kk: _fit_type(geo, obs, kk, *key, a, mask=train, Ktilde=Kt)["f"]}; v = obs.decisive_ll(F, (~train) & (obs.k == kk))
+                            if not np.isnan(v): losses[kk].append(v)
+                    for kk in ACTIVE:
+                        sc = float(np.mean(losses[kk])) if losses[kk] else np.inf
+                        if prior is not None and np.isfinite(sc): sc += rho * (math.log(a) - math.log(prior[kk])) ** 2
+                        if kk not in best or sc < best[kk][0]: best[kk] = (sc, key, a)
+            for kk in ACTIVE:
+                if not np.isfinite(best[kk][0]): best[kk] = (np.inf, grid[0], cfg["amps"][len(cfg["amps"]) // 2])
+                per_type[kk] = _fit_type(geo, obs, kk, *best[kk][1], best[kk][2], Ktilde=kt.get(best[kk][1]))
+            info["config"] = {kk: (best[kk][1], best[kk][2]) for kk in ACTIVE}
         else: raise ValueError(sel)
     info["seconds"] = time.monotonic() - t0; info["m"] = obs.m
     return GPModel(geo, obs, cfg, per_type, info)
@@ -248,3 +268,15 @@ def geometry_for(ctx, shuffle: bool = False, k: int = 10) -> Geometry:
     cached = ctx.__dict__.setdefault("_gp_geo", {}); key = (shuffle, k)
     if key not in cached: cached[key] = Geometry(ctx, k, shuffle)
     return cached[key]
+
+
+def gp_oof(model: GPModel, seed: int, k_folds: int = 5) -> dict:
+    """Out-of-fold logit gaps of the labelled judgments (folds by pair group; the fitted hyperparameters of ``model`` are kept fixed, anchors / bad images stay in every fold), in the layout of the
+    calibration study (``d``, ``outcome`` 1 / -1 / 0 / 9, ``weight``, ``k``) so that its calibrators can be applied unchanged."""
+    obs = model.obs; folds = grouped_folds(obs.rows, k_folds, seed); n = len(obs.k); d = np.full(n, np.nan)
+    for fo in range(k_folds):
+        train = folds != fo
+        if train.sum() < 3 or (~train).sum() == 0: continue
+        for kk in ACTIVE:
+            st = model.per_type[kk]; A = st["amp"] * st["Ktilde"]; _, f, _, _, _ = solve_laplace(A, obs.terms(kk, train)); m = np.flatnonzero((~train) & (obs.k == kk)); d[m] = (f[torch.as_tensor(obs.ia[m])] - f[torch.as_tensor(obs.ib[m])]).numpy()
+    code = {"1": 1, "2": -1, "tie": 0}; return {"d": d, "outcome": np.array([code.get(w, 9) for w in obs.win]), "weight": obs.w.copy(), "k": obs.k.copy(), "fold": folds}

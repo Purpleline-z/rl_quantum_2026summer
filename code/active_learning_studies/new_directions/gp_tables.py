@@ -32,7 +32,9 @@ def variants_of(rec, gp_consts=None) -> dict:
             out[name] = mu; out[name + "+Tcal"] = apply_t(mu, test, CAL_CONSTANTS)
         else:
             var = np.asarray(r["var"], float); out[name + "|mean"] = mu; out[name + "|probit"] = mu / np.sqrt(1 + np.pi * var / 8)
-            if gp_consts and name in gp_consts: out[name + "|probit+Tgp"] = apply_t(out[name + "|probit"], test, gp_consts[name])
+            if gp_consts and name in gp_consts:
+                out[name + "|probit+Tgp"] = apply_t(out[name + "|probit"], test, gp_consts[name]); out[name + "|mean+Tfix"] = apply_t(mu, test, gp_consts[name])      # fixed development constants
+                if r.get("oof") is not None: out[name + "|mean+Tprior"] = apply_t(mu, test, C.fit_type_t(r["oof"], 8.0, gp_consts[name]))                       # within-run (cross-fitted) ridge towards the development constants
     return out
 
 
@@ -106,6 +108,15 @@ def fit_gp_constants(cells, names):
     return out
 
 
+def fit_gp_oof_constants(cells, names):
+    """Per-type temperatures of the GP mean logits from the OUT-OF-FOLD logits of the labelled judgments of the given (development) cells; labelled judgments only, no test label."""
+    out = {}
+    for nm in names:
+        recs = [{"oof": r["learners"][nm]["oof"]} for c in cells for r in c["recs"].values() if nm in r["learners"] and r["learners"][nm].get("oof") is not None]
+        if recs: out[nm] = C.fit_prior(recs)
+    return out
+
+
 def md(df, fmt="{:+.4f}"): return T.to_md(df, fmt)
 
 
@@ -135,3 +146,25 @@ if __name__ == "__main__":
         print(f"#### predictive sd by distance to the nearest typed anchor ({nm}; pooled judgments of all label sets)\n"); print(md(pd.DataFrame(out), "{:.4f}"))
         print("\nSpearman correlation of the predictive sd with the distance: anchor %.3f, nearest labelled image %.3f, graph density %.3f" % tuple(float(spearmanr(d.sd, d[c]).correlation) for c in ("anc", "lab", "dens")))
         print("Spearman correlation of the sd with the absolute error-free margin |z|: %.3f; with the log-loss of the mean score: %.3f" % (float(spearmanr(d.sd, np.abs(d.z)).correlation), float(spearmanr(d.sd, np.logaddexp(0, -d.z)).correlation)))
+    if mode == "grid":
+        # fixed-hyperparameter grids on the development seeds: raw metrics and metrics after per-type temperatures fitted (test-oracle, diagnostic) on the same cells
+        dirs = sys.argv[2:]; rows = []
+        for d in dirs:
+            cells = load_cells([d]); tag = Path(d).name; keys = list(cells[0]["recs"][next(iter(cells[0]["recs"]))]["grid"].keys())
+            for key in keys:
+                Dd = {k: [] for k in C.TYPE_NAME}; Ss = {k: [] for k in C.TYPE_NAME}; Ww = {k: [] for k in C.TYPE_NAME}
+                for c in cells:
+                    for rec in c["recs"].values():
+                        t = rec["test"]; mu = np.asarray(rec["grid"][key][0], float)
+                        for kk in C.TYPE_NAME: m = t["k"] == kk; Dd[kk].append(mu[m]); Ss[kk].append(t["sign"][m]); Ww[kk].append(t["weight"][m])
+                consts = {}
+                for kk in C.TYPE_NAME:
+                    dd, ss, ww = (np.concatenate(x[kk]) for x in (Dd, Ss, Ww)); v = [C._wll(dd, ss, ww, np.exp(lt)) for lt in C.LOG_T_GRID]; consts[kk] = float(np.exp(C.LOG_T_GRID[int(np.argmin(v))]))
+                raw, cal = [], []
+                for c in cells:
+                    for rec in c["recs"].values():
+                        t = rec["test"]; mu = np.asarray(rec["grid"][key][0], float); s = scores(mu, t); s2 = scores(apply_t(mu, t, consts), t)
+                        raw.append((s["auc"], s["acc"], s["ll"], s["far_auc"], s["ece"] if "ece" in s else np.nan)); cal.append((s2["auc"], s2["ll"], s2["far_auc"]))
+                r, q = np.nanmean(np.array(raw), 0), np.nanmean(np.array(cal), 0)
+                rows.append({"grid": tag, "setting (kind, c, beta, amp)": str(key), "auc": r[0], "acc": r[1], "ll": r[2], "far_auc": r[3], "auc_Tcal": q[0], "ll_Tcal": q[1], "far_auc_Tcal": q[2], **{f"T{k}": consts[k] for k in consts}})
+        df = pd.DataFrame(rows).sort_values(OPTS.get("sort", "auc"), ascending=False); print(md(df.head(int(OPTS.get("top", 15))), "{:.4f}"))

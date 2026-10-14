@@ -8,7 +8,7 @@ learners, logit gap for MLP learners), the fit time and the geometry features of
 import argparse, tempfile, time, os
 from pathlib import Path
 import numpy as np, torch
-import nd_core as core, nd_graph_learner as G, nd_calibration as C, nd_gpg as P, rt_core as rt
+import nd_core as core, nd_graph_learner as G, nd_calibration as C, nd_gpg as P, rt_core as rt, rt_blocked as rb
 
 GP_SPECS = {}
 for _sel in ("fixed", "ev", "evc", "cv"):
@@ -24,38 +24,49 @@ GP_SPECS["gp_evt"] = dict(cfg=dict(select="evidence", per_type_config=True, cs=(
 GP_SPECS["gp_evct"] = dict(cfg=dict(select="evidence_cond", per_type_config=True, cs=(0.1, 0.15, 0.25, 0.4, 0.7), betas=(0.0, 0.03, 0.1, 0.3, 1.0, 3.0), amps=(0.1, 0.3, 1.0, 3.0, 10.0, 30.0)), shuffle=False)
 
 
+_FIX2 = dict(select="fixed", c=0.25, beta=0.1, amp={0: 0.5, 2: 1.0, 3: 3.0, 4: 3.0})        # best fixed setting of the development grids (hand-set analogue of lambda / k / steps)
+GP_SPECS["gp_fix2"] = dict(cfg=_FIX2, shuffle=False)
+GP_SPECS["gp_fix2_noG"] = dict(cfg={**_FIX2, "beta": 0.0}, shuffle=False)
+GP_SPECS["gp_fix2_shuf"] = dict(cfg=_FIX2, shuffle=True)
+_CVT = dict(select="cv_type", cs=(0.15, 0.25, 0.4), betas=(0.03, 0.1, 0.3), amps=(0.3, 1.0, 3.0, 10.0))
+GP_SPECS["gp_cvt"] = dict(cfg=_CVT, shuffle=False)
+GP_SPECS["gp_cvt_p"] = dict(cfg={**_CVT, "amp_prior": {0: 0.5, 2: 1.0, 3: 3.0, 4: 3.0}, "amp_rho": 0.05}, shuffle=False)
+
+
 def seeds_of(text):
     if "-" in text: lo, hi = text.split("-"); return list(range(int(lo), int(hi) + 1))
     return [int(x) for x in text.split(",")]
 
 
-def run_learner(name, ctx, labelled, seed0, test, geos):
+def run_learner(name, ctx, labelled, seed0, test, geos, oof=False):
     t0 = time.monotonic()
     if name in GP_SPECS:
         spec = GP_SPECS[name]; geo = geos(spec["shuffle"]); model = P.fit_gpg(ctx, labelled, seed0, dict(spec["cfg"]), geo=geo); fit_s = time.monotonic() - t0; pr = model.predict(test)
         info = {k: v for k, v in model.info.items() if k != "seconds"}; info["fit_seconds"] = fit_s; info["amp"] = {k: v["amp"] for k, v in model.per_type.items()}
-        return {"mu": pr["mu"].astype(np.float32), "var": pr["var"].astype(np.float32), "seconds": time.monotonic() - t0, "info": info}
+        out = {"mu": pr["mu"].astype(np.float32), "var": pr["var"].astype(np.float32), "seconds": time.monotonic() - t0, "info": info}
+        if oof: out["oof"] = P.gp_oof(model, seed0)
+        return out
     d = np.asarray(G.LEARNERS[name](ctx, labelled, seed0)(test), dtype=np.float32); return {"mu": d, "var": None, "seconds": time.monotonic() - t0, "info": {}}
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--seeds", required=True); ap.add_argument("--splits", default="A,B"); ap.add_argument("--out", type=Path, required=True); ap.add_argument("--shard", default="0/1")
     ap.add_argument("--learners", required=True); ap.add_argument("--budgets", default="10,20,40,60"); ap.add_argument("--draws", type=int, default=1); ap.add_argument("--draw0", type=int, default=0)
-    ap.add_argument("--initial", default="groups"); args = ap.parse_args(); torch.set_num_threads(1); os.environ["ND_INITIAL"] = args.initial
+    ap.add_argument("--initial", default="groups"); ap.add_argument("--oof", action="store_true"); ap.add_argument("--blocked", action="store_true"); args = ap.parse_args(); torch.set_num_threads(1); os.environ["ND_INITIAL"] = args.initial
     names = args.learners.split(","); budgets = [int(b) for b in args.budgets.split(",")]; shard, n = (int(x) for x in args.shard.split("/")); args.out.mkdir(parents=True, exist_ok=True)
     cache = core.feature_cache(); sim = rt.Sim(cache)
     with tempfile.TemporaryDirectory() as scratch:
         for seed in [s for i, s in enumerate(seeds_of(args.seeds)) if i % n == shard]:
-            for split in args.splits.split(","):
+            for split in (["blocked"] if args.blocked else args.splits.split(",")):
                 target = args.out / f"seed{seed}_{split}.pkl.gz"
                 if target.exists(): continue
-                t0 = time.monotonic(); ctx = core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); gd = G.graph_for(ctx, 10, False); anchors = C.anchor_paths(ctx); recs = {}
+                t0 = time.monotonic(); ctx = rb.make_blocked_ctx(seed, scratch, cache) if args.blocked else core.make_ctx(seed, split, scratch, cache); test = core.TestSet(ctx); gd = G.graph_for(ctx, 10, False); anchors = C.anchor_paths(ctx); recs = {}
                 geos = lambda shuf, ctx=ctx: P.geometry_for(ctx, shuf)
                 for budget in budgets:
                     for draw in range(args.draw0, args.draw0 + args.draws):
                         labelled = core.random_labelled(ctx, budget, draw); seed0 = seed * 7 + draw
                         geom = C.geometry(sim, gd, cache, anchors, test.img1, test.img2, {x for j in labelled for x in (ctx.info[j]["img1"], ctx.info[j]["img2"])})
-                        recs[(budget, draw)] = {"n_labelled": len(labelled), "test": C.test_arrays(test, geom), "learners": {nm: run_learner(nm, ctx, labelled, seed0, test, geos) for nm in names}}
+                        recs[(budget, draw)] = {"n_labelled": len(labelled), "test": C.test_arrays(test, geom), "learners": {nm: run_learner(nm, ctx, labelled, seed0, test, geos, args.oof) for nm in names}}
                 C.save_cell(target, {"seed": seed, "split": split, "initial": args.initial, "learners": names, "recs": recs}); print(f"seed {seed} split {split}: {time.monotonic() - t0:.0f}s", flush=True)
 
 
