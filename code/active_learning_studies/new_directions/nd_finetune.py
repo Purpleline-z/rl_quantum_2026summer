@@ -110,10 +110,10 @@ def knn_edges(feats: torch.Tensor, k: int = 10) -> tuple[torch.Tensor, torch.Ten
 class Spec:
     steps: int = 40                 # stage-2 mini-batch steps
     enc_lr: float = 3e-5            # Adam lr of the trained layer-4 parameters (0 = frozen-encoder control)
-    head_lr_mult: float = 1.0       # stage-2 head lr relative to the per-budget schedule lr
+    head_lr_mult: float = 0.2       # stage-2 head lr relative to the per-budget schedule lr
     last_block_only: bool = False   # train only layer4[1] (block 2 of layer 4)
     sp: float = 1.0                 # L2-SP coefficient (sum of squared parameter drift)
-    aug: bool = True                # feature-map augmentation of every image of the step
+    aug: bool = False               # feature-map augmentation of every image of the step
     graph: str = "frozen"           # 'frozen' (kNN graph of the cached features) | 'current' (rebuilt from the current embedding every `rebuild` steps) | 'shuf' (shuffled frozen graph control)
     rebuild: int = 20
     lap: float = 3.0; aw: float = 8.0; pair_w: float = 1.0; cons: float = 0.0   # loss weights (pair_w = 0: anchor-only fine-tuning; cons = consistency across two augmentations of the graph-batch nodes)

@@ -30,7 +30,7 @@ def dev_view(df: pd.DataFrame, ref: str, learners=None) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__); ap.add_argument("mode", choices=["dev"]); ap.add_argument("dirs", nargs="+"); ap.add_argument("--ref", default="lap3_k10_st4"); ap.add_argument("--learners"); ap.add_argument("--out", type=Path)
-    a = ap.parse_args(); df = T.load([str((T.NEW / d) if not Path(d).exists() else d) for d in a.dirs]); text = T.md(dev_view(df, a.ref, a.learners.split(",") if a.learners else None))
+    a = ap.parse_args(); df = T.load([str((T.NEW / "results" / "ft" / d) if not Path(d).exists() else d) for d in a.dirs]); text = T.md(dev_view(df, a.ref, a.learners.split(",") if a.learners else None))
     if a.out: a.out.write_text(text + "\n")
     else: print(text)
 
