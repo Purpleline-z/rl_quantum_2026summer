@@ -9,7 +9,7 @@ stage() {  # OUT SEEDS DRAWS [extra args]
   for i in 0 1 2 3; do python3 hi_run.py --seeds "$SEEDS" --out "$OUT" --draws "$DRAWS" --shard $i/4 "$@" >> "$OUT.log.$i" 2>&1 & done
   wait; echo "$(date +%T) done $OUT"
 }
-while pgrep -f "hi_run.py --seeds 11300-11319 --out results/hi/dev " >/dev/null; do sleep 20; done
+while pgrep -f "^python3 hi_run.py --seeds 11300-11319 --out results/hi/dev " >/dev/null; do sleep 20; done
 stage results/hi/dev 11300-11319 3            # no-op when finished; completes any missing cell after a restart
 stage results/hi/conf1 11330-11364 2 --learners $LEARN
 stage results/hi/conf2 11365-11399 2 --learners $LEARN
