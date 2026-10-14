@@ -52,7 +52,7 @@ def verdict(cdir, adir):
         ctl = T.table(df, None, None, [c], CONTROL[c]); ctl_pos = all(ctl[m].gt(0).all() for m in ("auc", "acc")) and len(ctl) == 2
         extra = {x: (lambda tt: all(tt[m].gt(0).all() for m in ("auc", "acc")))(T.table(df, None, None, [c], x)) for x in EXTRA.get(c, [])}
         a = std_pos and std_n >= 3; b = far_pos; cc = ctl_pos and all(extra.values())
-        rows.append({"cand": c, "(a) std: 4 gains > 0": "yes" if std_pos else "no", "std Holm<0.05 (of 4)": std_n, "(b) far: 4 gains > 0": "yes" if far_pos else "no", "far Holm<0.05 (of 4)": far_n, f"(c) beats prior-only control {CONTROL[c]} (4 gains > 0)": "yes" if ctl_pos else "no",
+        rows.append({"cand": c, "(a) std: 4 gains > 0": "yes" if std_pos else "no", "std Holm<0.05 (of 4)": std_n, "(b) far: 4 gains > 0": "yes" if far_pos else "no", "far Holm<0.05 (of 4)": far_n, "prior-only control": CONTROL[c], "(c) beats it (4 gains > 0)": "yes" if ctl_pos else "no",
                      "other controls": ", ".join(f"{k}: {'yes' if v else 'no'}" for k, v in extra.items()) or "-", "success (a and b and c)": "YES" if (a and b and cc) else "no"})
     return t, rows
 
