@@ -54,9 +54,10 @@ def holm(ps: list[float]) -> list[float]:
 
 
 def compare(d: pd.DataFrame, base: str, cands: list[str]) -> pd.DataFrame:
-    b = per_seed(d, base); rows = []
+    rows = []
     for c in cands:
-        x = per_seed(d, c); m = b.merge(x, on=["seed", "split"], suffixes=("_b", "_c"))
+        keys = d[d.learner == c][["seed", "split", "budget", "draw"]].drop_duplicates(); dd = d.merge(keys, on=["seed", "split", "budget", "draw"])   # compare on the (budget, draw) cells both learners have
+        b = per_seed(dd, base); x = per_seed(dd, c); m = b.merge(x, on=["seed", "split"], suffixes=("_b", "_c"))
         for split, g in m.groupby("split"):
             rec = {"cand": c, "split": split, "n_seeds": g.seed.nunique()}
             for metric, sgn in (("acc_HTR", 1), ("ll_HTR", -1), ("acc_1x1", 1), ("acc_c6x2", 1), ("acc_RT13", 1), ("auc_all", 1), ("acc_all", 1), ("ll_all", -1)):
