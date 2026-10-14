@@ -247,3 +247,8 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# ------------------------------------------------------------------------------------------ physics-features study (branch claude/physics-features-*): own seed block, separate lines
+PF_DEV_SEEDS = tuple(range(10600, 10620)); PF_CONFIRM1 = tuple(range(10630, 10665)); PF_CONFIRM2 = tuple(range(10665, 10700)); PF_SEEDS_ALL = set(PF_DEV_SEEDS) | set(PF_CONFIRM1) | set(PF_CONFIRM2)
+assert len(PF_SEEDS_ALL) == 20 + 35 + 35 and not PF_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not (set(PF_CONFIRM1) & set(PF_CONFIRM2)) and not (set(PF_DEV_SEEDS) & (set(PF_CONFIRM1) | set(PF_CONFIRM2)))
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | PF_SEEDS_ALL
