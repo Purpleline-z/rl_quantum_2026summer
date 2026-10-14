@@ -1,0 +1,4 @@
+{"reference": "lap3_k10_st4",
+ "candidates": ["rt_c2_lam10_rho0.001", "fs_lam10", "hy_lamr10_rhor0.1", "ds_mu0.03_lam10"],
+ "controls": ["aw8_all_st2lr0.5", "rt_c2_lam10_rho0.001_sh1", "rt_c2_lam0", "fs_lam10_sh1", "fs_lam0", "kn", "ls", "hy_lamr10_rhor0.1_sh1", "ds_mu0.03_lam10_sh1"],
+ "seeds_conf1": "11230-11264", "seeds_conf2": "11265-11299", "splits": ["A", "B"], "draws": 3, "budgets": [10, 20, 40, 60]}
