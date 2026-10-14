@@ -58,10 +58,11 @@ def table(name: str) -> str:
         df = T.load(dd); spl = ("blocked",) if name == "dev_blocked" else ("A", "B"); tab = sp_confirm.family(df, REF, [l for l in sorted(df.learner.unique()) if l != REF], ("auc", "acc", "ll", "far_auc", "far_acc", "htr_acc"), splits=spl)
         return T.md(tab.drop(columns=["holm"], errors="ignore"))
     if name in ("confirm1", "confirm2"):
-        if SPEC is None: return "(confirmation not yet run)"
-        key = "conf1" if name == "confirm1" else "conf2"; dirs = d(key, f"{key}_ctl"); blocked = d(f"{key}_blocked"); cold = d(f"{key}_cold")
+        key = "conf1" if name == "confirm1" else "conf2"; spec_file = HERE / ("SP1_spec.json" if key == "conf1" else "SP1b_spec.json")
+        if not spec_file.exists(): return "(confirmation not yet run)"
+        dirs = d(key, f"{key}_ctl"); blocked = d(f"{key}_blocked"); cold = d(f"{key}_cold")
         if not dirs: return "(not run)"
-        return sp_confirm.run(SPEC, dirs, blocked or None, cold or None)
+        return sp_confirm.run(json.loads(spec_file.read_text()), dirs, blocked or None, cold or None)
     raise KeyError(name)
 
 
