@@ -247,3 +247,9 @@ AE_DEV_SEEDS = tuple(range(8700, 8720)); AE_CONFIRM1 = tuple(range(8750, 8785));
 RESERVED_FOR_PARALLEL_STUDIES = set(range(8000, 8200)) | set(range(8400, 8600)) | (set(range(8600, 9000)) - AE_SEEDS_ALL)
 assert not AE_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not AE_SEEDS_ALL & RESERVED_FOR_PARALLEL_STUDIES and len(AE_SEEDS_ALL) == 20 + 35
 USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | AE_SEEDS_ALL
+
+# ------------------------------------------------------------------------------------------ graph-GP study (branch claude/graph-gp-*): development 11000-11019, confirmation 1 = 11030-11064, confirmation 2 = 11065-11099
+GP_DEV_SEEDS = tuple(range(11000, 11020)); GP_CONFIRM1 = tuple(range(11030, 11065)); GP_CONFIRM2 = tuple(range(11065, 11100)); GP_SEEDS_ALL = set(GP_DEV_SEEDS) | set(GP_CONFIRM1) | set(GP_CONFIRM2)
+assert len(GP_SEEDS_ALL) == 20 + 35 + 35 and not GP_SEEDS_ALL & USED_SEEDS_BY_EARLIER_WORK and not set(GP_CONFIRM1) & set(GP_CONFIRM2) and not set(GP_DEV_SEEDS) & (set(GP_CONFIRM1) | set(GP_CONFIRM2))
+assert min(GP_SEEDS_ALL) >= 11000
+USED_SEEDS_BY_EARLIER_WORK = USED_SEEDS_BY_EARLIER_WORK | GP_SEEDS_ALL
