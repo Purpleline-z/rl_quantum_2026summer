@@ -25,7 +25,7 @@ def holm(p) -> np.ndarray:
 
 
 def md(df: pd.DataFrame, fmt: str = ".4f") -> str:
-    cols = list(df.columns); lines = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
+    df = df.rename(columns=str); cols = list(df.columns); lines = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     for _, r in df.iterrows(): lines.append("| " + " | ".join((f"{v:{fmt}}" if isinstance(v, (float, np.floating)) and not np.isnan(v) else ("" if isinstance(v, float) else str(v))) for v in r) + " |")
     return "\n".join(lines)
 
