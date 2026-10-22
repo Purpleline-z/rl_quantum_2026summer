@@ -12,8 +12,9 @@ import time
 import pandas as pd
 import torch
 
-import judgment_unit_study as ju_study
 import v1a_core as V
+
+ju_study = V.ju_study
 
 OUT = V.HERE / "results" / "by_seed"; FROZEN = V.HERE / "frozen_setting.json"
 NAMES = [f"random_r{r}" if r else "random" for r in range(V.RANDOM_REPLICATES)] + [r for r in V.RULES if r != "random"]
