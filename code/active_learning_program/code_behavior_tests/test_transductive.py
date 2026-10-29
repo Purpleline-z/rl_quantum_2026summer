@@ -65,3 +65,15 @@ def test_window_nodes_nesting_and_targeted_shuffle_keeps_degrees():
         idx = np.array([gd.index[p] for p in td.heldout_paths(ctx) if p in gd.index]); rest = np.setdiff1d(np.arange(len(gd.paths)), idx)
         assert np.array_equal(np.sort(gd.adj.sum(1).numpy()[idx]), np.sort(sh.adj.sum(1).numpy()[idx])) and np.array_equal(gd.adj.sum(1).numpy()[rest], sh.adj.sum(1).numpy()[rest])
         assert not torch.equal(gd.adj, sh.adj)
+
+
+def test_weighted_auc_matches_sklearn_and_holm():
+    sys.path.insert(0, str(NEW.parent / "pair_disjoint_not_image_disjoint" / "graph_exploration"))
+    import td_tables as T
+    from sklearn.metrics import roc_auc_score
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        n = 60; score = np.round(rng.normal(size=n), 1); pos = (rng.random(n) < .5).astype(float); w = rng.integers(0, 4, n).astype(float)
+        if w[pos > 0].sum() == 0 or w[pos == 0].sum() == 0: continue
+        assert abs(T.wauc(score, pos, w) - roc_auc_score(pos, score, sample_weight=w)) < 1e-12              # ties and integer weights (bootstrap multiplicities)
+    adj = T.holm({"a": 0.01, "b": 0.04, "c": 0.03}); assert adj == {"a": 0.03, "b": 0.06, "c": 0.06}
