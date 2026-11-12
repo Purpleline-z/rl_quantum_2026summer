@@ -51,7 +51,7 @@ try:
          "--drive-results-root", drive_results_root / run_name, "--repository-root", repository_root,
          "--run-name", run_name], cwd=repository_root)
     run(["git", "config", "user.name", "Purpleline-z"], cwd=repository_root)
-    run(["git", "config", "user.email", "purpleline@uchicago.edu"], cwd=repository_root)
+    run(["git", "config", "user.email", "YOUR_EMAIL@example.com"], cwd=repository_root)
     run(["git", "add", "paper_replicate/README.md", f"paper_replicate/results/{run_name}"], cwd=repository_root)
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=repository_root).returncode:
         run(["git", "commit", "-m", "Add five-fold unseen-image RHEED classifier results"], cwd=repository_root)

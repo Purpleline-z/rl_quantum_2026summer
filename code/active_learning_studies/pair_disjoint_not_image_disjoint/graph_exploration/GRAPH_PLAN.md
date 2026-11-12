@@ -1,6 +1,6 @@
 # Graph idea for active selection: prompt and to-do list (branch `claude/graph-active-selection`)
 
-Branched from `claude/judgment-unit-rerun` (which contains all of `claude/frozen-encoder-strategies`). Read `SESSION_CONTEXT_FOR_NEXT_CLAUDE.md` at the repository root first.
+Branched from `claude/judgment-unit-rerun` (which contains all of `claude/frozen-encoder-strategies`).
 The user (PhD student, writes Chinese, wants plain language, hedged and honest reporting, no unexplained jargon) wants to know whether a graph over images can improve
 which (pair, type) judgments to label next. Nothing here is merged to `main`; no PR.
 

@@ -112,7 +112,7 @@ RESULT_DESTINATION='code/active_learning_studies/pair_disjoint_not_image_disjoin
 
 !git add "$RESULT_DESTINATION"
 !git config user.name "Purpleline-z"
-!git config user.email "purpleline@uchicago.edu"
+!git config user.email "YOUR_EMAIL@example.com"
 !git commit -m "Add account 1 fixed epoch single-shot results"
 ```
 

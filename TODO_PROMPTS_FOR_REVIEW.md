@@ -1,6 +1,6 @@
 # 给教授的四项承诺 —— 我自己的待办提示清单(待你审核,审核前不执行)
 
-来源:你两周前(0922 slide)的 Quick list、`SESSION_CONTEXT_FOR_NEXT_CLAUDE.md`(分支 `claude/judgment-unit-rerun` 上最新版)、
+来源:你两周前(0922 slide)的 Quick list、
 你暑假的 presentation(0617 / 0709 / 0720 / 0805 / 0922 几页)、以及我刚看过的代码和数据目录。
 
 优先级按你说的:**① 基线(最重要)> ② 改进选择算法 > ③ 配对图 > ④ 元数据融合(卡在数据上)**。
